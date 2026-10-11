@@ -18,10 +18,9 @@ inline void addAll(Inventory& inv, std::initializer_list<std::string_view> ids, 
 }
 
 // Distinct non-stackable fillers: ten different ids occupy all ten slots.
-inline constexpr std::string_view kFillers[] = {"topaz",       "gold_leaf",   "frozen_tears",
-                                                "broken_staff", "pure_ice",    "turtle_shell",
-                                                "gold_dust",    "fire_dust",   "black_pearl",
-                                                "broken_compass", "iron_sword", "steel_shield"};
+inline constexpr std::string_view kFillers[] = {
+    "topaz",     "gold_leaf", "frozen_tears", "broken_staff",   "pure_ice",   "turtle_shell",
+    "gold_dust", "fire_dust", "black_pearl",  "broken_compass", "iron_sword", "steel_shield"};
 
 inline void fillWithout(Inventory& inv, std::string_view skip, int slots) {
     for (std::string_view id : kFillers) {

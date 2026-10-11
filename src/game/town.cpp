@@ -321,8 +321,8 @@ std::expected<void, TownError> openBank(GameState& state) {
 namespace {
 
 // Moves `qty` of `id` from one inventory to the other, or fails leaving both untouched.
-std::expected<void, TownError> transfer(Inventory& from, Inventory& to, std::string_view id, int qty,
-                                    TownError destinationFull) {
+std::expected<void, TownError> transfer(Inventory& from, Inventory& to, std::string_view id,
+                                        int qty, TownError destinationFull) {
     if (qty < 1)
         return fail(TownError::InvalidQuantity);
     if (from.count(id) < qty)

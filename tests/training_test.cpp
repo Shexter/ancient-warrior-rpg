@@ -58,8 +58,12 @@ TEST(Training, MonsterVector) {
 }
 
 TEST(Training, MonsterNameTiers) {
-    for (const auto& [level, name] : {std::pair{1, "Fox"}, {9, "Fox"}, {10, "Bat"}, {20, "Horse"},
-                                      {29, "Horse"}, {30, "Bull"}}) {
+    for (const auto& [level, name] : {std::pair{1, "Fox"},
+                                      {9, "Fox"},
+                                      {10, "Bat"},
+                                      {20, "Horse"},
+                                      {29, "Horse"},
+                                      {30, "Bull"}}) {
         Rng rng = Rng::stream(1, 0);
         EXPECT_EQ(rollTrainingMonster(rng, level).name, name) << level;
     }
