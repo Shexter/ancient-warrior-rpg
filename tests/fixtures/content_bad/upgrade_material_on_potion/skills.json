@@ -1,0 +1,84 @@
+{
+  "skills": [
+    {
+      "id": "angel_wings",
+      "name": "Angel WINGS",
+      "description": "Greater Healing",
+      "mpCost": 10,
+      "learnLevel": 5,
+      "goldCost": 1000,
+      "keyItem": "topaz",
+      "effect": {
+        "healToFull": true
+      }
+    },
+    {
+      "id": "meteor_fist",
+      "name": "Meteor FIST",
+      "description": "Greater Damage",
+      "mpCost": 25,
+      "learnLevel": 5,
+      "goldCost": 5000,
+      "keyItem": "gold_leaf",
+      "effect": {
+        "atkMultiplier": 2
+      }
+    },
+    {
+      "id": "golden_bell",
+      "name": "Golden BELL",
+      "description": "Greater Armor",
+      "mpCost": 25,
+      "learnLevel": 10,
+      "goldCost": 10000,
+      "keyItem": "frozen_tears",
+      "effect": {
+        "atkMultiplier": 1,
+        "healPercentOfDamage": 50,
+        "selfStatuses": [
+          {
+            "id": "reflect",
+            "turns": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "frozen_throne",
+      "name": "FROZEN Throne",
+      "description": "Deep Freeze and Lower Defense",
+      "mpCost": 40,
+      "learnLevel": 15,
+      "goldCost": 20000,
+      "keyItem": "broken_staff",
+      "effect": {
+        "atkMultiplier": 1,
+        "targetStatuses": [
+          {
+            "id": "stun",
+            "turns": 3
+          },
+          {
+            "id": "defense_down",
+            "turns": 3
+          }
+        ],
+        "requiresTargetNotStunned": true
+      }
+    },
+    {
+      "id": "supernova",
+      "name": "SUPERNOVA",
+      "description": "Ultimate Destruction and Armor Destroyer",
+      "mpCost": 50,
+      "learnLevel": 20,
+      "goldCost": 50000,
+      "keyItem": "pure_ice",
+      "effect": {
+        "atkMultiplier": 5,
+        "ignoreDef": true,
+        "halveTargetHpFirst": true
+      }
+    }
+  ]
+}

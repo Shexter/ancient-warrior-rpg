@@ -1,0 +1,19 @@
+{
+  "enemies": [
+    {
+      "id": "medusa",
+      "name": "Medusa",
+      "sprite": "medusa.sprite",
+      "maxHp": 3000,
+      "atk": 250,
+      "def": 20,
+      "life": 10,
+      "behavior": "medusa_pattern",
+      "rewardExp": 10000,
+      "rewardGold": 25000,
+      "rewardItems": [
+        "thors_hammer"
+      ]
+    }
+  ]
+}

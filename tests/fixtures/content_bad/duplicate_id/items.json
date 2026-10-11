@@ -1,0 +1,238 @@
+{
+  "items": [
+    {
+      "id": "iron_sword",
+      "name": "Iron Sword",
+      "description": "Sharp and Light Sword",
+      "kind": "weapon",
+      "bonus": {
+        "atk": 50,
+        "def": 0,
+        "life": 0
+      },
+      "price": 1000,
+      "auctionValue": 0,
+      "dropRate": 30,
+      "upgradeMaterial": "fire_dust"
+    },
+    {
+      "id": "fire_claymore",
+      "name": "Fire Claymore",
+      "description": "Fiery Great Weapon",
+      "kind": "weapon",
+      "bonus": {
+        "atk": 1000,
+        "def": 100,
+        "life": 100
+      },
+      "price": 10000,
+      "auctionValue": 0,
+      "dropRate": 0,
+      "upgradeMaterial": "fire_dust"
+    },
+    {
+      "id": "thors_hammer",
+      "name": "Thor's Hammer",
+      "description": "Hammer of Thunder god",
+      "kind": "weapon",
+      "bonus": {
+        "atk": 700,
+        "def": 400,
+        "life": 0
+      },
+      "price": 0,
+      "auctionValue": 30000,
+      "dropRate": 0,
+      "upgradeMaterial": "fire_dust"
+    },
+    {
+      "id": "steel_shield",
+      "name": "Steel Shield",
+      "description": "Thick Shield",
+      "kind": "armor",
+      "bonus": {
+        "atk": 0,
+        "def": 20,
+        "life": 0
+      },
+      "price": 1000,
+      "auctionValue": 0,
+      "dropRate": 25,
+      "upgradeMaterial": "turtle_shell"
+    },
+    {
+      "id": "diamond_plate",
+      "name": "Diamond Plate",
+      "description": "Shiny and Pure Plate",
+      "kind": "armor",
+      "bonus": {
+        "atk": 0,
+        "def": 200,
+        "life": 100
+      },
+      "price": 5000,
+      "auctionValue": 0,
+      "dropRate": 0,
+      "upgradeMaterial": "turtle_shell"
+    },
+    {
+      "id": "peace_maker",
+      "name": "Peace Maker",
+      "description": "Incredible Destructive Artifact",
+      "kind": "armor",
+      "bonus": {
+        "atk": 1000,
+        "def": 1000,
+        "life": 100
+      },
+      "price": 20000,
+      "auctionValue": 0,
+      "dropRate": 0,
+      "upgradeMaterial": "turtle_shell"
+    },
+    {
+      "id": "topaz",
+      "name": "Topaz",
+      "description": "Hard Solid Gemstone",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 500,
+      "dropRate": 40
+    },
+    {
+      "id": "gold_leaf",
+      "name": "Gold Leaf",
+      "description": "Leaf from OtherWorld",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 1500,
+      "dropRate": 15
+    },
+    {
+      "id": "frozen_tears",
+      "name": "Frozen Tears",
+      "description": "Tears of Snow Queen",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 1500,
+      "dropRate": 15
+    },
+    {
+      "id": "broken_staff",
+      "name": "Broken Staff",
+      "description": "Piece of Magical Wood",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 3000,
+      "dropRate": 7
+    },
+    {
+      "id": "pure_ice",
+      "name": "Pure Ice",
+      "description": "Frozen white Rock",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 3000,
+      "dropRate": 7
+    },
+    {
+      "id": "fire_dust",
+      "name": "Fire Dust",
+      "description": "Flaming Dust",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 1000,
+      "dropRate": 10
+    },
+    {
+      "id": "turtle_shell",
+      "name": "Turtle Shell",
+      "description": "Ancient sea creature",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 2000,
+      "dropRate": 5
+    },
+    {
+      "id": "gold_dust",
+      "name": "Gold Dust",
+      "description": "Sprinkle of Magic",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 1000,
+      "dropRate": 10
+    },
+    {
+      "id": "black_pearl",
+      "name": "Black Pearl",
+      "description": "Dark Sphere of the Deep",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 2000,
+      "dropRate": 5
+    },
+    {
+      "id": "broken_compass",
+      "name": "Broken Compass",
+      "description": "Magical Compass",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 2500,
+      "dropRate": 4
+    },
+    {
+      "id": "phoenix_feather",
+      "name": "Phoenix Feather",
+      "description": "Ancient Fiery Bird",
+      "kind": "material",
+      "price": 0,
+      "auctionValue": 3000,
+      "dropRate": 3
+    },
+    {
+      "id": "health_potion",
+      "name": "Health Potion",
+      "description": "Restore Health",
+      "kind": "consumable",
+      "price": 1000,
+      "auctionValue": 0,
+      "dropRate": 50,
+      "consumable": {
+        "restoreHp": 100
+      }
+    },
+    {
+      "id": "mana_potion",
+      "name": "Mana Potion",
+      "description": "Restore Mana",
+      "kind": "consumable",
+      "price": 1000,
+      "auctionValue": 0,
+      "dropRate": 50,
+      "consumable": {
+        "restoreMp": 10
+      }
+    },
+    {
+      "id": "eternal_youth",
+      "name": "Eternal Youth",
+      "description": "Rebirth your Soul",
+      "kind": "consumable",
+      "price": 0,
+      "auctionValue": 0,
+      "dropRate": 25,
+      "consumable": {
+        "fullRestore": true
+      }
+    },
+    {
+      "id": "topaz",
+      "name": "Topaz",
+      "description": "Hard Solid Gemstone",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 500,
+      "dropRate": 40
+    }
+  ]
+}

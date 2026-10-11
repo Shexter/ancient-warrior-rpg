@@ -1,0 +1,16 @@
+{
+  "missions": [
+    {
+      "id": "the_gorgon",
+      "name": "Mission ONE: \"The Gorgon\"",
+      "location": "MEDUSA LAIR",
+      "enemy": "medusa",
+      "minLevel": 20,
+      "repeatable": false,
+      "story": [
+        "Bring me the head of Medusa...",
+        "...and such artifact never been seen will be yours!"
+      ]
+    }
+  ]
+}

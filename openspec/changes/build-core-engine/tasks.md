@@ -20,11 +20,11 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 3. Game Content
 
-- [ ] 3.1 Implement `src/game/content.hpp` types and `Content` lookups per §5
-- [ ] 3.2 Write `data/paths.json`, `items.json`, `skills.json`, `enemies.json`, `missions.json`, `recipes.json`, `story.json` transcribing `content-tables.md` exactly (item order as in the table); add a placeholder `assets/sprites/medusa.sprite` (any valid 2×2 sprite) so the sprite reference validates
-- [ ] 3.3 Implement `src/game/content_loader.{hpp,cpp}` with every validation rule in §5, collecting all errors; verify `tests/content_test.cpp`: shipped data loads; Fighter stats are 350/50/50/5/0; `iron_sword` atk is 50; item count is 20; drop candidates number 16
-- [ ] 3.4 Add `tests/fixtures/content_bad/<case>/` directories (one per validation rule, each a full copy of `data/` with one defect) and `tests/content_validation_test.cpp` asserting each produces an error naming the expected file and entry; include a two-defect case asserting both errors are reported
-- [ ] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Implement `src/game/content.hpp` types and `Content` lookups per §5
+- [x] 3.2 Write `data/paths.json`, `items.json`, `skills.json`, `enemies.json`, `missions.json`, `recipes.json`, `story.json` transcribing `content-tables.md` exactly (item order as in the table); add a placeholder `assets/sprites/medusa.sprite` (any valid 2×2 sprite) so the sprite reference validates
+- [x] 3.3 Implement `src/game/content_loader.{hpp,cpp}` with every validation rule in §5, collecting all errors; verify `tests/content_test.cpp`: shipped data loads; Fighter stats are 350/50/50/5/0; `iron_sword` atk is 50; item count is 20; drop candidates number 16
+- [x] 3.4 Add `tests/fixtures/content_bad/<case>/` directories (one per validation rule, each a full copy of `data/` with one defect) and `tests/content_validation_test.cpp` asserting each produces an error naming the expected file and entry; include a two-defect case asserting both errors are reported
+- [x] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Combat Engine (headless)
 

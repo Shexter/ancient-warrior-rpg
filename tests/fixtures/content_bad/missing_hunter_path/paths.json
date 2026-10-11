@@ -1,0 +1,26 @@
+{
+  "paths": [
+    {
+      "id": "fighter",
+      "name": "Fighter",
+      "flavor": "blessed with the Strongest Fist",
+      "multiplier": 1,
+      "maxHp": 350,
+      "maxMp": 50,
+      "atk": 50,
+      "def": 5,
+      "life": 0
+    },
+    {
+      "id": "rogue",
+      "name": "Rogue",
+      "flavor": "a Balance Mind",
+      "multiplier": 3,
+      "maxHp": 100,
+      "maxMp": 200,
+      "atk": 175,
+      "def": 25,
+      "life": 10
+    }
+  ]
+}
