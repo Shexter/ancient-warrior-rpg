@@ -103,9 +103,11 @@ TEST(Battle, SameSeedAndActionsGiveSameEvents) {
     auto run = [] {
         Battle battle = makeBattle(strongHero(), {}, 77);
         std::vector<std::string> lines;
-        while (!battle.over())
-            for (const Event& e : *battle.act(Attack{}))
+        while (!battle.over()) {
+            const auto events = *battle.act(Attack{});
+            for (const Event& e : events)
                 lines.push_back(toString(e));
+        }
         return lines;
     };
     EXPECT_EQ(run(), run());
