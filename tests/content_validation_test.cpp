@@ -72,7 +72,7 @@ INSTANTIATE_TEST_SUITE_P(
         BadCase{"consumable_on_weapon", "items.json", "iron_sword", "only for consumables"},
         BadCase{"consumable_missing", "items.json", "mana_potion", "need 'consumable'"},
         BadCase{"missing_hunter_path", "paths.json", "", "missing required path 'hunter'"}),
-    [](const testing::TestParamInfo<BadCase>& info) { return std::string(info.param.dir); });
+    [](const testing::TestParamInfo<BadCase>& param) { return std::string(param.param.dir); });
 
 TEST(ContentValidationMulti, TwoDefectsAreBothReported) {
     auto loaded = loadContent(fixture("two_defects"));
