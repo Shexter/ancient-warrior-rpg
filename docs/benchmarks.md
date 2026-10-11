@@ -24,7 +24,7 @@ wall: 0.034 s  throughput: 2915052 battles/s
 
 Note: a starting Fighter with the `attack` policy loses every battle in about 1.7 turns, so these runs are short battles. Longer builds (more HP, skills) will give lower battles/s.
 
-## Terminal output: diff vs full redraw (chunks 8-9 demo)
+## Terminal output: diff vs full redraw (chunks 8-9 demo, removed in task 10.1)
 
 `heroes --demo-stats` renders the demo headlessly for 120 frames (80x24, truecolor) and compares the bytes written per frame by the diff renderer against a renderer that redraws everything every frame (a fresh `Renderer` each frame). The demo shows the 24x24 Fighter sprite and a moving 12x3 box.
 
