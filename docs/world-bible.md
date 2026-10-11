@@ -1,0 +1,181 @@
+# World Bible — DRAFT
+
+Status: **proposal, not approved.** Nothing here is implemented or in OpenSpec. The core engine (`build-core-engine`) keeps its current names and the Medusa mission until this is approved and turned into its own OpenSpec change (see §10).
+
+Every Latin term is a first-pass suggestion and needs a Latin check before it ships. Items marked **[open]** need the author's decision.
+
+---
+
+## 1. Premise
+
+*Civitas Lucis*, the City of Light, is a cathedral-city that has stood for a thousand years. Something is breaking in over its walls: the sins of the world, grown strong enough to take shape as demons. The Order of Light sends out knights to fight them.
+
+You play one of the Order's newest members. The fighting is real, but the story is about what the fighting costs and what it is for. Strength comes from discipline, from grace, and from the people around you. It does not come from levels.
+
+This matches a rule already in the engine: **leveling does not raise stats**. Power comes from equipment, upgrades, and Charisma. In this world that reads as *"you do not grow by experience alone, but by what you are given and what you choose to carry."*
+
+## 2. Three acts, three settings
+
+The game's three mission slots become three acts. The core engine ships Act I only. Acts II and III are later data-only additions (new missions, enemies, story text, and Lua mods).
+
+| Act | Setting | Feel | Shipped by |
+|---|---|---|---|
+| I | **Civitas Lucis**: the cathedral-city under siege | Busy, communal, urgent. This is the Hub. | the core re-skin |
+| II | **Via Peregrinorum**: the pilgrim road | Episodic. One stop, one temptation, one boss. | later change |
+| III | **Monasterium Ultimum**: the monastery at the edge of the world | Quiet, austere, reflective. The final area. | later change |
+
+The arc is **defense, then journey, then arrival**: first you defend your home, then you leave it and are tested, and finally you reach a place of silence and face the root of everything.
+
+### Act I: Civitas Lucis (the Hub)
+
+| Engine feature | In the world |
+|---|---|
+| Hub | The cathedral square |
+| Training (caves 1–30) | The catacombs and the surrounding countryside, deeper levels being older and darker |
+| Merchant | The Almonry. It sells simple goods and buys relics for the poor. |
+| Blacksmith | The Forge of the Order, run with a chaplain who blesses each piece |
+| Guildmaster | The Prior of the Order. He gives skills and revives the fallen. |
+| Bank | The Church's treasury (*Thesaurus*). Gold deposited here is safe. |
+| Save | Keeping a *Liber Vitae*, the book of the hero's deeds |
+
+### Act II: Via Peregrinorum
+
+A road of seven stops, one per sin. Each stop is a small place with its own demon, and each is a temptation as much as a fight. The fights are short and the story beats between them carry the weight.
+
+### Act III: Monasterium Ultimum
+
+A fortress of silent monks where the road ends. The player arrives changed, and the final boss is the root sin, **Superbia**.
+
+## 3. Hero paths
+
+Same stats as `content-tables.md`. Only names and flavor change. IDs stay `fighter`, `hunter`, `rogue`.
+
+| id | Name | Latin | Flavor |
+|---|---|---|---|
+| `fighter` | Knight | *Miles* | A knight of the Order, blessed with the Strongest Fist |
+| `hunter` | Hunter | *Venator* | A ranger who tracks the demon-touched, a body strong as rock |
+| `rogue` | Pilgrim | *Peregrinus* | A wandering scholar-confessor, a balanced mind |
+
+## 4. Items
+
+IDs stay as they are. **Only `name` and `description` change.** That keeps code, saves, and golden tests untouched.
+
+| id | New name | Latin | Note |
+|---|---|---|---|
+| `iron_sword` | Sword | *Gladius* | The starting weapon |
+| `fire_claymore` | Flaming Sword | *Gladius Flammeus* | Echoes the flaming sword of the cherub at Eden's gate |
+| `thors_hammer` | Mace of St. Michael | *Clava Sancti Michaelis* | The boss reward. Maces were the bearer's weapon of choice for clergy. |
+| `steel_shield` | Iron Shield | *Scutum Ferreum* | The starting armor |
+| `diamond_plate` | Adamant Cuirass | *Lorica Adamantina* | |
+| `peace_maker` | Armor of Light | *Arma Lucis* | After Romans 13:12 |
+| `topaz` | Rosary | *Rosarium* | Key for *Angelus Custos*. A prayer made physical. |
+| `gold_leaf` | Martyr's Relic | *Reliquia Martyris* | Key for *Ictus Iustus* |
+| `frozen_tears` | Tears of Penance | *Lacrimae Paenitentiae* | Key for *Scutum Fidei* |
+| `broken_staff` | Broken Crozier | *Baculus Fractus* | Key for *Exorcizo Te* |
+| `pure_ice` | Fragment of the Cross | *Fragmentum Crucis* | Key for *Fiat Lux*. **[open]** see §9. |
+| `fire_dust` | Altar Ember | *Favilla* | Weapon upgrade material |
+| `turtle_shell` | Consecrated Plate | *Lamina Sacra* | Armor upgrade material |
+| `gold_dust` | Gold Dust | *Pulvis Aureus* | Gilding from icons. A forge ingredient. |
+| `black_pearl` | Dark Pearl | *Margarita Obscura* | A forge ingredient, a temptation of wealth |
+| `broken_compass` | Broken Compass | *Acus Fracta* | A pilgrim's lost guide. A forge ingredient. |
+| `phoenix_feather` | Phoenix Feather | *Penna Phoenicis* | The phoenix is an old Christian symbol of resurrection |
+| `health_potion` | Holy Water | *Aqua Benedicta* | Restores HP |
+| `mana_potion` | Holy Oil | *Oleum Sanctum* | Restores MP |
+| `eternal_youth` | Viaticum | *Viaticum* | The last rites. Fully restores HP and MP. |
+
+Renaming `mana_potion` makes the "MP" resource read as *spirit* or *fervor*. **[open]** whether to also relabel the MP bar.
+
+## 5. Skills
+
+Same mechanics as `content-tables.md`. Only names and descriptions change.
+
+| id | New name | Latin | Virtue it echoes |
+|---|---|---|---|
+| `angel_wings` | Guardian Angel | *Angelus Custos* | Hope |
+| `meteor_fist` | Righteous Strike | *Ictus Iustus* | Justice |
+| `golden_bell` | Shield of Faith | *Scutum Fidei* | Faith |
+| `frozen_throne` | Exorcism | *Exorcizo Te* | Fortitude |
+| `supernova` | Let There Be Light | *Fiat Lux* | Charity (the finisher) |
+
+## 6. The seven sins and their virtues
+
+Each boss is a sin given form. Each has a **virtue that opposes it**, which becomes the theme of the reward and of the quiet scene after the fight.
+
+| Sin | Virtue | Boss idea (mechanics are proposals) |
+|---|---|---|
+| *Avaritia* (greed) | *Liberalitas* (generosity) | Steals gold on hit and hoards it. Dropping it returns the gold. |
+| *Gula* (gluttony) | *Temperantia* (temperance) | Heals itself by a share of the damage it deals. Short fights favor you. |
+| *Ira* (wrath) | *Patientia* (patience) | Hits harder as its HP falls. Patience means waiting out the early turns. |
+| *Luxuria* (lust) | *Castitas* (chastity) | Charm-style status that makes the hero skip a turn. Uses the existing `stun` mechanic. |
+| *Acedia* (sloth) | *Diligentia* (diligence) | Slows the fight: it skips turns, and the fight turn-cap matters. |
+| *Invidia* (envy) | *Caritas* (charity) | Copies the hero's ATK. A mirror fight. |
+| *Superbia* (pride) | *Humilitas* (humility) | The final boss. It reflects damage and punishes using the finisher. |
+
+Distribution across acts:
+
+- **Act I (three bosses in or near the city):** Avaritia, Gula, Ira. These are the sins that spread through a city.
+- **Act II (three stops on the road):** Luxuria, Acedia, Invidia. These are the temptations of the journey.
+- **Act III (one boss):** Superbia, the root of the rest.
+
+**Medusa** stays as the placeholder mission until the core is playable (§10).
+
+## 7. Tone and moral frame
+
+- **Demons are tempters and corrupters, not mere monsters.** Fighting them is defense, and the story should give each a short, human reason.
+- **Strength comes from grace, not magic.** Skills are prayers and blessings, never "power from within."
+- **Mercy is a theme.** The free revive when you are broke at 0 HP (already in the engine) is framed as the Order's mercy. Nobody is abandoned.
+- **Penance, not punishment.** Dying and recovering costs resources but never ends the story.
+- **No mockery.** The tone is reverent but not preachy: short, concrete scenes and no sermons.
+- **Honest about difficulty.** Doubt and weakness are allowed in the characters. Faith is shown through action.
+
+### LLM narrator guidance (for the later `add-llm-game-master` change)
+
+- Style: a knight's chronicle, two sentences per event, past or present tense consistently.
+- Vocabulary: Latin terms for named things, plain English otherwise.
+- Never quote scripture at length, and never invent doctrine. The narrator describes events and does not teach.
+- The output is untrusted text as the engineering contract requires, so tone guardrails go in the system prompt, and nothing in the UI relies on them.
+
+## 8. Story text (draft)
+
+Replaces the 7-line opening and 4-line path intro in `story.json`.
+
+**Opening (7 lines):**
+
+1. "For a thousand years the bells of Civitas Lucis have rung at dawn."
+2. "The Order of Light kept the gates, and the gates held."
+3. "Then the bells stopped answering."
+4. "The sins of the world took shape, and they came for the city."
+5. "Most knights were sent to the walls. A few were sent to the road."
+6. "You are the newest of the Order, and the least proven."
+7. "Light does not ask who is ready. It asks who will go."
+
+**Path intro (4 lines):**
+
+1. "The Order calls three kinds of souls to its work..."
+2. "the Miles, who stands where others fall"
+3. "the Venator, who hunts what hides"
+4. "and the Peregrinus, who walks where there is no road."
+
+**Title:** *Miles Christi*, "Soldier of Christ", or *Ordo Lucis*, "Order of Light". **[open]** The first is more direct and the second is gentler.
+
+## 9. Open questions
+
+1. **Title:** *Miles Christi* or *Ordo Lucis*?
+2. **Fragment of the Cross:** is it appropriate as a skill-key item and a drop? It is a sacred object, so an alternative is a lesser relic.
+3. **Theological accuracy bar:** who reviews the text, and how strict should it be?
+4. **MP label:** keep "MP" or relabel it (*Fervor*, *Spirit*)?
+5. **Medusa:** replace her with a sin boss, or keep her as a bonus encounter in a non-Catholic "dream" sequence?
+6. **Act II format:** seven short fights, or fewer stops?
+7. **Real saints:** use named saints (St. Michael, etc.) or keep everything generic?
+
+## 10. How this lands in the project
+
+1. **Finish the core engine first** (build-core-engine chunks 4–11). No mechanic changes.
+2. **Approve this bible**, then run an OpenSpec change, for example `reskin-act-one`, that:
+   - changes only `name`, `description`, `flavor`, and story text in `data/*.json`;
+   - keeps all IDs, so saves, code, and golden vectors are unaffected;
+   - adds the first sin boss as a **new** enemy. It does not replace Medusa, so the Medusa golden vectors stay valid.
+3. **Acts II and III** are separate later changes, using the Lua scripting change for boss behaviors.
+4. **A localization question:** names and story text are currently in JSON, so a Latin/English toggle is a possible later change.
+
+Anything that needs new mechanics, such as Avaritia's gold theft or Invidia's stat copy, goes through the Lua scripting change and a new OpenSpec spec. It is not part of the re-skin.

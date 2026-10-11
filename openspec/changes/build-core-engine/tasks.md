@@ -28,11 +28,11 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 4. Combat Engine (headless)
 
-- [ ] 4.1 Implement `src/game/errors.hpp`, `inventory.{hpp,cpp}`, and `hero.{hpp,cpp}` (`newGame`, `validateHeroName`, `grantExp`, `equipmentBonus`, `canAdventure`) per §6; verify `tests/hero_test.cpp` covers the four leveling vectors in §6, name validation (empty, 9 chars, trimmed, non-ASCII rejected), and Iron Sword at upgrade 2 giving 150 ATK
-- [ ] 4.2 Implement `src/game/events.hpp` and `battle.{hpp,cpp}` per §7; verify `tests/battle_test.cpp`: each `ActionError` returns with no events and the Battle unchanged; Flee ends with `Fled`; the absorbed hit emits `Damaged` with amount 0
-- [ ] 4.3 Add `tests/battle_golden_test.cpp` reproducing golden scenarios A–D event by event (write a small `toString(const Event&)` test helper producing the golden line format); verify all four pass on all CI platforms
-- [ ] 4.4 Add status-timing tests: Frozen Throne skips exactly 3 enemy turns and expires both statuses on the 3rd; re-applying a status refreshes and does not stack; a turn-cap test (hero and enemy both unable to deal damage) ends `Draw` at turn 1000
-- [ ] 4.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Implement `src/game/errors.hpp`, `inventory.{hpp,cpp}`, and `hero.{hpp,cpp}` (`newGame`, `validateHeroName`, `grantExp`, `equipmentBonus`, `canAdventure`) per §6; verify `tests/hero_test.cpp` covers the four leveling vectors in §6, name validation (empty, 9 chars, trimmed, non-ASCII rejected), and Iron Sword at upgrade 2 giving 150 ATK
+- [x] 4.2 Implement `src/game/events.hpp` and `battle.{hpp,cpp}` per §7; verify `tests/battle_test.cpp`: each `ActionError` returns with no events and the Battle unchanged; Flee ends with `Fled`; the absorbed hit emits `Damaged` with amount 0
+- [x] 4.3 Add `tests/battle_golden_test.cpp` reproducing golden scenarios A–D event by event (write a small `toString(const Event&)` test helper producing the golden line format); verify all four pass on all CI platforms
+- [x] 4.4 Add status-timing tests: Frozen Throne skips exactly 3 enemy turns and expires both statuses on the 3rd; re-applying a status refreshes and does not stack; a turn-cap test (hero and enemy both unable to deal damage) ends `Draw` at turn 1000
+- [x] 4.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Balance Simulator
 

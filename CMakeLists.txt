@@ -10,7 +10,8 @@ include(cmake/Dependencies.cmake)
 
 enable_testing()
 
-add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp)
+add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp
+    src/game/inventory.cpp src/game/hero.cpp src/game/battle.cpp)
 target_include_directories(heroes_game PUBLIC src)
 target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json PRIVATE heroes_warnings)
 
@@ -19,7 +20,9 @@ target_link_libraries(heroes PRIVATE heroes_game heroes_warnings)
 target_compile_definitions(heroes PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/content_test.cpp
-    tests/content_validation_test.cpp)
+    tests/content_validation_test.cpp tests/inventory_test.cpp
+    tests/hero_test.cpp tests/battle_test.cpp tests/battle_golden_test.cpp
+    tests/battle_status_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_game heroes_warnings GTest::gtest_main)
 target_compile_definitions(heroes_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 include(GoogleTest)
