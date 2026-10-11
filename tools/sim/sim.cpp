@@ -5,6 +5,7 @@
 #include "game/game_state.hpp"
 
 #include <charconv>
+#include <cstdlib>
 #include <format>
 #include <set>
 #include <thread>
@@ -128,8 +129,11 @@ Tally runRange(const SimConfig& config, const Setup& setup, std::uint64_t begin,
     for (std::uint64_t i = begin; i < end; ++i) {
         Battle battle(setup.content, setup.hero, setup.enemy, setup.skills,
                       Rng::stream(config.seed, i));
-        while (!battle.over())
-            battle.act(chooseAction(config.policy, setup.content, battle, setup.skills));
+        while (!battle.over()) {
+            // Policies only pick learned, affordable, ready actions; a rejection is a bug.
+            if (!battle.act(chooseAction(config.policy, setup.content, battle, setup.skills)))
+                std::abort();
+        }
         tally.totalTurns += static_cast<std::uint64_t>(battle.turn());
         switch (battle.outcome()) {
         case Outcome::Victory:
