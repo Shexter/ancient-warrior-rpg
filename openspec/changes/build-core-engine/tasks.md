@@ -9,7 +9,7 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 - [x] 1.3 Add `cmake/Dependencies.cmake` (nlohmann/json v3.12.0 and GoogleTest v1.17.0 by URL with `URL_HASH SHA256`, `SYSTEM`) and `cmake/Warnings.cmake` per `interfaces.md` §3 using the SHA-256 values listed in §3; verify a configure from an empty `build/` succeeds (a hash mismatch is a stop-and-report, not a fix)
 - [x] 1.4 Add root `CMakeLists.txt` and `CMakePresets.json` (debug, release, asan, ci) with the targets in §2 as empty stubs: `heroes` prints `Ancient Warrior RPG 0.1.0` and exits 0, `heroes_tests` has `tests/smoke_test.cpp` asserting `1 + 1 == 2`; verify `cmake --preset debug && cmake --build --preset debug && ctest --preset debug` passes and `./build/debug/heroes` prints the version
 - [x] 1.5 Verify the `asan` preset builds and its tests pass locally
-- [ ] 1.6 Add `.github/workflows/ci.yml` per §3; verify by pushing a branch that all four jobs (3 OS + asan) pass. If no remote exists yet, ask the user before creating one
+- [x] 1.6 Add `.github/workflows/ci.yml` per §3; verify by pushing a branch that all four jobs (3 OS + asan) pass. If no remote exists yet, ask the user before creating one
 - [x] 1.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Deterministic RNG
