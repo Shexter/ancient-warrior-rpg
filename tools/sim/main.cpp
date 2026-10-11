@@ -1,7 +1,6 @@
 #include "sim/sim.hpp"
 
 #include <chrono>
-#include <cstdlib>
 #include <format>
 #include <iostream>
 #include <string_view>
@@ -11,9 +10,7 @@
 int main(int argc, char** argv) {
     using namespace heroes::sim;
 
-    std::filesystem::path defaultDataDir = std::filesystem::path(HEROES_SOURCE_DIR) / "data";
-    if (const char* env = std::getenv("HEROES_DATA_DIR"))
-        defaultDataDir = env;
+    const std::filesystem::path defaultDataDir = std::filesystem::path(HEROES_SOURCE_DIR) / "data";
     const unsigned defaultThreads = std::max(1u, std::thread::hardware_concurrency());
 
     const std::vector<std::string_view> args(argv + 1, argv + argc);
