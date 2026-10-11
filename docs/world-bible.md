@@ -204,3 +204,9 @@ Inspired by a reference video, "Water reflection test" from an ASCII MMORPG. Not
 3. A walkable Act I square (the cathedral square) with the catacomb entrance, and name labels.
 4. Movement and collision in a tile map. This is new mechanics, so it needs its own spec.
 
+
+**Art test, 2026-10-11 (decided: do this after core)**
+- A Draw Things → ASCII test on the Fighter (see `tools/art/README.md`) produced four looks. The user liked **48x48 half-block sprites** and the **colored glyph ramp** (brightness picks the character, the image's own colors tint it) best.
+- Neither fits the 80x24 canvas: 48x48 half-blocks are 24 rows tall, and the ramp figure was 60x37. So core ships 24x24 sprites from the same pipeline, and the post-core change adds:
+  5. A larger layout (for example 120x40) when the terminal is big enough, with 80x24 kept as the fallback.
+  6. A glyph-ramp sprite mode (character + color per cell) alongside the half-block `.sprite` format.
