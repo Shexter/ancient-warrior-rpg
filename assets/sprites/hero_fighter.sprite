@@ -1,0 +1,39 @@
+# placeholder: stocky knight, red tunic
+sprite 24 24
+palette
+o #1a1520
+s #f0c8a0
+h #9aa0b0
+H #6c7282
+r #c8322d
+R #8f2020
+b #6b4423
+g #c9a227
+l #4a4a5a
+w #d8dce8
+S #8a5a2b
+pixels
+...........o............
+.........oohoo..........
+........ohhhhho......o..
+.......ohhhhhhho....owo.
+.......ohhhhhhho....owo.
+......ohhhhhhhhho...owo.
+......oHHsssssHHo...owo.
+......oHHsososHHo...owo.
+.......oosssssoo....owo.
+...oooooooohooooooooowo.
+..orrrrrrrrrrrrrrrrrowo.
+..orrrrrrrrrrrrrrrrrowo.
+.oSrrrrrrrrrrrrrrrrrowo.
+oSSSrrrrrrrrrrrrrrrrowo.
+oSSSrrbbbbbgbbbbbrrrowo.
+SSSSSrrrrrrrrrrrrrrrowo.
+oSSSrrRRRRRRRRRRRrrrowo.
+oSSSssRRRRRRRRRRRsssgggo
+.oSssslllllolllllsssoSo.
+..oooolllllolllllooooSo.
+.....olllllolllllo...o..
+.....olllllolllllo......
+....obbbbbbobbbbbbo.....
+....obbbbbbobbbbbbo.....

@@ -1,0 +1,37 @@
+# placeholder: hunter, green cloak and bow
+sprite 24 24
+palette
+o #10201a
+s #f0c8a0
+G #2f7a3a
+g #44a050
+D #1f5228
+b #6b4423
+B #8a5a2b
+l #5a4a3a
+w #e8e0c8
+pixels
+...........o............
+.........ooGoo..........
+........oGGGGGo.........
+.......oGGGGGGGo....o...
+.......oGGGGGGGo...owo..
+......oGGsssssGGo..owo..
+.......oGsososGo...owBo.
+.......oGsssssGo...owBo.
+.......oosssssoo...owoBo
+......oGGGGGGGGGo..owoBo
+......oGGGGGGGGGoooowoBo
+.....ogggggggggggDDDwoBo
+.....oGGGGGGGGDDDooowoBo
+....oggggbbBbbggggoowoBo
+....oggggbbbbbggggoowBo.
+...oGGGGGGGGGGGGGGGowBo.
+...ogggggggggggggggowo..
+..ogggggggggggggggggwo..
+..oGGGGGGGGGGGGGGGGGo...
+.ogggggggggggggggggggo..
+.ogggggggggggggggggggo..
+..oooooolllollloooooo...
+.......olllolllo........
+.......olllolllo........

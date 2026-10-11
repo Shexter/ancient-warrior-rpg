@@ -10,6 +10,7 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [town-and-training.md](town-and-training.md) | training, merchant, blacksmith, guildmaster, bank, missions |
 | [save.md](save.md) | save file format, load validation, save location |
 | [terminal.md](terminal.md) | framebuffer, renderer, input, loop, terminal |
+| [sprites.md](sprites.md) | sprite format, drawing, tints, sprite_bake |
 | [simulator.md](simulator.md) | `heroes-sim` |
 
-Not yet implemented (no docs yet): sprites, app screens.
+Not yet implemented (no docs yet): app screens.

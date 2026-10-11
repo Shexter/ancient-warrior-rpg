@@ -1,0 +1,26 @@
+# placeholder: generic beast, brown
+sprite 16 16
+palette
+o #1a1008
+b #8a5a2b
+B #6b4423
+L #b07a3c
+r #e03030
+w #f0e8d8
+pixels
+................
+..oo..oo........
+.oBBooBBo.......
+.oBBboBBo.......
+.oBBbbBBo......o
+.obbbbbobooo..oL
+obbrbrbbbbbbooLo
+.obbbbbbbbbbbbLo
+.owwwbbbbbbbbLo.
+.obbbbbbbbbbbbbo
+..obbbbbbbbbbbo.
+..oBBBBBBBBBBbo.
+...oBBbbbbBBoo..
+...oBBooboBBo...
+...oBBo.ooBBo...
+....oo....oo....

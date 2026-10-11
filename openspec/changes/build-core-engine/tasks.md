@@ -66,10 +66,10 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 9. Sprites
 
-- [ ] 9.1 Implement `src/engine/sprite.{hpp,cpp}` (parse + `drawSprite` + tints) per §12; verify `tests/sprite_test.cpp`: a transparent top pixel keeps the background; top-only, bottom-only, and both-opaque cells use the correct glyph and colors; odd height; errors carry line numbers for bad size, unknown palette key, and wrong row length
-- [ ] 9.2 Implement `tools/sprite_bake` (`sprite_bake in.png out.sprite [--max-colors 32]`: alpha < 128 is transparent; exact colors are kept if ≤ max, otherwise fail with a message to reduce the palette first); verify by baking `tests/fixtures/sample.png` (an 8×8 PNG checked in) and loading the result in a test
-- [ ] 9.3 Hand-write the 5 placeholder sprites listed in `ui.md`; verify they load through content validation
-- [ ] 9.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 9.1 Implement `src/engine/sprite.{hpp,cpp}` (parse + `drawSprite` + tints) per §12; verify `tests/sprite_test.cpp`: a transparent top pixel keeps the background; top-only, bottom-only, and both-opaque cells use the correct glyph and colors; odd height; errors carry line numbers for bad size, unknown palette key, and wrong row length
+- [x] 9.2 Implement `tools/sprite_bake` (`sprite_bake in.png out.sprite [--max-colors 32]`: alpha < 128 is transparent; exact colors are kept if ≤ max, otherwise fail with a message to reduce the palette first); verify by baking `tests/fixtures/sample.png` (an 8×8 PNG checked in) and loading the result in a test
+- [x] 9.3 Hand-write the 5 placeholder sprites listed in `ui.md`; verify they load through content validation
+- [x] 9.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 10. Game Screens
 

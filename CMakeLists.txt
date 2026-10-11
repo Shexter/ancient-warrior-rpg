@@ -17,7 +17,7 @@ target_include_directories(heroes_game PUBLIC src)
 target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json PRIVATE heroes_warnings)
 
 add_library(heroes_engine STATIC src/engine/color.cpp src/engine/framebuffer.cpp
-    src/engine/renderer.cpp src/engine/input.cpp src/engine/loop.cpp)
+    src/engine/renderer.cpp src/engine/input.cpp src/engine/loop.cpp src/engine/sprite.cpp)
 target_include_directories(heroes_engine PUBLIC src)
 target_link_libraries(heroes_engine PRIVATE heroes_warnings)
 
@@ -36,6 +36,14 @@ add_library(heroes_simlib STATIC tools/sim/sim.cpp)
 target_include_directories(heroes_simlib PUBLIC tools)
 target_link_libraries(heroes_simlib PUBLIC heroes_game Threads::Threads PRIVATE heroes_warnings)
 
+add_library(heroes_bakelib STATIC tools/sprite_bake/bake.cpp)
+target_include_directories(heroes_bakelib PUBLIC tools/sprite_bake)
+target_include_directories(heroes_bakelib SYSTEM PRIVATE tools/sprite_bake/third_party)
+target_link_libraries(heroes_bakelib PUBLIC heroes_engine PRIVATE heroes_warnings)
+
+add_executable(sprite_bake tools/sprite_bake/main.cpp)
+target_link_libraries(sprite_bake PRIVATE heroes_bakelib heroes_warnings)
+
 add_executable(heroes-sim tools/sim/main.cpp)
 target_link_libraries(heroes-sim PRIVATE heroes_simlib heroes_warnings)
 target_compile_definitions(heroes-sim PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
@@ -50,8 +58,9 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_status_test.cpp tests/sim_test.cpp tests/training_test.cpp
     tests/town_merchant_test.cpp tests/town_blacksmith_test.cpp tests/town_guild_test.cpp
     tests/save_test.cpp tests/paths_test.cpp tests/framebuffer_test.cpp
-    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp)
-target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_warnings GTest::gtest_main)
+    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp
+    tests/sprite_bake_test.cpp)
+target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_warnings GTest::gtest_main)
 target_compile_definitions(heroes_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 include(GoogleTest)
 gtest_discover_tests(heroes_tests)

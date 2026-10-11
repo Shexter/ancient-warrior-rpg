@@ -24,12 +24,12 @@ wall: 0.034 s  throughput: 2915052 battles/s
 
 Note: a starting Fighter with the `attack` policy loses every battle in about 1.7 turns, so these runs are short battles. Longer builds (more HP, skills) will give lower battles/s.
 
-## Terminal output: diff vs full redraw (chunk 8 demo)
+## Terminal output: diff vs full redraw (chunks 8-9 demo)
 
-`heroes --demo-stats` renders the moving-box demo headlessly for 120 frames (80x24, truecolor) and compares the bytes written per frame by the diff renderer against a renderer that redraws everything every frame (a fresh `Renderer` each frame).
+`heroes --demo-stats` renders the demo headlessly for 120 frames (80x24, truecolor) and compares the bytes written per frame by the diff renderer against a renderer that redraws everything every frame (a fresh `Renderer` each frame). The demo shows the 24x24 Fighter sprite and a moving 12x3 box.
 
 ```
-frames: 120  full redraw: 2725 bytes/frame  diff: 219 bytes/frame (22 cells/frame)
+frames: 120  full redraw: 5844 bytes/frame  diff: 160 bytes/frame (20 cells/frame)
 ```
 
-The diff renderer writes about 8% of the bytes. The box moves 20 cells/s at 60 steps/s, so about one column changes per frame (22 cells). The full redraw figure is already small because runs of cells with the same colors share one color escape.
+The diff renderer writes under 3% of the bytes. Only the box moves (20 cells/s at 60 steps/s), so about one column changes per frame (20 cells). The sprite is static after the first frame. With only the box on screen (chunk 8) the same measurement was 2725 vs 219 bytes/frame.
