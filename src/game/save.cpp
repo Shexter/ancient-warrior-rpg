@@ -181,19 +181,19 @@ GameState fromJson(const Json& root, const Content& content) {
     if (!content.findPath(hero.pathId))
         bad();
 
-    constexpr std::int64_t kBig = std::numeric_limits<std::int64_t>::max();
-    constexpr int kBigInt = std::numeric_limits<int>::max();
-    hero.level = smallInt(h, "level", 1, kBigInt);
-    hero.expToNext = integer(h, "expToNext", 1, kBig);
-    hero.exp = integer(h, "exp", 0, kBig);
-    hero.gold = integer(h, "gold", 0, kBig);
-    hero.maxHp = smallInt(h, "maxHp", 1, kBigInt);
-    hero.maxMp = smallInt(h, "maxMp", 0, kBigInt);
+    // Stats share the content cap so battle math can't overflow; currencies get far more room
+    // than play can reach. Anything larger is a hand edit and is refused, not trusted.
+    hero.level = smallInt(h, "level", 1, kMaxStat);
+    hero.expToNext = integer(h, "expToNext", 1, kMaxCurrency);
+    hero.exp = integer(h, "exp", 0, kMaxCurrency);
+    hero.gold = integer(h, "gold", 0, kMaxCurrency);
+    hero.maxHp = smallInt(h, "maxHp", 1, kMaxStat);
+    hero.maxMp = smallInt(h, "maxMp", 0, kMaxStat);
     hero.hp = smallInt(h, "hp", 0, hero.maxHp);
     hero.mp = smallInt(h, "mp", 0, hero.maxMp);
-    hero.atk = smallInt(h, "atk", 0, kBigInt);
-    hero.def = smallInt(h, "def", 0, kBigInt);
-    hero.life = smallInt(h, "life", 0, kBigInt);
+    hero.atk = smallInt(h, "atk", 0, kMaxStat);
+    hero.def = smallInt(h, "def", 0, kMaxStat);
+    hero.life = smallInt(h, "life", 0, kMaxStat);
     hero.forgeLevel = smallInt(h, "forgeLevel", 1, 10);
     hero.weapon = equippedFromJson(h, "weapon", ItemKind::Weapon, content);
     hero.armor = equippedFromJson(h, "armor", ItemKind::Armor, content);

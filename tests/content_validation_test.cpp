@@ -50,11 +50,15 @@ INSTANTIATE_TEST_SUITE_P(
         BadCase{"wrong_type", "items.json", "iron_sword", "'price' has the wrong type"},
         BadCase{"duplicate_id", "items.json", "topaz", "duplicate id"},
         BadCase{"bad_id_pattern", "recipes.json", "Forge Peace", "id must match"},
-        BadCase{"negative_price", "items.json", "iron_sword", "'price' must be at least 0"},
+        BadCase{"negative_price", "items.json", "iron_sword",
+                "'price' must be between 0 and 1000000"},
         BadCase{"drop_rate_range", "items.json", "topaz", "'dropRate' must be between 0 and 100"},
-        BadCase{"multiplier_zero", "paths.json", "hunter", "'multiplier' must be at least 1"},
-        BadCase{"mp_cost_negative", "skills.json", "angel_wings", "'mpCost' must be at least 0"},
-        BadCase{"status_turns_zero", "skills.json", "frozen_throne", "turns' must be at least 1"},
+        BadCase{"multiplier_zero", "paths.json", "hunter",
+                "'multiplier' must be between 1 and 100"},
+        BadCase{"mp_cost_negative", "skills.json", "angel_wings",
+                "'mpCost' must be between 0 and 1000000"},
+        BadCase{"status_turns_zero", "skills.json", "frozen_throne",
+                "turns' must be between 1 and 1000000"},
         BadCase{"unknown_upgrade_material", "items.json", "iron_sword",
                 "unknown upgrade material 'no_such'"},
         BadCase{"unknown_key_item", "skills.json", "supernova", "unknown key item 'no_such'"},
@@ -71,14 +75,18 @@ INSTANTIATE_TEST_SUITE_P(
                 "need 'upgradeMaterial'"},
         BadCase{"consumable_on_weapon", "items.json", "iron_sword", "only for consumables"},
         BadCase{"consumable_missing", "items.json", "mana_potion", "need 'consumable'"},
-        BadCase{"missing_hunter_path", "paths.json", "", "missing required path 'hunter'"}),
+        BadCase{"missing_hunter_path", "paths.json", "", "missing required path 'hunter'"},
+        BadCase{"stat_too_large", "items.json", "iron_sword",
+                "'bonus.atk' must be between 0 and 1000000"},
+        BadCase{"duplicate_ingredient", "recipes.json", "forge_fire_claymore",
+                "ingredient 'iron_sword' listed twice"}),
     [](const testing::TestParamInfo<BadCase>& param) { return std::string(param.param.dir); });
 
 TEST(ContentValidationMulti, TwoDefectsAreBothReported) {
     auto loaded = loadContent(fixture("two_defects"));
     ASSERT_FALSE(loaded.has_value());
     EXPECT_TRUE(
-        hasError(loaded.error(), {"", "items.json", "iron_sword", "'price' must be at least 0"}));
+        hasError(loaded.error(), {"", "items.json", "iron_sword", "'price' must be between 0"}));
     EXPECT_TRUE(hasError(loaded.error(), {"", "skills.json", "supernova", "unknown key item"}));
     EXPECT_EQ(loaded.error().size(), 2u);
 }

@@ -1,5 +1,6 @@
 #include "sim/sim.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <format>
 #include <iostream>

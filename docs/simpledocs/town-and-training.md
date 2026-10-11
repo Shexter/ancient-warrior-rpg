@@ -3,7 +3,7 @@
 **Rule:** every function checks all conditions first and mutates after. On an error the `GameState` is bit-identical to before (tests compare with `==`). Errors are `TownError`; `describe()` gives the player-facing sentence.
 
 ## Training
-`runTraining(state, content, cave 1..30, rounds 1..100)`: dead or unequipped hero is refused before range checks. One `fork()` for the whole session. Each round rolls a monster (atk, def, gold in that order), then hero and monster trade hits (hero first, then the hero heals `life`), capped at 1000 exchanges (Draw). Victory pays gold and EXP and rolls a drop; Defeat sets HP to 0, deducts that round's EXP (not below 0) and stops. HP carries between rounds. Events are `Damaged`/`Healed` only. Drops lost to a full bag are reported, not hidden.
+`runTraining(state, content, cave 1..30, rounds 1..100)`: dead or unequipped hero is refused before range checks. One `fork()` for the whole session. Each round rolls a monster (atk, def, gold in that order), then hero and monster trade hits (hero first, then the hero heals `life`), capped at 1000 exchanges (Draw). Victory pays gold and EXP and rolls a drop; Defeat sets HP to 0, deducts that round's EXP (not below 0) and stops. HP carries between rounds. Each round also reports `monsterMaxHp` (for the playback HP bar). Events are `Damaged`/`Healed` only. Drops lost to a full bag are reported, not hidden.
 
 ## Merchant (refuses a dead hero)
 - `buy`: 1–99 units at the item price. `sell`: full price. Items with price 0 are not tradeable.
@@ -11,13 +11,13 @@
 
 ## Blacksmith (refuses a dead hero)
 - `equip`: old item returns to the bag at upgrade 1; refused if the bag cannot take it, if the item is already equipped, or for the wrong slot.
-- `upgrade` at level L (to 10): consumes L materials, 1000·L EXP, 10000·L gold.
-- `forge`: ingredients must be in the bag (equipped items don't count) with room for the result. Ingredients are consumed even on failure; success chance is forge level × 10%, and success raises forge level to at most 10.
+- `upgrade` at level L (to 10): consumes L materials, 1000·L EXP, 10000·L gold (`upgradeCost(L)`, also used by the screens).
+- `forge`: ingredients must be in the bag (equipped items don't count) with room for the result. Ingredients are consumed even on failure; success chance is forge level × 10% (`forgeChancePercent`), and success raises forge level to at most 10.
 
 ## Guildmaster / bank (allowed when dead)
 - `revive` (returns `bool`; spec said `expected`): hp 0 → `min(100, maxHp)` for `min(100, gold)` gold, so a broke hero is never stuck.
 - `useConsumable`, `learnSkill` (level ≥ max(5, skill level); consumes the key item and gold), `rename` (50,000 gold).
-- `buyCharisma`: level ≥ 10; **spends all the EXP entered**, but points = EXP/50, cost 100 gold per point, gain = points·10·multiplier/level. Refused with nothing spent if points < 1 or gain < 1. Does not raise current HP/MP.
+- `buyCharisma`: level ≥ 10; **spends all the EXP entered**, but points = EXP/50, cost 100 gold per point, gain = points·10·multiplier/level. Refused with nothing spent if points < 1, gain < 1, or the stat would pass 1,000,000. `charismaQuote(hero, content, exp)` returns the points, gold cost and gain without changing anything, for previews. Does not raise current HP/MP.
 - Bank: 10,000 gold once, 10 slots, `deposit`/`withdraw` move items atomically.
 
 ## Missions

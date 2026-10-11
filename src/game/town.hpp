@@ -36,6 +36,18 @@ struct MissionResult {
     std::vector<std::string> itemsGained, itemsLostBagFull;
 };
 
+// Costs and odds, shared by the actions below and the screens that preview them.
+struct UpgradeCost {
+    int materialCount;
+    std::int64_t exp, gold;
+};
+UpgradeCost upgradeCost(int currentLevel); // for raising currentLevel (1..9) by one
+int forgeChancePercent(int forgeLevel);
+struct CharismaQuote {
+    std::int64_t points, goldCost, gain;
+};
+CharismaQuote charismaQuote(const Hero& hero, const Content& content, std::int64_t expSpent);
+
 // Roll helpers, exposed so tests can drive them with an explicit Rng.
 AuctionResult rollAuction(Rng& rng, std::int64_t auctionValue);
 bool rollForge(Rng& rng, int forgeLevel);

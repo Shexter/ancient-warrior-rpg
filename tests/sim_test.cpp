@@ -1,5 +1,7 @@
 #include "sim/sim.hpp"
 
+#include "game/content.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace heroes::sim;
@@ -110,6 +112,12 @@ TEST(SimErrors, BadInputsRunNoBattles) {
     c = base;
     c.armorLevel = 11;
     expectError(c, "level");
+    c = base;
+    c.bonusAtk = -1;
+    expectError(c, "--bonus-atk");
+    c = base;
+    c.bonusHp = heroes::game::kMaxStat + 1;
+    expectError(c, "--bonus-hp");
 }
 
 TEST(SimArgs, ParsesTheFullCommandLine) {

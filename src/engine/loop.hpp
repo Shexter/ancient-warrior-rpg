@@ -48,7 +48,9 @@ class Loop {
     // Draws the full 80x24 canvas.
     using DrawFn = std::function<void(Framebuffer&)>;
 
-    Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw);
+    // In a terminal larger than 80x24 the canvas is centered and the margin filled with
+    // `background`.
+    Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background = {});
 
     // One iteration without sleeping. Returns false when the update asked to quit.
     bool frame(double dtSeconds);
@@ -60,8 +62,10 @@ class Loop {
     Renderer& renderer_;
     UpdateFn update_;
     DrawFn draw_;
+    Rgb background_;
     FixedStepper stepper_;
     Framebuffer canvas_{kCanvasWidth, kCanvasHeight};
+    Framebuffer screen_{0, 0}; // terminal-sized; reallocated only when the size changes
     std::vector<KeyEvent> pending_;
     std::string out_;
 };

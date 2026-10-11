@@ -130,7 +130,10 @@ void Battle::castSkill(const SkillDef& skill, Events& out) {
         const int dealt = hit(Side::Hero, effect.atkMultiplier * hero_.atk, !effect.ignoreDef,
                               DamageCause::Skill, out);
         if (effect.healPercentOfDamage > 0)
-            heal(Side::Hero, dealt * effect.healPercentOfDamage / 100, out);
+            heal(Side::Hero,
+                 static_cast<int>(static_cast<std::int64_t>(dealt) * effect.healPercentOfDamage /
+                                  100),
+                 out);
     }
     for (const StatusSpec& spec : effect.selfStatuses)
         applyStatus(Side::Hero, spec, out);

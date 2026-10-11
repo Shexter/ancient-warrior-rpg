@@ -165,6 +165,28 @@ TEST(Loop, TooSmallDropsKeysTypedWhileSmall) {
     EXPECT_EQ(keysSeen, 0u);
 }
 
+TEST(Loop, CanvasIsCenteredInALargerTerminal) {
+    FakeIo io;
+    io.cols = 100;
+    io.rows = 30;
+    Renderer renderer(ColorMode::TrueColor);
+    char32_t corner = U'X';
+    Loop loop(
+        io, renderer, [](std::span<const KeyEvent>, double) { return true; },
+        [&](Framebuffer& fb) { fb.at(0, 0).glyph = corner; }, Rgb{1, 2, 3});
+    loop.frame(kStepSeconds);
+    EXPECT_NE(io.written.find("48;2;1;2;3m"), std::string::npos); // margin uses the background
+
+    // Changing the canvas's top-left cell rewrites exactly the centered cell (col 10, row 3).
+    io.written.clear();
+    corner = U'Y';
+    loop.frame(kStepSeconds);
+    const auto move = io.written.find("\x1b[4;11H");
+    ASSERT_NE(move, std::string::npos) << io.written;
+    EXPECT_EQ(io.written.find('Y'), io.written.rfind('Y')); // one cell written
+    EXPECT_GT(io.written.find('Y'), move);
+}
+
 TEST(Loop, ResizeNoticeIsCenteredAndSurvivesTinyTerminals) {
     Framebuffer fb(100, 30);
     drawResizeNotice(fb, 100, 30);

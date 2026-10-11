@@ -127,6 +127,7 @@ TEST(Training, VictoryPaysGoldAndExp) {
     const TrainingRound& r = rounds->front();
     EXPECT_EQ(r.outcome, Outcome::Victory);
     EXPECT_EQ(r.expGained, 100);
+    EXPECT_EQ(r.monsterMaxHp, 100); // 100 x cave level, for the playback HP bar
     EXPECT_GE(r.goldGained, 100);
     EXPECT_LE(r.goldGained, 190);
     EXPECT_EQ(state.hero.gold, 20000 + r.goldGained);

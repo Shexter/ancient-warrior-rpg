@@ -137,6 +137,32 @@ TEST(Guild, CharismaRefusals) {
     expectRefused(low, TownError::LevelTooLow, charisma(500));
 }
 
+TEST(Guild, CharismaCannotPushAStatPastTheCap) {
+    GameState state = freshState();
+    state.hero.level = 10;
+    state.hero.exp = 500;
+    state.hero.atk = kMaxStat - 5; // 500 exp would add 10
+    expectRefused(state, TownError::InvalidQuantity,
+                  [](GameState& s) { return buyCharisma(s, content(), CharismaStat::Atk, 500); });
+    state.hero.atk = kMaxStat - 10; // exactly reaching the cap is fine
+    ASSERT_TRUE(buyCharisma(state, content(), CharismaStat::Atk, 500));
+    EXPECT_EQ(state.hero.atk, kMaxStat);
+}
+
+TEST(Guild, CharismaQuoteMatchesWhatIsCharged) {
+    GameState state = freshState();
+    state.hero.level = 10;
+    state.hero.exp = 520;
+    const CharismaQuote quote = charismaQuote(state.hero, content(), 520);
+    EXPECT_EQ(quote.points, 10);
+    EXPECT_EQ(quote.goldCost, 1000);
+    EXPECT_EQ(quote.gain, 10);
+    const std::int64_t gold = state.hero.gold;
+    ASSERT_TRUE(buyCharisma(state, content(), CharismaStat::Def, 520));
+    EXPECT_EQ(state.hero.gold, gold - quote.goldCost);
+    EXPECT_EQ(state.hero.exp, 0); // all entered exp is spent, remainder included
+}
+
 TEST(Guild, CharismaRefusesZeroGain) {
     GameState state = freshState(); // Fighter multiplier 1: 1 point at level 11 gains 10/11 = 0
     state.hero.level = 11;

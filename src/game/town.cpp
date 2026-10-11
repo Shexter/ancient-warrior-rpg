@@ -26,6 +26,19 @@ std::optional<Equipped>& slotOf(Hero& hero, EquipSlot slot) {
 
 } // namespace
 
+UpgradeCost upgradeCost(int currentLevel) {
+    const auto level = static_cast<std::int64_t>(currentLevel);
+    return {currentLevel, 1000 * level, 10000 * level};
+}
+
+int forgeChancePercent(int forgeLevel) { return forgeLevel * 10; }
+
+CharismaQuote charismaQuote(const Hero& hero, const Content& content, std::int64_t expSpent) {
+    const std::int64_t points = std::max<std::int64_t>(0, expSpent) / kCharismaExpPerPoint;
+    const std::int64_t multiplier = content.path(hero.pathId).multiplier;
+    return {points, points * kCharismaGoldPerPoint, points * 10 * multiplier / hero.level};
+}
+
 AuctionResult rollAuction(Rng& rng, std::int64_t auctionValue) {
     const auto rounds = static_cast<int>(rng.below(10));
     if (rounds == 0)
@@ -42,7 +55,7 @@ AuctionResult rollAuction(Rng& rng, std::int64_t auctionValue) {
 }
 
 bool rollForge(Rng& rng, int forgeLevel) {
-    return rng.below(100) < static_cast<std::uint32_t>(forgeLevel * 10);
+    return rng.below(100) < static_cast<std::uint32_t>(forgeChancePercent(forgeLevel));
 }
 
 // ---- Merchant ----------------------------------------------------------------------------
@@ -152,20 +165,20 @@ std::expected<void, TownError> upgrade(GameState& state, const Content& content,
     std::optional<Equipped>& current = slotOf(hero, slot);
     if (!current)
         return fail(TownError::NotEquipped);
-    const int level = current->upgradeLevel;
-    if (level >= kMaxUpgradeLevel)
+    if (current->upgradeLevel >= kMaxUpgradeLevel)
         return fail(TownError::MaxUpgrade);
+    const UpgradeCost cost = upgradeCost(current->upgradeLevel);
     const std::string& material = *content.item(current->itemId).upgradeMaterial;
-    if (hero.bag.count(material) < level)
+    if (hero.bag.count(material) < cost.materialCount)
         return fail(TownError::MissingMaterial);
-    if (hero.exp < 1000 * static_cast<std::int64_t>(level))
+    if (hero.exp < cost.exp)
         return fail(TownError::NotEnoughExp);
-    if (hero.gold < 10000 * static_cast<std::int64_t>(level))
+    if (hero.gold < cost.gold)
         return fail(TownError::NotEnoughGold);
 
-    (void)hero.bag.remove(material, level);
-    hero.exp -= 1000 * static_cast<std::int64_t>(level);
-    hero.gold -= 10000 * static_cast<std::int64_t>(level);
+    (void)hero.bag.remove(material, cost.materialCount);
+    hero.exp -= cost.exp;
+    hero.gold -= cost.gold;
     ++current->upgradeLevel;
     return {};
 }
@@ -241,33 +254,24 @@ std::expected<void, TownError> buyCharisma(GameState& state, const Content& cont
         return fail(TownError::InvalidQuantity);
     if (expSpent > hero.exp)
         return fail(TownError::NotEnoughExp);
-    const std::int64_t points = expSpent / kCharismaExpPerPoint;
-    if (points < 1)
+    const CharismaQuote quote = charismaQuote(hero, content, expSpent);
+    if (quote.points < 1)
         return fail(TownError::InvalidQuantity);
-    if (hero.gold < points * kCharismaGoldPerPoint)
+    if (hero.gold < quote.goldCost)
         return fail(TownError::NotEnoughGold);
-    const std::int64_t multiplier = content.path(hero.pathId).multiplier;
-    const std::int64_t gain = points * 10 * multiplier / hero.level;
-    if (gain < 1)
+    if (quote.gain < 1)
+        return fail(TownError::InvalidQuantity);
+    int& target = stat == CharismaStat::MaxHp   ? hero.maxHp
+                  : stat == CharismaStat::MaxMp ? hero.maxMp
+                  : stat == CharismaStat::Atk   ? hero.atk
+                                                : hero.def;
+    // Stats stay within the cap that saves and battle math rely on.
+    if (quote.gain > kMaxStat - target)
         return fail(TownError::InvalidQuantity);
 
     hero.exp -= expSpent;
-    hero.gold -= points * kCharismaGoldPerPoint;
-    const int amount = static_cast<int>(gain);
-    switch (stat) {
-    case CharismaStat::MaxHp:
-        hero.maxHp += amount;
-        break;
-    case CharismaStat::MaxMp:
-        hero.maxMp += amount;
-        break;
-    case CharismaStat::Atk:
-        hero.atk += amount;
-        break;
-    case CharismaStat::Def:
-        hero.def += amount;
-        break;
-    }
+    hero.gold -= quote.goldCost;
+    target += static_cast<int>(quote.gain);
     return {};
 }
 

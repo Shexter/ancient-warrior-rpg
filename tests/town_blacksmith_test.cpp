@@ -166,6 +166,14 @@ TEST(Blacksmith, ArmorUsesTurtleShell) {
     EXPECT_EQ(state.hero.bag.count("turtle_shell"), 0);
 }
 
+TEST(Blacksmith, UpgradeCostAndForgeChanceFormulas) {
+    const UpgradeCost cost = upgradeCost(3);
+    EXPECT_EQ(cost.materialCount, 3);
+    EXPECT_EQ(cost.exp, 3000);
+    EXPECT_EQ(cost.gold, 30000);
+    EXPECT_EQ(forgeChancePercent(9), 90);
+}
+
 TEST(Blacksmith, UpgradeRefusals) {
     const auto up = [](GameState& s) { return upgrade(s, content(), EquipSlot::Weapon); };
     GameState rich = freshState();

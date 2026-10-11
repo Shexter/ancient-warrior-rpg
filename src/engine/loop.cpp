@@ -39,20 +39,21 @@ void drawResizeNotice(Framebuffer& frame, int termWidth, int termHeight) {
     }
 }
 
-Loop::Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw)
-    : io_(io), renderer_(renderer), update_(std::move(update)), draw_(std::move(draw)) {}
+Loop::Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background)
+    : io_(io), renderer_(renderer), update_(std::move(update)), draw_(std::move(draw)),
+      background_(background) {}
 
 bool Loop::frame(double dtSeconds) {
     const auto [cols, rows] = io_.size();
     std::vector<KeyEvent> keys = io_.readKeys();
 
     out_.clear();
+    if (screen_.width() != cols || screen_.height() != rows)
+        screen_ = Framebuffer(cols, rows);
     if (cols < kCanvasWidth || rows < kCanvasHeight) {
         stepper_.reset();
         pending_.clear();
-        Framebuffer notice(cols, rows);
-        drawResizeNotice(notice, cols, rows);
-        renderer_.present(notice, out_);
+        drawResizeNotice(screen_, cols, rows);
     } else {
         pending_.insert(pending_.end(), keys.begin(), keys.end());
         const int steps = stepper_.advance(dtSeconds);
@@ -62,8 +63,14 @@ bool Loop::frame(double dtSeconds) {
             pending_.clear();
         }
         draw_(canvas_);
-        renderer_.present(canvas_, out_);
+        screen_.clear(background_);
+        const int left = (cols - kCanvasWidth) / 2;
+        const int top = (rows - kCanvasHeight) / 2;
+        for (int y = 0; y < kCanvasHeight; ++y)
+            for (int x = 0; x < kCanvasWidth; ++x)
+                screen_.at(left + x, top + y) = canvas_.at(x, y);
     }
+    renderer_.present(screen_, out_);
     if (!out_.empty())
         io_.write(out_);
     return true;

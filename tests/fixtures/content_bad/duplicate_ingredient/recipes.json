@@ -1,0 +1,48 @@
+{
+  "recipes": [
+    {
+      "id": "forge_fire_claymore",
+      "result": "fire_claymore",
+      "ingredients": [
+        {
+          "item": "iron_sword",
+          "count": 1
+        },
+        {
+          "item": "phoenix_feather",
+          "count": 1
+        },
+        {
+          "item": "fire_dust",
+          "count": 1
+        },
+        {
+          "item": "iron_sword",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "forge_peace_maker",
+      "result": "peace_maker",
+      "ingredients": [
+        {
+          "item": "steel_shield",
+          "count": 1
+        },
+        {
+          "item": "broken_compass",
+          "count": 1
+        },
+        {
+          "item": "black_pearl",
+          "count": 1
+        },
+        {
+          "item": "gold_dust",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

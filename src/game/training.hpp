@@ -22,6 +22,7 @@ struct TrainingMonster {
 struct TrainingRound {
     std::string monsterName;
     int caveLevel = 0;
+    int monsterMaxHp = 0;
     Outcome outcome = Outcome::Draw;
     std::vector<Event> events;
     std::int64_t goldGained = 0, expGained = 0;

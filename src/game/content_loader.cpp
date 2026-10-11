@@ -271,18 +271,19 @@ ItemDef parseItem(Ctx& ctx, const Json& j, std::size_t index) {
     d.kind = readEnum(f, "kind", kItemKinds);
     if (const Json* b = f.raw("bonus")) {
         Fields bf(ctx, *b, f.entry(), {"atk", "def", "life"}, "bonus.");
-        d.bonus = {bf.opt<int>("atk", 0, 0), bf.opt<int>("def", 0, 0), bf.opt<int>("life", 0, 0)};
+        d.bonus = {bf.opt<int>("atk", 0, 0, kMaxStat), bf.opt<int>("def", 0, 0, kMaxStat),
+                   bf.opt<int>("life", 0, 0, kMaxStat)};
     }
-    d.price = f.opt<std::int64_t>("price", 0, 0);
-    d.auctionValue = f.opt<std::int64_t>("auctionValue", 0, 0);
+    d.price = f.opt<std::int64_t>("price", 0, 0, kMaxStat);
+    d.auctionValue = f.opt<std::int64_t>("auctionValue", 0, 0, kMaxStat);
     d.dropRate = f.opt<int>("dropRate", 0, 0, 100);
     if (f.raw("upgradeMaterial"))
         d.upgradeMaterial = f.req<std::string>("upgradeMaterial");
     if (const Json* c = f.raw("consumable")) {
         Fields cf(ctx, *c, f.entry(), {"restoreHp", "restoreMp", "fullRestore"}, "consumable.");
-        d.consumable =
-            ConsumableEffect{cf.opt<int>("restoreHp", 0, 0), cf.opt<int>("restoreMp", 0, 0),
-                             cf.opt<bool>("fullRestore", false)};
+        d.consumable = ConsumableEffect{cf.opt<int>("restoreHp", 0, 0, kMaxStat),
+                                        cf.opt<int>("restoreMp", 0, 0, kMaxStat),
+                                        cf.opt<bool>("fullRestore", false)};
     }
     return d;
 }
@@ -294,12 +295,12 @@ PathDef parsePath(Ctx& ctx, const Json& j, std::size_t index) {
     d.id = f.req<std::string>("id");
     d.name = f.req<std::string>("name");
     d.flavor = f.req<std::string>("flavor");
-    d.multiplier = f.req<int>("multiplier", 1);
-    d.maxHp = f.req<int>("maxHp", 0);
-    d.maxMp = f.req<int>("maxMp", 0);
-    d.atk = f.req<int>("atk", 0);
-    d.def = f.req<int>("def", 0);
-    d.life = f.req<int>("life", 0);
+    d.multiplier = f.req<int>("multiplier", 1, kMaxPathMultiplier);
+    d.maxHp = f.req<int>("maxHp", 0, kMaxStat);
+    d.maxMp = f.req<int>("maxMp", 0, kMaxStat);
+    d.atk = f.req<int>("atk", 0, kMaxStat);
+    d.def = f.req<int>("def", 0, kMaxStat);
+    d.life = f.req<int>("life", 0, kMaxStat);
     return d;
 }
 
@@ -315,7 +316,7 @@ std::vector<StatusSpec> parseStatuses(Fields& f, std::string_view key) {
     for (std::size_t i = 0; i < list->size(); ++i) {
         Fields sf(f.ctx(), (*list)[i], f.entry(), {"id", "turns"}, std::format("{}[{}].", key, i));
         const StatusId id = readEnum(sf, "id", kStatuses);
-        out.push_back({id, sf.req<int>("turns", 1)});
+        out.push_back({id, sf.req<int>("turns", 1, kMaxStat)});
     }
     return out;
 }
@@ -328,9 +329,9 @@ SkillDef parseSkill(Ctx& ctx, const Json& j, std::size_t index) {
     d.id = f.req<std::string>("id");
     d.name = f.req<std::string>("name");
     d.description = f.req<std::string>("description");
-    d.mpCost = f.req<int>("mpCost", 0);
-    d.learnLevel = f.req<int>("learnLevel", 0);
-    d.goldCost = f.req<std::int64_t>("goldCost", 0);
+    d.mpCost = f.req<int>("mpCost", 0, kMaxStat);
+    d.learnLevel = f.req<int>("learnLevel", 0, kMaxStat);
+    d.goldCost = f.req<std::int64_t>("goldCost", 0, kMaxStat);
     d.keyItem = f.req<std::string>("keyItem");
     if (const Json* e = f.raw("effect")) {
         Fields ef(ctx, *e, f.entry(),
@@ -340,10 +341,10 @@ SkillDef parseSkill(Ctx& ctx, const Json& j, std::size_t index) {
                   "effect.");
         SkillEffect& s = d.effect;
         s.healToFull = ef.opt<bool>("healToFull", false);
-        s.atkMultiplier = ef.opt<int>("atkMultiplier", 0, 0);
+        s.atkMultiplier = ef.opt<int>("atkMultiplier", 0, 0, kMaxSkillMultiplier);
         s.ignoreDef = ef.opt<bool>("ignoreDef", false);
         s.halveTargetHpFirst = ef.opt<bool>("halveTargetHpFirst", false);
-        s.healPercentOfDamage = ef.opt<int>("healPercentOfDamage", 0, 0);
+        s.healPercentOfDamage = ef.opt<int>("healPercentOfDamage", 0, 0, 100);
         s.selfStatuses = parseStatuses(ef, "selfStatuses");
         s.targetStatuses = parseStatuses(ef, "targetStatuses");
         s.requiresTargetNotStunned = ef.opt<bool>("requiresTargetNotStunned", false);
@@ -361,13 +362,13 @@ EnemyDef parseEnemy(Ctx& ctx, const Json& j, std::size_t index) {
     d.id = f.req<std::string>("id");
     d.name = f.req<std::string>("name");
     d.sprite = f.req<std::string>("sprite");
-    d.maxHp = f.req<int>("maxHp", 0);
-    d.atk = f.req<int>("atk", 0);
-    d.def = f.req<int>("def", 0);
-    d.life = f.req<int>("life", 0);
+    d.maxHp = f.req<int>("maxHp", 0, kMaxStat);
+    d.atk = f.req<int>("atk", 0, kMaxStat);
+    d.def = f.req<int>("def", 0, kMaxStat);
+    d.life = f.req<int>("life", 0, kMaxStat);
     d.behavior = readEnum(f, "behavior", kBehaviors);
-    d.rewardExp = f.req<std::int64_t>("rewardExp", 0);
-    d.rewardGold = f.req<std::int64_t>("rewardGold", 0);
+    d.rewardExp = f.req<std::int64_t>("rewardExp", 0, kMaxStat);
+    d.rewardGold = f.req<std::int64_t>("rewardGold", 0, kMaxStat);
     d.rewardItems = f.strings("rewardItems", false);
     return d;
 }
@@ -380,7 +381,7 @@ MissionDef parseMission(Ctx& ctx, const Json& j, std::size_t index) {
     d.name = f.req<std::string>("name");
     d.location = f.req<std::string>("location");
     d.enemy = f.req<std::string>("enemy");
-    d.minLevel = f.req<int>("minLevel", 0);
+    d.minLevel = f.req<int>("minLevel", 0, kMaxStat);
     d.repeatable = f.req<bool>("repeatable");
     d.story = f.strings("story", false);
     return d;
@@ -400,7 +401,7 @@ RecipeDef parseRecipe(Ctx& ctx, const Json& j, std::size_t index) {
         Fields inf(ctx, (*list)[i], f.entry(), {"item", "count"},
                    std::format("ingredients[{}].", i));
         auto item = inf.req<std::string>("item");
-        d.ingredients.emplace_back(std::move(item), inf.req<int>("count", 1));
+        d.ingredients.emplace_back(std::move(item), inf.req<int>("count", 1, kMaxStat));
     }
     return d;
 }
@@ -514,8 +515,15 @@ loadContent(const std::filesystem::path& dataDir) {
         for (const RecipeDef& d : recipes) {
             const std::string entry = std::format("recipe '{}'", d.id);
             checkItemRef(recipesCtx, refs, entry, "result item", d.result);
-            for (const auto& [item, count] : d.ingredients)
+            std::unordered_set<std::string> seen;
+            for (const auto& [item, count] : d.ingredients) {
                 checkItemRef(recipesCtx, refs, entry, "ingredient", item);
+                // forge() checks each entry's count separately, so one item must be one entry.
+                if (!seen.insert(item).second)
+                    recipesCtx.errors.push_back(
+                        {recipesCtx.file, entry,
+                         std::format("ingredient '{}' listed twice", item)});
+            }
         }
     }
 

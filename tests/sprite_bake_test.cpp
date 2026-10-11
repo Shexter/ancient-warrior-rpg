@@ -70,6 +70,13 @@ TEST(SpriteBake, MissingAndNonPngInputsFail) {
     EXPECT_NE(bad.error().find("not a readable PNG"), std::string::npos);
 }
 
+TEST(SpriteBake, OversizedPngIsRejectedBeforeConversion) {
+    const fs::path png = fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "too_wide.png";
+    const auto result = bake::loadPng(png); // 513x1, one pixel over the limit
+    ASSERT_FALSE(result.has_value());
+    EXPECT_NE(result.error().find("larger than the 512x512 limit"), std::string::npos);
+}
+
 TEST(SpriteBake, UnwritableOutputFails) {
     const auto result = bake::bake(fixture(), "/no/such/dir/out.sprite", 32);
     ASSERT_FALSE(result.has_value());

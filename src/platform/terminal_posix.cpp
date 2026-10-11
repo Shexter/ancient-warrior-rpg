@@ -16,7 +16,8 @@ namespace {
 
 constexpr char kEnter[] = "\x1b[?1049h\x1b[?25l";
 constexpr char kLeave[] = "\x1b[0m\x1b[?25h\x1b[?1049l";
-constexpr int kSignals[] = {SIGINT, SIGTERM, SIGHUP};
+// SIGABRT covers failed asserts and std::terminate.
+constexpr int kSignals[] = {SIGINT, SIGTERM, SIGHUP, SIGABRT};
 
 termios gSaved;
 std::atomic<bool> gActive{false};

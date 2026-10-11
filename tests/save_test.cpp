@@ -208,7 +208,11 @@ INSTANTIATE_TEST_SUITE_P(
         BadCase{"short_seed_hex", MUT(j["seed"] = "0x2a"), SaveError::Corrupt},
         BadCase{"even_rng_inc", MUT(j["rng"]["inc"] = "0x0000000000000002"), SaveError::Corrupt},
         BadCase{"empty_name", MUT(j["hero"]["name"] = ""), SaveError::Corrupt},
-        BadCase{"long_name", MUT(j["hero"]["name"] = "ninechars"), SaveError::Corrupt}),
+        BadCase{"long_name", MUT(j["hero"]["name"] = "ninechars"), SaveError::Corrupt},
+        // Huge stats would overflow battle math (atk + gear bonus) instead of failing cleanly.
+        BadCase{"atk_over_cap", MUT(j["hero"]["atk"] = 2147483647), SaveError::Corrupt},
+        BadCase{"max_hp_over_cap", MUT(j["hero"]["maxHp"] = 1000001), SaveError::Corrupt},
+        BadCase{"gold_over_cap", MUT(j["hero"]["gold"] = 1000000000000001), SaveError::Corrupt}),
     [](const testing::TestParamInfo<BadCase>& param) { return std::string(param.param.name); });
 #undef MUT
 

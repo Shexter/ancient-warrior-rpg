@@ -84,6 +84,7 @@ runTraining(GameState& state, const Content& content, int caveLevel, int rounds)
         TrainingRound round;
         round.monsterName = monster.name;
         round.caveLevel = caveLevel;
+        round.monsterMaxHp = monster.maxHp;
         Combatant fighter = heroCombatant(hero, content);
         round.outcome = fight(fighter, monster, round.events);
         hero.hp = fighter.hp;

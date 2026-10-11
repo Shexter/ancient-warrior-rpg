@@ -13,6 +13,10 @@
 
 namespace heroes::game {
 
+// Largest gold/exp a save may hold. Unreachable in play (it would take ~1e9 actions) yet small
+// enough that every gold and exp formula stays inside int64.
+inline constexpr std::int64_t kMaxCurrency = 1'000'000'000'000'000;
+
 struct Equipped {
     std::string itemId;
     int upgradeLevel = 1; // 1..10

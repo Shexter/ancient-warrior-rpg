@@ -39,6 +39,13 @@ std::expected<engine::Sprite, std::string> loadPng(const std::filesystem::path& 
         return std::unexpected(
             std::format("{}: not a readable PNG ({})", file.string(), stbi_failure_reason()));
 
+    if (width > engine::kMaxSpriteSize || height > engine::kMaxSpriteSize) {
+        stbi_image_free(data);
+        return std::unexpected(std::format("{}: image is {}x{}, larger than the {}x{} limit",
+                                           file.string(), width, height, engine::kMaxSpriteSize,
+                                           engine::kMaxSpriteSize));
+    }
+
     engine::Sprite sprite;
     sprite.width = width;
     sprite.height = height;
@@ -50,10 +57,6 @@ std::expected<engine::Sprite, std::string> loadPng(const std::filesystem::path& 
             sprite.pixels.emplace_back(engine::Rgb{px[0], px[1], px[2]});
     }
     stbi_image_free(data);
-    if (width > engine::kMaxSpriteSize || height > engine::kMaxSpriteSize)
-        return std::unexpected(std::format("{}: image is {}x{}, larger than the {}x{} limit",
-                                           file.string(), width, height, engine::kMaxSpriteSize,
-                                           engine::kMaxSpriteSize));
     return sprite;
 }
 

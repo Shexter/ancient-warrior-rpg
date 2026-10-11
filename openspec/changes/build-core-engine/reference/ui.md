@@ -53,6 +53,8 @@ Hub ─ Training ─▶ Training Setup ─▶ Training Playback ─▶ Hub
 ```
 Esc on any sub-screen returns to its parent. Esc on the Hub opens the Quit confirm.
 
+**Protecting an existing save** (added 2026-10-11, approved by the user): if a save file exists that this session neither loaded nor wrote (for example it failed to load as corrupt or newer, or the player chose New Game), Save first shows the ConfirmBox "Replace the existing save?". No keeps the file and returns to the Hub. Once this session has loaded or written the file, later saves don't ask.
+
 ## Title
 
 Rows 4–9: the game title "Ancient Warrior RPG" in a 6-row box-drawn banner, centered in accent. Rows 14–16: Menu with New Game, Continue (disabled if no save file exists), Quit. Row 22: dim `↑↓ select · Enter confirm`.

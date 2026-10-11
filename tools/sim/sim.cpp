@@ -4,11 +4,13 @@
 #include "game/content_loader.hpp"
 #include "game/game_state.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cstdlib>
 #include <format>
 #include <set>
 #include <thread>
+#include <utility>
 
 namespace heroes::sim {
 
@@ -68,6 +70,12 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
         return std::unexpected("battles must be at least 1");
     if (config.threads < 1)
         return std::unexpected("threads must be at least 1");
+    for (const auto& [name, value] : {std::pair{"--bonus-hp", config.bonusHp},
+                                      {"--bonus-mp", config.bonusMp},
+                                      {"--bonus-atk", config.bonusAtk},
+                                      {"--bonus-def", config.bonusDef}})
+        if (value < 0 || value > kMaxStat)
+            return std::unexpected(std::format("{} must be 0-{}, got {}", name, kMaxStat, value));
 
     auto loaded = loadContent(config.dataDir);
     if (!loaded) {
@@ -172,7 +180,11 @@ std::expected<Report, std::string> runSimulation(const SimConfig& config) {
         return std::unexpected(setup.error());
 
     // Contiguous ranges, merged in thread order, so the result never depends on scheduling.
-    const std::uint64_t threads = config.threads;
+    // Results don't depend on the worker count, so cap it: idle or thousands of threads only
+    // cost (or fail to start).
+    constexpr std::uint64_t kMaxWorkers = 256;
+    const std::uint64_t threads =
+        std::min({static_cast<std::uint64_t>(config.threads), config.battles, kMaxWorkers});
     std::vector<Tally> tallies(threads);
     std::vector<std::thread> workers;
     for (std::uint64_t t = 0; t < threads; ++t) {

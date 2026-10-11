@@ -11,6 +11,12 @@
 
 namespace heroes::game {
 
+// Upper bounds for loaded numbers (content and saves). They keep every battle and town formula
+// inside `int`/`int64` range: e.g. 5x ATK with maxed base stat and two +10 items.
+inline constexpr int kMaxStat = 1'000'000;
+inline constexpr int kMaxPathMultiplier = 100;
+inline constexpr int kMaxSkillMultiplier = 10;
+
 enum class ItemKind { Weapon, Armor, SkillKey, Material, Consumable };
 
 struct StatBonus {
