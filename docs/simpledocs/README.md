@@ -8,6 +8,7 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [content.md](content.md) | `data/*.json`, the loader, error reporting |
 | [hero-and-battle.md](hero-and-battle.md) | `Hero`, `Inventory`, `grantExp`, the `Battle` engine and its events |
 | [town-and-training.md](town-and-training.md) | training, merchant, blacksmith, guildmaster, bank, missions |
+| [save.md](save.md) | save file format, load validation, save location |
 | [simulator.md](simulator.md) | `heroes-sim` |
 
-Not yet implemented (no docs yet): save system, terminal engine, app screens.
+Not yet implemented (no docs yet): terminal engine, app screens.

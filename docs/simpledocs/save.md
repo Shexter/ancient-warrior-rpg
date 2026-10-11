@@ -1,0 +1,7 @@
+# Save system (`src/game/save.*`, `src/platform/paths.*`)
+
+- `saveGame(state, file)` serializes to JSON (`version: 1`; 64-bit values such as the seed and RNG state are `0x` + 16 hex digits), writes `<file>.tmp`, flushes, then renames over the target. It creates the parent directory. Any failure returns `WriteFailed` and leaves the previous save alone. There is no `fsync`, so a power cut (not a process crash) could still lose the newest save.
+- `loadGame(file, content)` never modifies or deletes the file. Results: missing file `NotFound`; unreadable `Unreadable`; version above 1 `NewerVersion` (checked before the rest of the file is looked at); everything else wrong `Corrupt`.
+- "Wrong" means: invalid JSON, files over 1 MiB, missing or mistyped fields, non-integers, out-of-range numbers (HP above max, level below 1, forge level outside 1-10, upgrade level outside 1-10), unknown path/item/skill/mission ids, a weapon slot holding a non-weapon (and likewise armor), a bag or bank that is not exactly 10 slots or stacks the same item twice, an invalid hero name, malformed hex, or an even RNG increment. Extra unknown keys are ignored.
+- Bag/bank slot positions (including gaps) round-trip exactly via `Inventory::fromSlots`.
+- `platform::saveFilePath()`: `$HEROES_SAVE_DIR/save.json` if set and non-empty; otherwise macOS `~/Library/Application Support/heroes-rpg/save.json`, Linux `$XDG_DATA_HOME` or `~/.local/share` + `heroes-rpg/save.json`, Windows `%APPDATA%\heroes-rpg\save.json`. Returns nullopt when the needed variables are missing. It creates nothing.

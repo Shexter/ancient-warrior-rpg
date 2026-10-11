@@ -18,6 +18,13 @@ class Inventory {
     static constexpr int kSlots = 10;
     using Slot = std::optional<std::pair<std::string, int>>;
 
+    // Restores exact slot positions (used by the save loader). Caller validates contents.
+    static Inventory fromSlots(const std::array<Slot, kSlots>& slots) {
+        Inventory inv;
+        inv.slots_ = slots;
+        return inv;
+    }
+
     bool canAdd(std::string_view id) const;
     std::expected<void, TownError> add(std::string_view id, int qty);    // qty >= 1
     std::expected<void, TownError> remove(std::string_view id, int qty); // fails if count < qty
