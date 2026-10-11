@@ -14,9 +14,9 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 2. Deterministic RNG
 
-- [ ] 2.1 Implement `src/game/rng.{hpp,cpp}` exactly per §4, including `fork()`, `state()`/`fromState()`, and defaulted `operator==`
-- [ ] 2.2 Add `tests/rng_test.cpp` with one test per row of the RNG golden table, plus `below(1) == 0` always and a `fork()` test showing the master advanced by exactly 2 draws; verify all pass locally and on all three CI platforms
-- [ ] 2.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Implement `src/game/rng.{hpp,cpp}` exactly per §4, including `fork()`, `state()`/`fromState()`, and defaulted `operator==`
+- [x] 2.2 Add `tests/rng_test.cpp` with one test per row of the RNG golden table, plus `below(1) == 0` always and a `fork()` test showing the master advanced by exactly 2 draws; verify all pass locally and on all three CI platforms
+- [x] 2.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Game Content
 
