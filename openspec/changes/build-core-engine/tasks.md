@@ -53,7 +53,7 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 - [x] 7.1 Implement `src/game/save.{hpp,cpp}` per §10; verify `tests/save_test.cpp`: a round trip of a non-trivial state (bank open, items in both, skills, a completed mission, a mid-sequence RNG) compares equal with `==`
 - [x] 7.2 Implement `src/platform/paths.{hpp,cpp}` with the `HEROES_SAVE_DIR` override; verify tests that corrupt JSON, a missing field, an unknown item ID, and `"version": 2` each return the right `SaveError` and leave the file byte-identical
-- [ ] 7.3 Verify a test that saves twice to the same path (overwrite) passes on the Windows CI job
+- [x] 7.3 Verify a test that saves twice to the same path (overwrite) passes on the Windows CI job
 - [x] 7.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 8. Terminal Platform and Framebuffer
