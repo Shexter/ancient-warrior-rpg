@@ -181,11 +181,13 @@ TEST(Training, FullBagLosesTheDrop) {
             continue;
         GameState state = freshState("fighter", seed);
         for (std::string_view id : kFillers)
-            if (id != *first->front().drop && state.hero.bag.canAdd(id))
+            if (id != *first->front().drop && state.hero.bag.canAdd(id)) {
                 ASSERT_TRUE(state.hero.bag.add(id, 1));
+            }
         for (std::string_view id : {"iron_sword", "steel_shield", "health_potion", "mana_potion"})
-            if (id != *first->front().drop && state.hero.bag.canAdd(id))
+            if (id != *first->front().drop && state.hero.bag.canAdd(id)) {
                 ASSERT_TRUE(state.hero.bag.add(id, 1));
+            }
         const auto result = runTraining(state, shippedContent(), 1, 1);
         ASSERT_TRUE(result.has_value());
         EXPECT_TRUE(result->front().dropLostBagFull);
