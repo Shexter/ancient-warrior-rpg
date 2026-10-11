@@ -1,0 +1,22 @@
+schema: spec-driven
+
+context: |
+  Project: terminal RPG engine in modern C++ (C++23), a ground-up rewrite of a 2021-22 student game.
+  Original mechanics are recorded in DESIGN_SPEC.md; original source in "heroes RPG/" is reference only.
+  Targets macOS, Linux, Windows terminals. Build: CMake. No platform-specific headers in game logic.
+  Game logic is deterministic and UI-independent; renderer and LLM narration consume events from it.
+  Engineering quality contract: docs/engineering/code-correctness.md.
+
+rules:
+  tasks:
+    - Group tasks into numbered chunks; each chunk is reviewable in one sitting and leaves the project building, tests passing, and the game runnable.
+    - No chunk may depend on a later chunk for correctness.
+    - End every chunk with exactly one task "Complete chunk quality check against `docs/engineering/code-correctness.md`." Do not copy the contract's checklist into tasks.
+
+operations:
+  apply:
+    guidance:
+      - Implement only one explicitly approved task chunk.
+      - Read only the relevant spec, design, and task section, plus docs/engineering/code-correctness.md.
+      - Run the chunk's verification, self-check against the correctness contract, report deviations, spec drift, risks, and open questions.
+      - Stop for human review; do not begin the next chunk without explicit approval.

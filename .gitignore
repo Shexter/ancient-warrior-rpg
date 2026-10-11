@@ -1,0 +1,7 @@
+build/
+.DS_Store
+heroes RPG/*.wav
+heroes RPG/*.mp3
+relay/.dev.vars
+relay/node_modules/
+__pycache__/
