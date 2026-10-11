@@ -179,3 +179,28 @@ Replaces the 7-line opening and 4-line path intro in `story.json`.
 4. **A localization question:** names and story text are currently in JSON, so a Latin/English toggle is a possible later change.
 
 Anything that needs new mechanics, such as Avaritia's gold theft or Invidia's stat copy, goes through the Lua scripting change and a new OpenSpec spec. It is not part of the re-skin.
+
+## 11. Art direction: ASCII world view (idea, not approved)
+
+Inspired by a reference video, "Water reflection test" from an ASCII MMORPG. Nothing here is in OpenSpec. It would be its own change after the core is done, for example `add-ascii-world-view`.
+
+**Look**
+- A top-down 2D view, with the hero sprite near the center and a small name label above it.
+- **Luminance ramp:** each cell's glyph is chosen by brightness. Dark areas use sparse marks (`. , ~ -`), mid tones use `( ) / \`, and bright areas use dense glyphs (`Q 8 0 @ $ &`).
+- **Per-cell colour:** the foreground is sampled from the source art over a near-black background.
+- **Texture glyphs:** grass is many small `|` and `'` blades with scattered `o * .` flowers. Water is `~` and `≈`. Ripples are rings of parentheses.
+- **Water reflection:** the cells above a waterline are copied, flipped, dimmed, and shifted sideways by a slow sine wave. The hero and the moon reflect in it.
+- Dark, low-key palette with a moon and glints on the water, which suits Civitas Lucis at night.
+
+**How it fits the engine**
+- It uses the existing `Cell{glyph, fg, bg}` framebuffer and diff renderer. It needs no engine change.
+- The ramp conversion belongs in the bake tool (`sprite_bake`) or a small helper, and the reflection is a framebuffer pass using the existing dim tint.
+- Only single-width glyphs are used (ASCII and block characters), as the engine requires.
+- At 80x24 there are far fewer cells than in the video, so it will read as chunky ASCII art, not fine detail.
+
+**Candidate scope for the change**
+1. A glyph ramp and its bake option.
+2. A reflection pass over a waterline.
+3. A walkable Act I square (the cathedral square) with the catacomb entrance, and name labels.
+4. Movement and collision in a tile map. This is new mechanics, so it needs its own spec.
+
