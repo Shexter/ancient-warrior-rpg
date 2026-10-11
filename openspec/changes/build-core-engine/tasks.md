@@ -36,10 +36,10 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 5. Balance Simulator
 
-- [ ] 5.1 Implement `tools/sim/sim.{hpp,cpp}` (`SimConfig`, `Report`, `runSimulation`, both policies, threading) and `tools/sim/main.cpp` (argument parsing, exact output format) per §13
-- [ ] 5.2 Add `tests/sim_test.cpp`: thread counts 1 and 8 give equal Reports for seed 7 and 10,000 battles; a starting Fighter with the `attack` policy has a 0% win rate; an unknown item fails validation
-- [ ] 5.3 Run `./build/release/heroes-sim --path fighter --enemy medusa --battles 100000 --seed 7 --bench` and record the command, machine, and output in `docs/benchmarks.md`
-- [ ] 5.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.1 Implement `tools/sim/sim.{hpp,cpp}` (`SimConfig`, `Report`, `runSimulation`, both policies, threading) and `tools/sim/main.cpp` (argument parsing, exact output format) per §13
+- [x] 5.2 Add `tests/sim_test.cpp`: thread counts 1 and 8 give equal Reports for seed 7 and 10,000 battles; a starting Fighter with the `attack` policy has a 0% win rate; an unknown item fails validation
+- [x] 5.3 Run `./build/release/heroes-sim --path fighter --enemy medusa --battles 100000 --seed 7 --bench` and record the command, machine, and output in `docs/benchmarks.md`
+- [x] 5.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 6. Progression and Town Services (logic only)
 
