@@ -43,11 +43,11 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 ## 6. Progression and Town Services (logic only)
 
-- [ ] 6.1 Implement `src/game/training.{hpp,cpp}` (`rollTrainingMonster`, `rollDrop`, `runTraining`) per §8; verify `tests/training_test.cpp`: the monster and drop vectors from `golden-vectors.md`; an invalid cave level (0, 31) and rounds (0, 101) are rejected; death stops later rounds, sets HP 0, and deducts that round's exp; an empty drop table terminates
-- [ ] 6.2 Implement `src/game/town.{hpp,cpp}` merchant (`buy`, `sell`, `auction`/`rollAuction`) and bank; verify `tests/town_merchant_test.cpp`: the auction vectors; for each failure path, `GameState` before == after
-- [ ] 6.3 Implement blacksmith (`equip`, `upgrade`, `forge`/`rollForge`); verify `tests/town_blacksmith_test.cpp`: the forge vectors; an upgrade consumes L materials; equipping returns the old item at level 1; a full bag blocks equip and forge with state unchanged
-- [ ] 6.4 Implement guildmaster (`revive`, `useConsumable`, `buyCharisma`, `learnSkill`, `rename`) and `startMission`/`finishMission`; verify `tests/town_guild_test.cpp`: revive with 40 gold; charisma with 30 exp is refused with nothing spent; charisma at level 10 Fighter for 500 exp gives +10 for 1000 gold; learning Frozen Throne consumes the key and gold; mission Victory grants rewards and marks completed, Defeat destroys gear
-- [ ] 6.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 6.1 Implement `src/game/training.{hpp,cpp}` (`rollTrainingMonster`, `rollDrop`, `runTraining`) per §8; verify `tests/training_test.cpp`: the monster and drop vectors from `golden-vectors.md`; an invalid cave level (0, 31) and rounds (0, 101) are rejected; death stops later rounds, sets HP 0, and deducts that round's exp; an empty drop table terminates
+- [x] 6.2 Implement `src/game/town.{hpp,cpp}` merchant (`buy`, `sell`, `auction`/`rollAuction`) and bank; verify `tests/town_merchant_test.cpp`: the auction vectors; for each failure path, `GameState` before == after
+- [x] 6.3 Implement blacksmith (`equip`, `upgrade`, `forge`/`rollForge`); verify `tests/town_blacksmith_test.cpp`: the forge vectors; an upgrade consumes L materials; equipping returns the old item at level 1; a full bag blocks equip and forge with state unchanged
+- [x] 6.4 Implement guildmaster (`revive`, `useConsumable`, `buyCharisma`, `learnSkill`, `rename`) and `startMission`/`finishMission`; verify `tests/town_guild_test.cpp`: revive with 40 gold; charisma with 30 exp is refused with nothing spent; charisma at level 10 Fighter for 500 exp gives +10 for 1000 gold; learning Frozen Throne consumes the key and gold; mission Victory grants rewards and marks completed, Defeat destroys gear
+- [x] 6.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 7. Save System
 
