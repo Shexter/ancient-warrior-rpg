@@ -80,7 +80,7 @@ Approved plan (2026-10-11): stop for approval after each of 10.0-10.5; commit lo
 - [x] 10.2 Implement Title → Intro → Create Hero → Hub, plus Save and Continue; verify manually: create a hero, save, quit, relaunch, Continue shows the same hero
 - [x] 10.3 Implement Training Setup and Playback; verify manually: train at cave 1 for 5 rounds and confirm gold and exp in the status panel match the totals screen
 - [x] 10.4 Implement the Merchant, Blacksmith, Guildmaster, and Bank screens; verify manually: buy a Health Potion, auction a Topaz, open the bank and deposit, attempt an unaffordable upgrade and see the red cost lines
-- [ ] 10.5 Implement Mission Select, Intro, `BattleView`, Battle, and Result per the `ui.md` animation table; verify manually by hand-editing the save JSON to level 20 (no cheat code is added), loading it, then playing Medusa once to defeat (the ported balance makes this the expected outcome) and once to Flee, and confirm the log, animations, and result screens match `ui.md`
+- [x] 10.5 Implement Mission Select, Intro, `BattleView`, Battle, and Result per the `ui.md` animation table; verify manually by hand-editing the save JSON to level 20 (no cheat code is added), loading it, then playing Medusa once to defeat (the ported balance makes this the expected outcome) and once to Flee, and confirm the log, animations, and result screens match `ui.md`
 - [ ] 10.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 11. Final Verification

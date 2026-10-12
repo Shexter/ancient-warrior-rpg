@@ -51,7 +51,8 @@ target_compile_definitions(heroes-sim PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURC
 add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screens/title.cpp
     src/app/screens/new_game.cpp src/app/screens/hub.cpp
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
-    src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp)
+    src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
+    src/app/screens/mission.cpp src/app/battle_view.cpp)
 target_include_directories(heroes_app PUBLIC src)
 target_link_libraries(heroes_app PUBLIC heroes_game heroes_engine PRIVATE heroes_warnings)
 
@@ -67,7 +68,8 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/save_test.cpp tests/paths_test.cpp tests/framebuffer_test.cpp
     tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
-    tests/training_screen_test.cpp tests/town_screens_test.cpp)
+    tests/training_screen_test.cpp tests/town_screens_test.cpp
+    tests/battle_screen_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
     heroes_warnings GTest::gtest_main)
 target_compile_definitions(heroes_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
