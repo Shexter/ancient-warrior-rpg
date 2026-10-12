@@ -18,6 +18,13 @@ namespace fs = std::filesystem;
 
 namespace {
 
+const SpriteBank& shippedSprites() {
+    static const SpriteBank bank =
+        loadSprites(game::shippedContent(), fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites")
+            .value();
+    return bank;
+}
+
 class NullIo : public engine::LoopIo {
   public:
     std::pair<int, int> size() const override { return {80, 24}; }
@@ -56,7 +63,7 @@ struct TitleFixture {
         session.saveFile = dir / "save.json";
     }
     fs::path dir;
-    Session session{game::shippedContent(), std::nullopt, {}, false, {}, std::nullopt};
+    Session session{game::shippedContent(), shippedSprites(), {}, std::nullopt};
 };
 
 } // namespace

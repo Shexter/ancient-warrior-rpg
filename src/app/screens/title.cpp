@@ -1,6 +1,12 @@
 #include "app/screens/title.hpp"
 
+#include "app/app.hpp"
+#include "app/screens/hub.hpp"
+#include "app/screens/new_game.hpp"
+#include "game/save.hpp"
+
 #include <filesystem>
+#include <format>
 #include <system_error>
 
 namespace heroes::app {
@@ -20,12 +26,38 @@ TitleScreen::TitleScreen(Session& session)
     : session_(session),
       menu_({{"New Game"}, {"Continue", saveExists(session.saveFile)}, {"Quit"}}) {}
 
+Transition TitleScreen::continueGame() {
+    auto loaded = game::loadGame(session_.saveFile, session_.content);
+    if (!loaded) {
+        message_.emplace(describe(loaded.error()));
+        return Stay{};
+    }
+    session_.state = std::move(*loaded);
+    session_.dirty = false;
+    session_.saveOwned = true;
+    session_.lastMessage = std::format("Welcome back, {}.", session_.state->hero.name);
+    return Replace{std::make_unique<HubScreen>(session_)};
+}
+
 Transition TitleScreen::update(std::span<const engine::KeyEvent> keys, double) {
     for (const engine::KeyEvent& key : keys) {
-        const auto choice = menu_.handle(key);
-        if (choice == kQuit)
+        if (message_) {
+            if (message_->handle(key))
+                message_.reset();
+            continue;
+        }
+        switch (menu_.handle(key).value_or(-1)) {
+        case kNewGame:
+            return Push{std::make_unique<IntroScreen>(session_)};
+        case kContinue:
+            if (Transition next = continueGame(); !std::holds_alternative<Stay>(next))
+                return next;
+            break;
+        case kQuit:
             return Quit{};
-        // New Game and Continue lead to screens added in task 10.2.
+        default:
+            break;
+        }
     }
     return Stay{};
 }
@@ -40,6 +72,8 @@ void TitleScreen::draw(engine::Framebuffer& frame) const {
     drawCentered(frame, 6, title, palette::kAccent);
     menu_.draw(frame, 34, 14);
     drawCentered(frame, 22, "↑↓ select · Enter confirm", palette::kDim);
+    if (message_)
+        message_->draw(frame);
 }
 
 } // namespace heroes::app

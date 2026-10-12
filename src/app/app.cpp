@@ -39,6 +39,39 @@ std::filesystem::path resolveDataDir(const Options& options,
     return sourceDir / "data";
 }
 
+std::string_view describe(game::SaveError error) {
+    switch (error) {
+    case game::SaveError::NotFound:
+        return "No saved game was found.";
+    case game::SaveError::Unreadable:
+        return "The save file could not be read.";
+    case game::SaveError::Corrupt:
+        return "The save file is damaged. It was left untouched; start a new game to play.";
+    case game::SaveError::NewerVersion:
+        return "This save was made by a newer version of the game. It was left untouched.";
+    case game::SaveError::WriteFailed:
+        return "The game could not be saved. Your previous save is unchanged.";
+    }
+    return "Something went wrong with the save file.";
+}
+
+std::expected<SpriteBank, std::string> loadSprites(const game::Content& content,
+                                                   const std::filesystem::path& spriteDir) {
+    std::vector<std::string> files{"monster.sprite"};
+    for (const game::PathDef& path : content.paths())
+        files.push_back(std::format("hero_{}.sprite", path.id));
+    for (const game::EnemyDef& enemy : content.enemies())
+        files.push_back(enemy.sprite);
+    SpriteBank bank;
+    for (const std::string& file : files) {
+        auto sprite = engine::loadSprite(spriteDir / file);
+        if (!sprite)
+            return std::unexpected(sprite.error());
+        bank.insert_or_assign(file, std::move(*sprite));
+    }
+    return bank;
+}
+
 App::App(engine::LoopIo& io, engine::Renderer& renderer, std::unique_ptr<Screen> first)
     : io_(io), renderer_(renderer) {
     stack_.push_back(std::move(first));

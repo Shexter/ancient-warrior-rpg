@@ -2,11 +2,13 @@
 
 #include "engine/framebuffer.hpp"
 #include "engine/input.hpp"
+#include "engine/sprite.hpp"
 #include "game/content.hpp"
 #include "game/game_state.hpp"
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
@@ -15,14 +17,19 @@
 
 namespace heroes::app {
 
+// Sprites by file name ("hero_fighter.sprite", "medusa.sprite", ...), loaded at startup.
+using SpriteBank = std::map<std::string, engine::Sprite, std::less<>>;
+
 // Shared by every screen. Only screens change `state`, and only through game:: functions.
 struct Session {
     const game::Content& content;
-    std::optional<game::GameState> state;
+    const SpriteBank& sprites;
     std::filesystem::path saveFile;
-    bool dirty = false;                // changed since the last successful save
-    std::string lastMessage;           // shown on the Hub's bottom row
     std::optional<std::uint64_t> seed; // --seed for new games; random when unset
+    std::optional<game::GameState> state{};
+    bool dirty = false;        // changed since the last successful save
+    bool saveOwned = false;    // this session loaded or wrote saveFile, so saving needs no confirm
+    std::string lastMessage{}; // shown on the Hub's bottom row
 };
 
 class Screen;

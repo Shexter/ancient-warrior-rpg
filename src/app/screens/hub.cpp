@@ -1,0 +1,124 @@
+#include "app/screens/hub.hpp"
+
+#include "app/app.hpp"
+#include "game/hero.hpp"
+#include "game/save.hpp"
+
+#include <algorithm>
+#include <format>
+#include <system_error>
+
+namespace heroes::app {
+
+namespace {
+
+enum Choice { kTraining, kMission, kTown, kSave, kQuit };
+
+} // namespace
+
+HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItems()) {}
+
+std::vector<Menu::Item> HubScreen::menuItems() const {
+    const game::Hero& hero = session_.state->hero;
+    std::string adventureNote;
+    if (hero.hp <= 0)
+        adventureNote = "Fallen: visit the Guildmaster";
+    else if (!game::canAdventure(hero))
+        adventureNote = "Equip a weapon and armor";
+
+    const auto missions = session_.content.missions();
+    const auto lowest = std::ranges::min_element(missions, {}, &game::MissionDef::minLevel);
+    std::string missionNote = adventureNote;
+    if (missionNote.empty() && lowest == missions.end())
+        missionNote = "No missions";
+    else if (missionNote.empty() && hero.level < lowest->minLevel)
+        missionNote = std::format("Requires Lv {}", lowest->minLevel);
+
+    return {{"Training", adventureNote.empty(), adventureNote},
+            {"Mission", missionNote.empty(), missionNote},
+            {"Town"},
+            {"Save"},
+            {"Quit"}};
+}
+
+void HubScreen::save() {
+    if (auto saved = game::saveGame(*session_.state, session_.saveFile)) {
+        session_.dirty = false;
+        session_.saveOwned = true;
+        session_.lastMessage = "Game saved.";
+    } else {
+        session_.lastMessage = describe(saved.error());
+    }
+    message_.emplace(session_.lastMessage);
+}
+
+Transition HubScreen::quit() {
+    if (!session_.dirty)
+        return Quit{};
+    asking_ = Asking::QuitUnsaved;
+    confirm_.emplace("Quit without saving?");
+    return Stay{};
+}
+
+Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
+    menu_.setItems(menuItems());
+    for (const engine::KeyEvent& key : keys) {
+        if (message_) {
+            if (message_->handle(key))
+                message_.reset();
+            continue;
+        }
+        if (confirm_) {
+            const auto answer = confirm_->handle(key);
+            if (!answer)
+                continue;
+            confirm_.reset();
+            if (*answer && asking_ == Asking::QuitUnsaved)
+                return Quit{};
+            if (*answer && asking_ == Asking::ReplaceSave)
+                save();
+            continue;
+        }
+        if (key.key == engine::Key::Escape) {
+            if (Transition next = quit(); !std::holds_alternative<Stay>(next))
+                return next;
+            continue;
+        }
+        switch (menu_.handle(key).value_or(-1)) {
+        case kSave: {
+            std::error_code ec;
+            if (!session_.saveOwned && std::filesystem::exists(session_.saveFile, ec)) {
+                asking_ = Asking::ReplaceSave;
+                confirm_.emplace("Replace the existing save?");
+            } else {
+                save();
+            }
+            break;
+        }
+        case kQuit:
+            if (Transition next = quit(); !std::holds_alternative<Stay>(next))
+                return next;
+            break;
+        default: // Training, Mission and Town screens arrive in tasks 10.3-10.5.
+            break;
+        }
+    }
+    return Stay{};
+}
+
+void HubScreen::draw(engine::Framebuffer& frame) const {
+    frame.clear(palette::kBg);
+    const game::Hero& hero = session_.state->hero;
+    drawStatusPanel(frame, hero, session_.content);
+    const auto sprite = session_.sprites.find(std::format("hero_{}.sprite", hero.pathId));
+    if (sprite != session_.sprites.end())
+        engine::drawSprite(frame, sprite->second, 4, 6);
+    menu_.draw(frame, 34, 7);
+    drawText(frame, 2, 22, session_.lastMessage, palette::kText, 76);
+    if (message_)
+        message_->draw(frame);
+    if (confirm_)
+        confirm_->draw(frame);
+}
+
+} // namespace heroes::app

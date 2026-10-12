@@ -31,6 +31,11 @@ int main(int argc, char** argv) {
             std::cerr << game::formatError(error) << '\n';
         return 2;
     }
+    const auto sprites = app::loadSprites(*content, dataDir / ".." / "assets" / "sprites");
+    if (!sprites) {
+        std::cerr << sprites.error() << '\n';
+        return 2;
+    }
     const auto saveFile = platform::saveFilePath();
     if (!saveFile) {
         std::cerr << "heroes: error: cannot find a place to save; set HEROES_SAVE_DIR\n";
@@ -41,7 +46,7 @@ int main(int argc, char** argv) {
         // The Terminal is destroyed (restoring the screen) before the catch block prints.
         platform::Terminal terminal;
         engine::Renderer renderer(platform::detectColorMode());
-        app::Session session{*content, std::nullopt, *saveFile, false, {}, options->seed};
+        app::Session session{*content, *sprites, *saveFile, options->seed};
         app::App game(terminal, renderer, std::make_unique<app::TitleScreen>(session));
         return game.run();
     } catch (const std::exception& e) {

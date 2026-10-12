@@ -67,6 +67,9 @@ class Menu {
     std::optional<int> handle(const engine::KeyEvent& key);
     void draw(engine::Framebuffer& frame, int x, int y) const;
     int selected() const { return selected_; }
+    // Replaces the items (e.g. after the game state changed), keeping the selection where it is
+    // unless that item is now missing or disabled.
+    void setItems(std::vector<Item> items);
 
   private:
     void move(int step);

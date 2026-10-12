@@ -3,6 +3,7 @@
 #include "app/screen.hpp"
 #include "engine/loop.hpp"
 #include "engine/renderer.hpp"
+#include "game/save.hpp"
 
 #include <cstdint>
 #include <expected>
@@ -28,6 +29,14 @@ std::expected<Options, std::string> parseOptions(std::span<const std::string_vie
 std::filesystem::path resolveDataDir(const Options& options,
                                      const std::optional<std::string>& envDataDir,
                                      const std::filesystem::path& sourceDir);
+
+// Player-facing sentence for a save or load failure.
+std::string_view describe(game::SaveError error);
+
+// Loads every sprite the screens draw: hero_<path>.sprite for each path, each enemy's sprite,
+// and monster.sprite (training). The error names the file and the problem.
+std::expected<SpriteBank, std::string> loadSprites(const game::Content& content,
+                                                   const std::filesystem::path& spriteDir);
 
 // Runs the screen stack on the fixed-step loop until a screen quits or the stack empties.
 class App {

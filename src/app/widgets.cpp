@@ -146,6 +146,17 @@ Menu::Menu(std::vector<Item> items, Layout layout) : items_(std::move(items)), l
     selected_ = first == items_.end() ? 0 : static_cast<int>(first - items_.begin());
 }
 
+void Menu::setItems(std::vector<Item> items) {
+    items_ = std::move(items);
+    if (items_.empty()) {
+        selected_ = 0;
+        return;
+    }
+    selected_ = std::min(selected_, static_cast<int>(items_.size()) - 1);
+    if (!items_[static_cast<std::size_t>(selected_)].enabled)
+        move(1);
+}
+
 void Menu::move(int step) {
     const int n = static_cast<int>(items_.size());
     for (int tries = 0, i = selected_; tries < n; ++tries) {
