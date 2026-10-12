@@ -168,7 +168,7 @@ Decided by the user, 2026-10-12:
 5. **Medusa:** kept unchanged as a bonus mission (so her golden vectors stay valid). Act I gets a new mission against *Avaritia*, which uses Medusa's existing fight pattern until the Lua change gives it gold theft.
 6. **Real saints:** named saints are allowed where drafted (Mace of St. Michael).
 
-Implemented (2026-10-12, `reskin-act-one` chunks 1–2): the Act I names in `data/`, the title, Fervor in place of MP on screen, and the town names and NPC lines from `openspec/changes/reskin-act-one/reference/act-one-names.md`. Chunk 3 added the Avaritia mission (Act I, level 15) with its own sprite, tuned into the simulator band. **Act I is shipped.**
+Implemented (2026-10-12, `reskin-act-one` chunks 1–2): the Act I names in `data/`, the title, Fervor in place of MP on screen, and the town names and NPC lines from `openspec/changes/archive/2026-10-11-reskin-act-one/reference/act-one-names.md`. Chunk 3 added the Avaritia mission (Act I, level 15) with its own sprite, tuned into the simulator band. **Act I is shipped.**
 
 Still open:
 7. **Act II format:** seven short fights, or fewer stops?
