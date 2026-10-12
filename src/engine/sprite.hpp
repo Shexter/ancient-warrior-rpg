@@ -51,4 +51,38 @@ struct SpriteTint {
 void drawSprite(Framebuffer& frame, const Sprite& sprite, int cellX, int cellY,
                 SpriteTint tint = {});
 
+// A sprite of whole cells: each is one printable ASCII character in one color, or transparent.
+struct GlyphCell {
+    char ch;
+    Rgb color;
+    bool operator==(const GlyphCell&) const = default;
+};
+struct GlyphSprite {
+    int width = 0, height = 0; // in cells
+    std::vector<std::optional<GlyphCell>> cells; // row-major; nullopt = transparent
+
+    const std::optional<GlyphCell>& at(int x, int y) const {
+        return cells[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) +
+                     static_cast<std::size_t>(x)];
+    }
+    bool operator==(const GlyphSprite&) const = default;
+};
+
+// Parses the `.glyphs` text format:
+//   glyphs <w> <h>
+//   palette          <key> #rrggbb lines, as in .sprite
+//   chars            h rows of |w characters|, printable ASCII; space = transparent
+//   colors           h rows of w palette keys; '.' = transparent
+// A cell must be transparent in both grids or in neither. Errors name the 1-based line.
+std::expected<GlyphSprite, std::string> parseGlyphs(std::string_view text);
+std::expected<GlyphSprite, std::string> loadGlyphs(const std::filesystem::path& file);
+// Writes the `.glyphs` format; fails if it needs more than `maxColors` colors.
+std::expected<std::string, std::string> serializeGlyphs(const GlyphSprite& sprite, int maxColors);
+
+// Draws one cell per glyph cell from (cellX, cellY), clipping to the framebuffer. An opaque cell
+// sets the character and its (tinted) foreground and keeps the background; a transparent cell is
+// untouched.
+void drawGlyphs(Framebuffer& frame, const GlyphSprite& sprite, int cellX, int cellY,
+                SpriteTint tint = {});
+
 } // namespace heroes::engine

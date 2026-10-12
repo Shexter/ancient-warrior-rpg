@@ -102,3 +102,44 @@ TEST(ShippedSprites, AllFivePlaceholdersLoadWithTheDocumentedSizes) {
         EXPECT_GT(opaque, e.width * e.height / 5) << e.file << " looks empty";
     }
 }
+
+TEST(SpriteBake, GlyphsPickTheCharacterByBrightnessAndKeepTheColor) {
+    // 3x2 pixels: a near-black column, a near-white column, a transparent column.
+    const fs::path png = fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "glyph_ramp.png";
+    const fs::path out = scratch("ramp.glyphs");
+    fs::remove(out);
+    ASSERT_TRUE(bake::bake(png, out, 32, bake::Format::Glyphs).has_value());
+    const auto glyphs = engine::loadGlyphs(out);
+    ASSERT_TRUE(glyphs.has_value()) << glyphs.error();
+    EXPECT_EQ(glyphs->width, 3);
+    EXPECT_EQ(glyphs->height, 1); // two pixel rows per cell
+    EXPECT_EQ(glyphs->at(0, 0), (engine::GlyphCell{'.', engine::Rgb{10, 10, 10}})); // sparse end
+    EXPECT_EQ(glyphs->at(1, 0), (engine::GlyphCell{'@', engine::Rgb{250, 250, 250}})); // dense end
+    EXPECT_FALSE(glyphs->at(2, 0).has_value());
+}
+
+TEST(SpriteBake, GlyphsWithTooManyColorsWriteNothing) {
+    const fs::path png = fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "glyph_ramp.png";
+    const fs::path out = scratch("toomany.glyphs");
+    fs::remove(out);
+    const auto result = bake::bake(png, out, 1, bake::Format::Glyphs);
+    ASSERT_FALSE(result.has_value());
+    EXPECT_NE(result.error().find("reduce the palette first"), std::string::npos);
+    EXPECT_FALSE(fs::exists(out));
+}
+
+TEST(SpriteBake, GlyphRampLevelsFollowLuminance) {
+    engine::Sprite image;
+    image.width = 3;
+    image.height = 2;
+    image.pixels = {engine::Rgb{0, 0, 0},       engine::Rgb{128, 128, 128}, engine::Rgb{255, 0, 0},
+                    engine::Rgb{0, 0, 0},       std::nullopt,               engine::Rgb{0, 0, 255}};
+    const auto glyphs = bake::toGlyphs(image);
+    EXPECT_EQ(glyphs.at(0, 0)->ch, bake::kGlyphRamp[1]);
+    EXPECT_EQ(glyphs.at(1, 0)->ch, bake::kGlyphRamp[5]); // 128 * 9 / 256 = 4.5 -> level 4
+    // Red over blue: luminance averages both, color is the top pixel's.
+    EXPECT_EQ(glyphs.at(2, 0)->color, (engine::Rgb{255, 0, 0}));
+    EXPECT_EQ(glyphs.at(2, 0)->ch, bake::kGlyphRamp[1 + static_cast<std::size_t>(
+                                                            (0.2126 * 255 + 0.0722 * 255) / 2 *
+                                                            9 / 256)]);
+}

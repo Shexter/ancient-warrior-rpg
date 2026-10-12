@@ -10,11 +10,11 @@
 
 ## 2. Glyph sprites
 
-- [ ] 2.1 Add `GlyphSprite`, `parseGlyphs`/`loadGlyphs` for the `.glyphs` format (design Decision 4) with line-numbered errors; verify parse tests for a valid file, a short row, an unknown key, a char/color transparency mismatch, and non-ASCII characters
-- [ ] 2.2 Add `drawGlyphs` with the shared flash and dim tints; verify tests that a transparent cell keeps its existing glyph and background and that tints change only the foreground color
-- [ ] 2.3 Add `sprite_bake --glyphs` (W×2H PNG → `.glyphs`, ramp ` .:-=+*#%@`, palette cap 62); verify bake tests with a black/white/transparent fixture PNG and the too-many-colors error
-- [ ] 2.4 Update SimpleDocs `sprites.md` and `tools/art/README.md`; verify the format and bake option are documented
-- [ ] 2.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Add `GlyphSprite`, `parseGlyphs`/`loadGlyphs` for the `.glyphs` format (design Decision 4) with line-numbered errors; verify parse tests for a valid file, a short row, an unknown key, a char/color transparency mismatch, and non-ASCII characters
+- [x] 2.2 Add `drawGlyphs` with the shared flash and dim tints; verify tests that a transparent cell keeps its existing glyph and background and that tints change only the foreground color
+- [x] 2.3 Add `sprite_bake --glyphs` (W×2H PNG → `.glyphs`, ramp ` .:-=+*#%@`, palette cap 62); verify bake tests with a black/white/transparent fixture PNG and the too-many-colors error
+- [x] 2.4 Update SimpleDocs `sprites.md` and `tools/art/README.md`; verify the format and bake option are documented
+- [x] 2.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Large art
 

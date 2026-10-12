@@ -11,7 +11,7 @@ How the shipped `assets/sprites/*.sprite` were made. Nothing here is part of the
    ```
    python3 -I tools/art/to_sprite_png.py in.png green|magenta WIDTH HEIGHT out.png
    ```
-3. Bake: `./build/debug/sprite_bake out.png assets/sprites/NAME.sprite`
+3. Bake: `./build/debug/sprite_bake out.png assets/sprites/NAME.sprite` for half-blocks, or `./build/debug/sprite_bake out.png NAME.glyphs --glyphs` for a glyph sprite (the same W x 2H PNG gives the same cell footprint in both looks).
 
 Use a magenta background for anything green (Hunter's cloak, Medusa). Heroes face right; enemies face left.
 

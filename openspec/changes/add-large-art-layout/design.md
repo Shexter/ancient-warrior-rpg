@@ -43,11 +43,11 @@ glyphs <w> <h>
 palette
 <key> #rrggbb
 chars
-<h rows of w printable ASCII; space = transparent>
+<h rows of |w printable ASCII|; space = transparent>
 colors
 <h rows of w palette keys; '.' = transparent>
 ```
-- A cell is transparent only when both grids say so. A mismatch is a parse error, reported with its line.
+- A cell is transparent only when both grids say so. A mismatch is a parse error, reported with its line. (Changed in chunk 2: char rows are wrapped in `|...|`, because a row may start with `#`, the comment marker, or be all spaces, which the parser skips as blank. Editors also strip trailing spaces.)
 - `GlyphSprite` and `drawGlyphs(frame, sprite, x, y, tint)` live beside `Sprite` and `drawSprite`, and reuse the tint function.
 - `.sprite` stays exactly as it is.
 
@@ -55,7 +55,7 @@ Alternative: extend `.sprite` with a glyph layer. Rejected: it would change a fo
 
 **5. Ramp baking.**
 - `sprite_bake in.png out.glyphs --glyphs` reads a PNG that is W × 2H pixels, and each cell covers one pixel column and two pixel rows.
-- Each cell's opaque pixels are averaged. Luminance (Rec. 709) picks a character from the ramp ` .:-=+*#%@`, with space reserved for transparent. The averaged color becomes the cell color, and the palette is capped at 62 colors with the same "reduce the palette first" error.
+- The luminance (Rec. 709) of each cell's opaque pixels is averaged and picks a character from the ramp ` .:-=+*#%@`, with space reserved for transparent. The cell color is the top pixel's, or the bottom's if the top is transparent. (Changed in chunk 2 from the averaged color: averaging blends quantized colors into new ones and would break the palette cap. The cap is 62 colors with the same "reduce the palette first" error.)
 - The same PNG bakes both looks, so the half-block and glyph versions of a character always have the same cell footprint.
 
 **6. Large sprite sizes and placement at 120×40** (in cells; half-block heights are pixels / 2):

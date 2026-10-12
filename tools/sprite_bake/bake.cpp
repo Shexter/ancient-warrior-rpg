@@ -1,5 +1,6 @@
 #include "bake.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <fstream>
@@ -60,12 +61,43 @@ std::expected<engine::Sprite, std::string> loadPng(const std::filesystem::path& 
     return sprite;
 }
 
+engine::GlyphSprite toGlyphs(const engine::Sprite& image) {
+    engine::GlyphSprite glyphs;
+    glyphs.width = image.width;
+    glyphs.height = (image.height + 1) / 2;
+    for (int row = 0; row < glyphs.height; ++row) {
+        for (int x = 0; x < image.width; ++x) {
+            static const std::optional<engine::Rgb> kNone;
+            const auto& top = image.at(x, row * 2);
+            const auto& bottom = row * 2 + 1 < image.height ? image.at(x, row * 2 + 1) : kNone;
+            if (!top && !bottom) {
+                glyphs.cells.emplace_back(std::nullopt);
+                continue;
+            }
+            double luminance = 0;
+            int opaque = 0;
+            for (const std::optional<engine::Rgb>& pixel : {top, bottom})
+                if (pixel) {
+                    luminance += 0.2126 * pixel->r + 0.7152 * pixel->g + 0.0722 * pixel->b;
+                    ++opaque;
+                }
+            luminance /= opaque;
+            // 1..9: never the space, which marks transparency.
+            const auto level = std::min<std::size_t>(8, static_cast<std::size_t>(luminance * 9 / 256));
+            glyphs.cells.emplace_back(engine::GlyphCell{kGlyphRamp[1 + level], top ? *top : *bottom});
+        }
+    }
+    return glyphs;
+}
+
 std::expected<void, std::string> bake(const std::filesystem::path& png,
-                                      const std::filesystem::path& out, int maxColors) {
+                                      const std::filesystem::path& out, int maxColors,
+                                      Format format) {
     auto sprite = loadPng(png);
     if (!sprite)
         return std::unexpected(sprite.error());
-    auto text = engine::serializeSprite(*sprite, maxColors);
+    auto text = format == Format::Glyphs ? engine::serializeGlyphs(toGlyphs(*sprite), maxColors)
+                                         : engine::serializeSprite(*sprite, maxColors);
     if (!text)
         return std::unexpected(std::format("{}: {}", png.string(), text.error()));
     std::ofstream file(out, std::ios::binary | std::ios::trunc);
