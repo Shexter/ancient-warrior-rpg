@@ -30,5 +30,5 @@ The reference is `reference/lua-interfaces.md` (abbreviated "ref" below).
 
 ## 5. Final Verification
 
-- [ ] 5.1 Verify CI is green with asan (sandbox and parity tests included) and `openspec validate add-lua-scripting --strict` passes; list any SPEC DRIFT
-- [ ] 5.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.1 Verify CI is green with asan (sandbox and parity tests included) and `openspec validate add-lua-scripting --strict` passes; list any SPEC DRIFT
+- [x] 5.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.

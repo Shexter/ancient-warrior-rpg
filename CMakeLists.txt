@@ -69,7 +69,9 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_status_test.cpp tests/sim_test.cpp tests/training_test.cpp
     tests/town_merchant_test.cpp tests/town_blacksmith_test.cpp tests/town_guild_test.cpp
     tests/save_test.cpp tests/paths_test.cpp tests/framebuffer_test.cpp
-    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp tests/glyph_sprite_test.cpp tests/script_sandbox_test.cpp tests/script_battle_test.cpp
+    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp
+    tests/glyph_sprite_test.cpp tests/script_sandbox_test.cpp tests/script_battle_test.cpp
+    tests/mods_test.cpp
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
     tests/battle_screen_test.cpp tests/large_layout_test.cpp)
