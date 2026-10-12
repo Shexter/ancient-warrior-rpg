@@ -1,5 +1,6 @@
 #pragma once
 
+#include "game/battle.hpp"
 #include "game/content.hpp"
 #include "game/events.hpp"
 #include "game/game_state.hpp"
@@ -29,6 +30,7 @@ struct TrainingRound {
     int levelsGained = 0;
     std::optional<std::string> drop;
     bool dropLostBagFull = false;
+    std::int64_t potGained = 0; // TrainingSession only
 };
 
 // Draw order: atk, def, gold. `caveLevel` is 1..30.
@@ -36,6 +38,45 @@ TrainingMonster rollTrainingMonster(Rng& rng, int caveLevel);
 
 // Always draws twice when any item can drop, never when none can.
 std::optional<std::string> rollDrop(Rng& rng, const Content& content, int caveLevel);
+
+// The hero (a copy, e.g. from heroCombatant) trades hits with the monster until one falls or the
+// exchange cap is hit, appending the events. Shared by training and its win-chance estimate.
+Outcome fightTrainingMonster(Combatant& hero, const TrainingMonster& monster,
+                             std::vector<Event>& events);
+
+// Push-your-luck training: one round at a time. Each win adds
+// `round gold x min(streak, 10) / 10` to a pot (streak = wins earlier in the session; a draw
+// resets it). leave() banks the pot; a defeat forfeits it and ends the session. The game's
+// random stream is forked once, at start.
+class TrainingSession {
+  public:
+    static constexpr int kMaxCaveLevel = 30;
+
+    // Refused, changing nothing, for a dead or unequipped hero or a cave outside 1..30.
+    static std::expected<TrainingSession, TownError> start(GameState& state, const Content& content,
+                                                           int caveLevel);
+
+    // Fights and applies one round. Precondition: !over().
+    TrainingRound next();
+    // Adds the pot to the hero's gold and ends the session. Returns the amount banked.
+    std::int64_t leave();
+
+    bool over() const { return over_; }
+    int caveLevel() const { return caveLevel_; }
+    int streak() const { return streak_; }
+    std::int64_t pot() const { return pot_; }
+
+  private:
+    TrainingSession(GameState& state, const Content& content, int caveLevel);
+
+    GameState* state_;
+    const Content* content_;
+    int caveLevel_;
+    Rng rng_;
+    int streak_ = 0;
+    std::int64_t pot_ = 0;
+    bool over_ = false;
+};
 
 // Runs up to `rounds` fights; a defeat stops the remaining rounds. On error nothing changes.
 std::expected<std::vector<TrainingRound>, TownError>

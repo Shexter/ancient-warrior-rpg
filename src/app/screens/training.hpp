@@ -9,8 +9,8 @@
 
 namespace heroes::app {
 
-// Cave level (1-30), then rounds (1-100). Runs the whole session at once (results are applied
-// immediately) and hands them to the playback. Esc goes back to the Hub.
+// The caves with the hero's estimated win chance for each, then a cave level (1-30). Starts a
+// push-your-luck session and hands it to the playback. Esc goes back to the Hub.
 class TrainingSetupScreen final : public Screen {
   public:
     explicit TrainingSetupScreen(Session& session);
@@ -19,18 +19,17 @@ class TrainingSetupScreen final : public Screen {
 
   private:
     Session& session_;
-    NumberInput caveInput_{1, 30};
-    NumberInput roundsInput_{1, 100};
-    std::optional<int> cave_;
+    NumberInput caveInput_{1, game::TrainingSession::kMaxCaveLevel};
+    std::vector<int> odds_; // per cave, computed once: the state can't change on this screen
     std::optional<MessageBox> message_; // a refused session
 };
 
-// Replays the rounds at 10 events per second, then shows the totals. Enter finishes the
-// current round (or ends the pause after it); Esc jumps to the totals.
+// Plays one round at a time at 10 events per second (Enter finishes the round). After a win or a
+// draw the player chooses Continue or Leave (Esc), seeing the streak, the pot and the odds of
+// the next round; Leave banks the pot. A defeat loses it and goes to the totals.
 class TrainingPlaybackScreen final : public Screen {
   public:
-    // `requested` is the round count asked for; a defeat can end the session sooner.
-    TrainingPlaybackScreen(Session& session, std::vector<game::TrainingRound> rounds, int requested,
+    TrainingPlaybackScreen(Session& session, game::TrainingSession training,
                            const game::Hero& before);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
@@ -40,21 +39,24 @@ class TrainingPlaybackScreen final : public Screen {
 
   private:
     void apply(const game::Event& event);
+    void playRound();
     void finishRound();
-    void nextRound();
+    void leave();
     void drawPlayback(engine::Framebuffer& frame) const;
     void drawTotals(engine::Framebuffer& frame) const;
-    std::string summary(std::size_t index) const;
+    std::string summary() const;
 
     Session& session_;
-    std::vector<game::TrainingRound> rounds_;
-    int requested_;
+    game::TrainingSession training_;
     game::Hero before_;
-    std::size_t round_ = 0;
+    std::vector<game::TrainingRound> rounds_;
+    Menu choice_{{{"Continue"}, {"Leave"}}, Menu::Layout::Horizontal};
     std::size_t event_ = 0;
-    double clock_ = 0; // time since the last event, or since the round ended
+    double clock_ = 0; // time since the last event, or since a defeat ended the round
     bool roundDone_ = false;
     bool totals_ = false;
+    std::int64_t banked_ = 0, lostPot_ = 0;
+    int nextOdds_ = 0; // win chance for the next round, refreshed after each round
     int heroHp_;
     int monsterHp_ = 0;
 };

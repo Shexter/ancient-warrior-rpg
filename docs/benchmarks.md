@@ -76,3 +76,16 @@ Medusa and Avaritia now take their turns through `data/scripts/medusa.lua`. Each
 - Every run is above the 25% target, so the reference's §8 mitigation (caching function handles, reusing one ctx per battle) was not applied.
 - The longest fights cost the most. The 29% single-thread case spends most of its time in script calls (about two enemy turns per battle).
 - The results are identical to the native runs (same win rate, average turns and HP left), as the parity requirement demands.
+
+## Cave win-chance estimates (fun-pass task 3.2, 2026-10-12)
+
+`caveWinChance` for all 30 caves (200 fights each), `Estimate.CavesLeaveTheStateAndItsRngUntouched`, Apple M-series:
+
+| build | all 30 caves |
+|---|---|
+| debug | 6.7 ms |
+| ci (release) | 0.1 ms |
+
+Computed once when the cave list opens and once per finished round (one cave), never per frame, so no cache is needed.
+
+A fresh Knight's odds read 100 / 100 / 94 / 0 … for caves 1–4 onward: the jump from cave 3 to 4 is a real cliff in the training curve, not an estimator artifact.

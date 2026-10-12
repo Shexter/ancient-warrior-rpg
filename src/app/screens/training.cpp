@@ -2,6 +2,7 @@
 #include "app/art.hpp"
 
 #include "game/errors.hpp"
+#include "game/estimate.hpp"
 
 #include <algorithm>
 #include <format>
@@ -15,6 +16,11 @@ using engine::Key;
 
 constexpr double kEventSeconds = 0.1; // 10 events per second (ui.md)
 constexpr double kPauseSeconds = 1.0; // the finished round's summary stays up this long
+
+// Green when likely, gold when a gamble, red when it probably goes badly.
+engine::Rgb oddsColor(int percent) {
+    return percent >= 80 ? palette::kHeal : percent >= 50 ? palette::kGold : palette::kDmg;
+}
 
 // "Topaz x2, Gold Leaf" in first-seen order.
 std::string countedList(const std::vector<std::string>& names) {
@@ -39,37 +45,34 @@ std::string countedList(const std::vector<std::string>& names) {
 
 // ---- Setup -------------------------------------------------------------------------------
 
-TrainingSetupScreen::TrainingSetupScreen(Session& session) : session_(session) {}
+TrainingSetupScreen::TrainingSetupScreen(Session& session) : session_(session) {
+    for (int cave = 1; cave <= game::TrainingSession::kMaxCaveLevel; ++cave)
+        odds_.push_back(game::caveWinChance(*session_.state, session_.content, cave));
+}
 
 Transition TrainingSetupScreen::update(std::span<const engine::KeyEvent> keys, double dtSeconds) {
     caveInput_.tick(dtSeconds);
-    roundsInput_.tick(dtSeconds);
     for (const engine::KeyEvent& key : keys) {
         if (message_) {
             if (message_->handle(key))
                 return Pop{};
             continue;
         }
-        NumberInput& input = cave_ ? roundsInput_ : caveInput_;
-        const InputResult result = input.handle(key);
+        const InputResult result = caveInput_.handle(key);
         if (result == InputResult::Cancelled)
             return Pop{};
         if (result != InputResult::Submitted)
             continue;
-        if (!cave_) {
-            cave_ = static_cast<int>(*caveInput_.value());
-            continue;
-        }
-        const int rounds = static_cast<int>(*roundsInput_.value());
         const game::Hero before = session_.state->hero;
-        auto results = game::runTraining(*session_.state, session_.content, *cave_, rounds);
-        if (!results) {
-            message_.emplace(game::describe(results.error()));
+        auto training = game::TrainingSession::start(*session_.state, session_.content,
+                                                      static_cast<int>(*caveInput_.value()));
+        if (!training) {
+            message_.emplace(game::describe(training.error()));
             continue;
         }
         session_.dirty = true;
-        return Replace{std::make_unique<TrainingPlaybackScreen>(session_, std::move(*results),
-                                                                rounds, before)};
+        return Replace{
+            std::make_unique<TrainingPlaybackScreen>(session_, std::move(*training), before)};
     }
     return Stay{};
 }
@@ -78,29 +81,31 @@ void TrainingSetupScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
     drawStatusPanel(frame, session_.state->hero, session_.content);
     drawText(frame, 2, 5, "THE CATACOMBS", palette::kAccent);
-    drawText(frame, 4, 7, "Cave level (1–30):", palette::kText);
-    if (!cave_) {
-        caveInput_.draw(frame, 6, 8);
-    } else {
-        drawText(frame, 6, 8, std::to_string(*cave_), palette::kText);
-        drawText(frame, 4, 11, "Rounds (1–100):", palette::kText);
-        roundsInput_.draw(frame, 6, 12);
+    drawText(frame, 40, 5, "Your odds of winning a round", palette::kDim);
+    // Three columns of ten: "Cave 12  ≈85%".
+    for (std::size_t i = 0; i < odds_.size(); ++i) {
+        const int x = 4 + static_cast<int>(i / 10) * 26, y = 7 + static_cast<int>(i % 10);
+        drawText(frame, x, y, std::format("Cave {:>2}", i + 1), palette::kText);
+        drawText(frame, x + 9, y, std::format("≈{}%", odds_[i]), oddsColor(odds_[i]));
     }
-    drawCentered(frame, 22, "Enter confirm · Esc back", palette::kDim);
+    drawText(frame, 4, 18, "Cave level (1–30):", palette::kText);
+    caveInput_.draw(frame, 23, 18);
+    if (const auto cave = caveInput_.value(); cave && *cave >= 1 && *cave <= 30)
+        drawText(frame, 4, 19,
+                 std::format("Wins pay {}–{} gold and {} EXP; a streak fills the pot.",
+                             100 * *cave, 190 * *cave, 100 * *cave),
+                 palette::kDim);
+    drawCentered(frame, 22, "Enter fight · Esc back", palette::kDim);
     if (message_)
         message_->draw(frame);
 }
 
 // ---- Playback ----------------------------------------------------------------------------
 
-TrainingPlaybackScreen::TrainingPlaybackScreen(Session& session,
-                                               std::vector<game::TrainingRound> rounds,
-                                               int requested, const game::Hero& before)
-    : session_(session), rounds_(std::move(rounds)), requested_(requested), before_(before),
-      heroHp_(before.hp) {
-    totals_ = rounds_.empty();
-    if (!totals_)
-        monsterHp_ = rounds_.front().monsterMaxHp;
+TrainingPlaybackScreen::TrainingPlaybackScreen(Session& session, game::TrainingSession training,
+                                               const game::Hero& before)
+    : session_(session), training_(std::move(training)), before_(before), heroHp_(before.hp) {
+    playRound();
 }
 
 void TrainingPlaybackScreen::apply(const game::Event& event) {
@@ -110,24 +115,33 @@ void TrainingPlaybackScreen::apply(const game::Event& event) {
         (healed->target == game::Side::Hero ? heroHp_ : monsterHp_) = healed->hpAfter;
 }
 
+// Fights the next round at once (the results are applied now); the playback then catches up.
+void TrainingPlaybackScreen::playRound() {
+    const std::int64_t pot = training_.pot();
+    rounds_.push_back(training_.next());
+    if (rounds_.back().outcome == game::Outcome::Defeat)
+        lostPot_ = pot;
+    else
+        nextOdds_ = game::caveWinChance(*session_.state, session_.content, training_.caveLevel());
+    event_ = 0;
+    monsterHp_ = rounds_.back().monsterMaxHp;
+    roundDone_ = false;
+    clock_ = 0;
+    choice_.setItems({{"Continue"}, {"Leave"}});
+}
+
 void TrainingPlaybackScreen::finishRound() {
-    const auto& events = rounds_[round_].events;
+    const auto& events = rounds_.back().events;
     while (event_ < events.size())
         apply(events[event_++]);
     roundDone_ = true;
     clock_ = 0;
 }
 
-void TrainingPlaybackScreen::nextRound() {
-    if (round_ + 1 >= rounds_.size()) {
-        totals_ = true;
-        return;
-    }
-    ++round_;
-    event_ = 0;
-    monsterHp_ = rounds_[round_].monsterMaxHp;
-    roundDone_ = false;
-    clock_ = 0;
+void TrainingPlaybackScreen::leave() {
+    if (!training_.over())
+        banked_ = training_.leave();
+    totals_ = true;
 }
 
 Transition TrainingPlaybackScreen::update(std::span<const engine::KeyEvent> keys,
@@ -135,27 +149,36 @@ Transition TrainingPlaybackScreen::update(std::span<const engine::KeyEvent> keys
     for (const engine::KeyEvent& key : keys) {
         if (totals_) {
             if (key.key == Key::Enter || key.key == Key::Escape) {
-                int won = 0;
-                for (const game::TrainingRound& r : rounds_)
-                    won += r.outcome == game::Outcome::Victory ? 1 : 0;
+                const auto won = std::ranges::count(rounds_, game::Outcome::Victory,
+                                                    &game::TrainingRound::outcome);
                 session_.lastMessage =
-                    std::format("Training: won {} of {} rounds.", won, rounds_.size());
+                    rounds_.back().outcome == game::Outcome::Defeat
+                        ? std::format("Training: won {} of {} rounds, then fell.", won,
+                                      rounds_.size())
+                        : std::format("Training: won {} of {} rounds, banked a {} gold pot.", won,
+                                      rounds_.size(), banked_);
                 return Pop{};
             }
-        } else if (key.key == Key::Escape) {
-            totals_ = true;
-        } else if (key.key == Key::Enter) {
-            if (roundDone_)
-                nextRound();
-            else
+        } else if (!roundDone_) {
+            if (key.key == Key::Enter || key.key == Key::Escape)
                 finishRound();
+        } else if (training_.over()) {
+            if (key.key == Key::Enter || key.key == Key::Escape)
+                totals_ = true;
+        } else if (key.key == Key::Escape) {
+            leave();
+        } else if (const auto picked = choice_.handle(key)) {
+            if (*picked == 0)
+                playRound();
+            else
+                leave();
         }
     }
-    if (totals_)
-        return Stay{};
+    if (totals_ || (roundDone_ && !training_.over()))
+        return Stay{}; // waiting for the player
 
     clock_ += dtSeconds;
-    const auto& events = rounds_[round_].events;
+    const auto& events = rounds_.back().events;
     while (!roundDone_ && clock_ + kTimerSlack >= kEventSeconds && event_ < events.size()) {
         apply(events[event_++]);
         clock_ -= kEventSeconds;
@@ -164,14 +187,14 @@ Transition TrainingPlaybackScreen::update(std::span<const engine::KeyEvent> keys
         roundDone_ = true;
         clock_ = 0;
     } else if (roundDone_ && clock_ + kTimerSlack >= kPauseSeconds) {
-        nextRound();
+        totals_ = true; // a defeat: the summary stayed up for a moment
     }
     return Stay{};
 }
 
-std::string TrainingPlaybackScreen::summary(std::size_t index) const {
-    const game::TrainingRound& r = rounds_[index];
-    std::string text = std::format("Round {}/{} · ", index + 1, requested_);
+std::string TrainingPlaybackScreen::summary() const {
+    const game::TrainingRound& r = rounds_.back();
+    std::string text = std::format("Round {} · ", rounds_.size());
     switch (r.outcome) {
     case game::Outcome::Victory:
         text += std::format("{} defeated · +{} gold · +{} exp", r.monsterName, r.goldGained,
@@ -183,9 +206,11 @@ std::string TrainingPlaybackScreen::summary(std::size_t index) const {
         break;
     case game::Outcome::Defeat:
         text += std::format("Defeated by the {}", r.monsterName);
+        if (lostPot_ > 0)
+            text += std::format(" · the {} gold pot is lost", lostPot_);
         break;
     default:
-        text += std::format("Stalemate with the {}", r.monsterName);
+        text += std::format("Stalemate with the {} · the streak is broken", r.monsterName);
         break;
     }
     return text;
@@ -199,7 +224,7 @@ engine::Size TrainingPlaybackScreen::canvasSize(engine::Size terminal) const {
 }
 
 void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
-    const game::TrainingRound& r = rounds_[round_];
+    const game::TrainingRound& r = rounds_.back();
     drawText(frame, 2, 1, std::format("THE CATACOMBS · Level {}", r.caveLevel), palette::kAccent);
 
     // Compact (ui.md): monster at (56, 6) with its stats below, hero at (4, 6) with name and bar
@@ -227,12 +252,25 @@ void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
     drawText(frame, heroX + 21, heroStats + 1, std::format("{}/{}", heroHp_, hero.maxHp),
              palette::kText);
 
-    const int summaryRow = frame.height() - 2;
-    if (roundDone_)
-        drawText(frame, 2, summaryRow, summary(round_), palette::kText, frame.width() - 4);
-    else if (round_ > 0)
-        drawText(frame, 2, summaryRow, summary(round_ - 1), palette::kDim, frame.width() - 4);
-    drawCentered(frame, frame.height() - 1, "Enter skip round · Esc skip to totals", palette::kDim);
+    // Streak and pot on the top row, opposite the title, so the stakes are always in view.
+    drawText(frame, 40, 1,
+             std::format("Streak {} · Pot {} gold", training_.streak(), training_.pot()),
+             palette::kGold);
+
+    const int bottom = frame.height() - 1;
+    if (!roundDone_) {
+        drawCentered(frame, bottom, "Enter finish the round", palette::kDim);
+        return;
+    }
+    drawText(frame, 2, bottom - 1, summary(), palette::kText, frame.width() - 4);
+    if (training_.over()) {
+        drawCentered(frame, bottom, "Enter see the results", palette::kDim);
+        return;
+    }
+    choice_.draw(frame, 2, bottom);
+    drawText(frame, 26, bottom,
+             std::format("Next round ≈{}% · Leave banks the pot", nextOdds_),
+             oddsColor(nextOdds_));
 }
 
 void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
@@ -264,9 +302,16 @@ void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
     if (!lost.empty())
         drawText(frame, 4, 12, std::format("Lost (bag full) {}", countedList(lost)), palette::kDmg,
                  74);
-    if (rounds_.back().outcome == game::Outcome::Defeat)
+    if (rounds_.back().outcome == game::Outcome::Defeat) {
         drawText(frame, 4, 14, std::format("{} has been injured badly", upper(hero.name)),
                  palette::kDmg);
+        if (lostPot_ > 0)
+            drawText(frame, 4, 15, std::format("The {} gold pot is lost", lostPot_),
+                     palette::kDmg);
+    } else if (banked_ > 0) {
+        drawText(frame, 4, 14, std::format("Pot banked    +{} gold (included above)", banked_),
+                 palette::kGold);
+    }
     drawCentered(frame, 22, "Enter return to the Hub", palette::kDim);
 }
 

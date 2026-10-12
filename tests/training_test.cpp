@@ -201,3 +201,121 @@ TEST(Training, FullBagLosesTheDrop) {
     }
     FAIL() << "no seed produced a drop";
 }
+
+TEST(TrainingSession, BankingThePot) {
+    GameState state = freshState();
+    auto session = TrainingSession::start(state, shippedContent(), 1);
+    ASSERT_TRUE(session.has_value());
+    std::int64_t roundGold = 0, pot = 0;
+    for (int streak = 0; streak < 3; ++streak) {
+        const TrainingRound r = session->next();
+        ASSERT_EQ(r.outcome, Outcome::Victory);
+        EXPECT_EQ(r.potGained, r.goldGained * streak / 10);
+        roundGold += r.goldGained;
+        pot += r.potGained;
+    }
+    EXPECT_EQ(session->streak(), 3);
+    EXPECT_EQ(session->pot(), pot);
+    EXPECT_GT(pot, 0);
+    EXPECT_EQ(state.hero.gold, 20000 + roundGold); // the pot is pending until Leave
+    EXPECT_EQ(session->leave(), pot);
+    EXPECT_EQ(state.hero.gold, 20000 + roundGold + pot);
+    EXPECT_TRUE(session->over());
+}
+
+TEST(TrainingSession, PotStopsGrowingAtTenWins) {
+    GameState state = freshState();
+    state.hero.atk = 100000; // wins every round in one hit
+    auto session = TrainingSession::start(state, shippedContent(), 1).value();
+    for (int i = 0; i < 12; ++i) {
+        const TrainingRound r = session.next();
+        EXPECT_EQ(r.potGained, r.goldGained * std::min(i, 10) / 10);
+    }
+}
+
+TEST(TrainingSession, DeathEndsTheSessionAndForfeitsThePot) {
+    GameState state = freshState();
+    auto session = TrainingSession::start(state, shippedContent(), 1).value();
+    const TrainingRound first = session.next(), second = session.next();
+    ASSERT_EQ(first.outcome, Outcome::Victory);
+    ASSERT_EQ(second.outcome, Outcome::Victory);
+    ASSERT_GT(session.pot(), 0);
+    const std::int64_t exp = state.hero.exp;
+    state.hero.atk = 0; // the third round is lost
+    state.hero.weapon.reset();
+    state.hero.hp = 1;
+    const TrainingRound third = session.next();
+    EXPECT_EQ(third.outcome, Outcome::Defeat);
+    EXPECT_TRUE(session.over());
+    EXPECT_EQ(session.pot(), 0);
+    EXPECT_EQ(session.streak(), 0);
+    EXPECT_EQ(state.hero.hp, 0);
+    EXPECT_EQ(state.hero.exp, exp - 100);
+    EXPECT_EQ(state.hero.gold, 20000 + first.goldGained + second.goldGained);
+    EXPECT_EQ(session.leave(), 0);
+    EXPECT_EQ(state.hero.gold, 20000 + first.goldGained + second.goldGained);
+}
+
+TEST(TrainingSession, DrawResetsTheStreakAndCarriesOn) {
+    GameState state = freshState();
+    auto session = TrainingSession::start(state, shippedContent(), 1).value();
+    ASSERT_EQ(session.next().outcome, Outcome::Victory);
+    const Hero strong = state.hero;
+    state.hero.atk = 0; // neither side can hurt the other
+    state.hero.weapon.reset();
+    state.hero.def = 1000;
+    const TrainingRound draw = session.next();
+    EXPECT_EQ(draw.outcome, Outcome::Draw);
+    EXPECT_EQ(draw.goldGained, 0);
+    EXPECT_EQ(session.streak(), 0);
+    EXPECT_FALSE(session.over());
+    state.hero.atk = strong.atk;
+    state.hero.weapon = strong.weapon;
+    state.hero.def = strong.def;
+    const TrainingRound after = session.next();
+    ASSERT_EQ(after.outcome, Outcome::Victory);
+    EXPECT_EQ(after.potGained, 0); // the streak starts over
+}
+
+TEST(TrainingSession, RefusalsChangeNothing) {
+    for (int cave : {0, 31}) {
+        GameState state = freshState();
+        const GameState before = state;
+        EXPECT_EQ(TrainingSession::start(state, shippedContent(), cave).error(),
+                  TownError::InvalidQuantity);
+        EXPECT_EQ(state, before);
+    }
+    GameState dead = freshState();
+    dead.hero.hp = 0;
+    const GameState before = dead;
+    EXPECT_EQ(TrainingSession::start(dead, shippedContent(), 1).error(), TownError::HeroDead);
+    EXPECT_EQ(dead, before);
+}
+
+TEST(TrainingSession, PlaysTheSameRoundsAsRunTraining) {
+    GameState a = freshState("fighter", 4), b = freshState("fighter", 4);
+    const auto batch = runTraining(a, shippedContent(), 2, 6).value();
+    auto session = TrainingSession::start(b, shippedContent(), 2).value();
+    EXPECT_EQ(b.rng, a.rng); // one fork each
+    for (const TrainingRound& expected : batch) {
+        const TrainingRound r = session.next();
+        EXPECT_EQ(r.outcome, expected.outcome);
+        EXPECT_EQ(r.goldGained, expected.goldGained);
+        EXPECT_EQ(r.drop, expected.drop);
+        EXPECT_EQ(eventLog(r.events), eventLog(expected.events));
+    }
+    b.hero.gold = a.hero.gold; // the only difference is the pending pot
+    EXPECT_EQ(a, b);
+}
+
+TEST(TrainingSession, SameSeedSameChoicesSameResult) {
+    auto play = [](GameState& state) {
+        auto session = TrainingSession::start(state, shippedContent(), 3).value();
+        for (int i = 0; i < 4 && !session.over(); ++i)
+            (void)session.next();
+        return session.leave();
+    };
+    GameState a = freshState("rogue", 11), b = freshState("rogue", 11);
+    EXPECT_EQ(play(a), play(b));
+    EXPECT_EQ(a, b);
+}

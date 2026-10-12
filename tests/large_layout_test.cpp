@@ -164,14 +164,14 @@ TEST(LargeLayout, TrainingPlaybackIsLargeButTheTotalsAreNot) {
     Harness h("large_training");
     withLargeArt(h);
     h.startAtHub(freshGame());
-    ASSERT_TRUE(h.press({ch('1'), ch('1'), kEnter, ch('3'), kEnter}));
+    ASSERT_TRUE(h.press({ch('1'), ch('1'), kEnter}));
     EXPECT_EQ(h.app->canvasSize(kBigTerminal), kLargeCanvas);
     const Framebuffer frame = h.frame(kLargeCanvas);
     EXPECT_NE(rowText(frame, 1).find("THE CATACOMBS · Level 1"), std::string::npos);
     const auto [x, y, c] = firstGlyph(shippedLargeSprites().glyphs.at("monster.sprite"));
     EXPECT_EQ(frame.at(80 + x, 8 + y).glyph, static_cast<char32_t>(c));
     EXPECT_NE(rowText(frame, 29).find("ARIA"), std::string::npos);
-    ASSERT_TRUE(h.press({kEsc})); // totals
+    ASSERT_TRUE(h.press({kEsc, kEsc})); // finish the round, leave: totals
     EXPECT_EQ(h.app->canvasSize(kBigTerminal), engine::kCompactCanvas);
 }
 

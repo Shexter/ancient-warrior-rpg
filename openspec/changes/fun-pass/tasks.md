@@ -17,11 +17,11 @@
 
 ## 3. Push-your-luck training
 
-- [ ] 3.1 Add `TrainingSession` (one RNG fork per session, `next()` per round, streak and pot, `leave()` banks it, defeat forfeits it) sharing the round function with `runTraining`; verify tests for the banking and death scenarios, determinism (same seed, same choices, same results), and that the existing `runTraining` tests pass unchanged
-- [ ] 3.2 Add win-chance estimation for caves (`game/estimate`, copies only, deterministic) and measure its cost for all 30 caves; verify tests that the state and RNG are untouched and that estimates repeat
-- [ ] 3.3 Training screens: a cave list with estimates, round playback as today, then Continue / Leave with the streak and pot shown, and totals; verify screen tests for continue, leave and a defeat forfeiting the pot
-- [ ] 3.4 Update SimpleDocs (`town-and-training.md`, `app.md`); verify against the screens
-- [ ] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Add `TrainingSession` (one RNG fork per session, `next()` per round, streak and pot, `leave()` banks it, defeat forfeits it) sharing the round function with `runTraining`; verify tests for the banking and death scenarios, determinism (same seed, same choices, same results), and that the existing `runTraining` tests pass unchanged
+- [x] 3.2 Add win-chance estimation for caves (`game/estimate`, copies only, deterministic) and measure its cost for all 30 caves; verify tests that the state and RNG are untouched and that estimates repeat
+- [x] 3.3 Training screens: a cave list with estimates, round playback as today, then Continue / Leave with the streak and pot shown, and totals; verify screen tests for continue, leave and a defeat forfeiting the pot
+- [x] 3.4 Update SimpleDocs (`town-and-training.md`, `app.md`); verify against the screens
+- [x] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Act I bosses
 
