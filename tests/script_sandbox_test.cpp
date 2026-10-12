@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -94,7 +96,14 @@ TEST(ScriptSandbox, ReachableNamesAreExactlyTheAllowlist) {
         "table.concat", "table.insert", "table.move", "table.pack", "table.remove",
         "table.sort", "table.unpack",
         "tonumber", "tostring", "type", "xpcall"};
-    EXPECT_EQ(host.reachableNames(), allowlist);
+    const std::vector<std::string> reachable = host.reachableNames();
+    std::vector<std::string> extra, missing;
+    std::ranges::set_difference(reachable, allowlist, std::back_inserter(extra));
+    std::ranges::set_difference(allowlist, reachable, std::back_inserter(missing));
+    for (const std::string& name : extra)
+        ADD_FAILURE() << "reachable but not allowed: " << name;
+    for (const std::string& name : missing)
+        ADD_FAILURE() << "allowed but missing: " << name;
 }
 
 TEST(ScriptSandbox, ErrorsNameTheFileAndLine) {

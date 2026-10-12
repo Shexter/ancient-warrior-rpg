@@ -350,7 +350,7 @@ std::expected<void, TownError> withdraw(GameState& state, std::string_view id, i
 // ---- Missions ----------------------------------------------------------------------------
 
 std::expected<Battle, TownError> startMission(GameState& state, const Content& content,
-                                              std::string_view id) {
+                                              std::string_view id, script::ScriptHost* scripts) {
     const Hero& hero = state.hero;
     const MissionDef* mission = content.findMission(id);
     if (!mission)
@@ -363,7 +363,7 @@ std::expected<Battle, TownError> startMission(GameState& state, const Content& c
         return fail(TownError::MissionCompleted);
 
     return Battle(content, heroCombatant(hero, content), content.enemy(mission->enemy),
-                  hero.learnedSkills, state.rng.fork());
+                  hero.learnedSkills, state.rng.fork(), scripts);
 }
 
 std::expected<MissionResult, TownError> finishMission(GameState& state, const Content& content,

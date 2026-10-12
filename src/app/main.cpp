@@ -1,6 +1,7 @@
 #include "app/app.hpp"
 #include "app/screens/title.hpp"
 #include "game/content_loader.hpp"
+#include "game/script/script_host.hpp"
 #include "platform/env.hpp"
 #include "platform/paths.hpp"
 #include "platform/terminal.hpp"
@@ -55,6 +56,8 @@ int main(int argc, char** argv) {
         session.layout = options->layout;
         session.art = options->art;
         session.large = std::move(*large);
+        game::script::ScriptHost scripts(*content); // content validation checked every script
+        session.scripts = &scripts;
         app::App game(terminal, renderer, std::make_unique<app::TitleScreen>(session));
         return game.run();
     } catch (const std::exception& e) {

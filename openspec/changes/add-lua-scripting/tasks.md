@@ -10,10 +10,10 @@ The reference is `reference/lua-interfaces.md` (abbreviated "ref" below).
 
 ## 2. Battle API and Fallbacks
 
-- [ ] 2.1 Add the optional `script` field to enemies and skills (exactly one of `effect` or `script` for skills), script-shape validation at load, `ev::ScriptSaid`, `ev::ScriptError`, and `ActionError::ScriptFailed`, and teach `BattleView` to log the two new events (the said text, and "Something went wrong with <name>'s magic." for an error); verify content validation tests for both-effect-and-script, a missing script file, and a script not returning the required table, plus BattleView tests for both log lines
-- [ ] 2.2 Implement `BattleApi` (every ctx member in ref §4, including integer checks, range checks, and no-ops after the battle ends) and wire scripted enemy turns and scripted skills into `Battle`; verify `tests/script_battle_test.cpp`: the scripted-skill 600-damage scenario; a float argument is rejected as a script error; ops after a death are no-ops
-- [ ] 2.3 Implement transactional failure per ref §5; verify tests: an infinite-loop enemy script produces `ScriptError` then a basic attack with no other events from the failed script; a skill script that damages then errors leaves HP, MP, RNG, and events unchanged and returns `ScriptFailed`
-- [ ] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Add the optional `script` field to enemies and skills (exactly one of `effect` or `script` for skills), script-shape validation at load, `ev::ScriptSaid`, `ev::ScriptError`, and `ActionError::ScriptFailed`, and teach `BattleView` to log the two new events (the said text, and "Something went wrong with <name>'s magic." for an error); verify content validation tests for both-effect-and-script, a missing script file, and a script not returning the required table, plus BattleView tests for both log lines
+- [x] 2.2 Implement `BattleApi` (every ctx member in ref §4, including integer checks, range checks, and no-ops after the battle ends) and wire scripted enemy turns and scripted skills into `Battle`; verify `tests/script_battle_test.cpp`: the scripted-skill 600-damage scenario; a float argument is rejected as a script error; ops after a death are no-ops
+- [x] 2.3 Implement transactional failure per ref §5; verify tests: an infinite-loop enemy script produces `ScriptError` then a basic attack with no other events from the failed script; a skill script that damages then errors leaves HP, MP, RNG, and events unchanged and returns `ScriptFailed`
+- [x] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Port Medusa
 

@@ -7,7 +7,13 @@
 #include <string_view>
 #include <vector>
 
+namespace heroes::game {
+class Content;
+} // namespace heroes::game
+
 namespace heroes::game::script {
+
+class BattleApi;
 
 // One sandboxed Lua state. Not thread-safe: use one per thread (the game thread, each simulator
 // worker). Scripts load once, each into its own read-only environment; every load and call runs
@@ -27,6 +33,9 @@ class ScriptHost {
     static constexpr int kBudgetChecks = 100;    // so about 1,000,000 instructions per run
 
     ScriptHost();
+    // A host with every script `content` references already loaded (content validation has
+    // checked they load).
+    explicit ScriptHost(const Content& content);
     ~ScriptHost();
     ScriptHost(const ScriptHost&) = delete;
     ScriptHost& operator=(const ScriptHost&) = delete;
@@ -36,6 +45,13 @@ class ScriptHost {
     std::expected<void, std::string> load(const std::string& name, std::string_view source);
     // Calls `function` from loaded script `name` with no arguments.
     std::expected<void, std::string> call(const std::string& name, std::string_view function);
+    // Whether loaded script `name` returned a table with a function called `function`.
+    bool hasFunction(const std::string& name, std::string_view function) const;
+
+    // Runs an enemy script's take_turn(ctx) or a skill script's cast(ctx), with ctx acting on
+    // `api`'s battle (lua-interfaces.md §4). The caller undoes everything on failure.
+    std::expected<void, std::string> runEnemyTurn(const std::string& name, BattleApi& api);
+    std::expected<void, std::string> runSkill(const std::string& name, BattleApi& api);
 
     // Every name a script can reach: globals and the library tables' fields ("string.rep"),
     // sorted. Tests compare it with the allowlist so an upgrade can't silently widen it.

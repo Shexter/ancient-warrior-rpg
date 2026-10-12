@@ -27,11 +27,14 @@ FetchContent_Declare(sol2
 
 FetchContent_MakeAvailable(nlohmann_json googletest lua sol2)
 
-# The Lua library without its standalone interpreter and compiler. Third-party C: our warning
-# flags are not applied to it.
+# The Lua library without its standalone interpreter and compiler, compiled as C++ so a Lua error
+# is a C++ exception and unwinds the engine functions scripts call (sol2's recommended setup;
+# users define SOL_USING_CXX_LUA). Third-party code: our warning flags are not applied to it.
 file(GLOB LUA_SOURCES ${lua_SOURCE_DIR}/src/*.c)
 list(REMOVE_ITEM LUA_SOURCES ${lua_SOURCE_DIR}/src/lua.c ${lua_SOURCE_DIR}/src/luac.c)
+set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
 add_library(lua_static STATIC ${LUA_SOURCES})
+target_compile_definitions(lua_static INTERFACE SOL_USING_CXX_LUA=1)
 target_include_directories(lua_static SYSTEM PUBLIC ${lua_SOURCE_DIR}/src)
 if(UNIX)
     target_compile_definitions(lua_static PRIVATE LUA_USE_POSIX)

@@ -346,3 +346,13 @@ TEST(BattleView, CompactFramesAreUnchanged) {
     }
     EXPECT_EQ(hash, 1102535103608328823ull) << "record: " << hash;
 }
+
+TEST(BattleView, ScriptLinesAndErrorsAreLogged) {
+    ViewFixture f;
+    f.play({ev::ScriptSaid{Side::Enemy, "The Gorgon hisses."},
+            ev::ScriptError{"scripts/medusa.lua", "scripts/medusa.lua:3: boom"}});
+    EXPECT_TRUE(frameContains(f.frame(), "The Gorgon hisses."));
+    f.view.skip();
+    EXPECT_TRUE(frameContains(f.frame(), "Something went wrong with MEDUSA's magic."));
+    EXPECT_FALSE(frameContains(f.frame(), "boom")); // details stay out of the player's log
+}

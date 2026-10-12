@@ -1,6 +1,6 @@
 # Scripting (`src/game/script/`)
 
-Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Only `heroes_game` links them. So far (add-lua-scripting chunk 1) there is the sandbox and nothing in the game runs scripts yet.
+Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Lua is compiled as C++, so a Lua error is a C++ exception that unwinds the engine functions a script called (`SOL_USING_CXX_LUA`). Only `heroes_game` links them. The shipped data has no scripts yet: Medusa moves to Lua in add-lua-scripting chunk 3. Scripts come from content and tests.
 
 **`ScriptHost`**: one sandboxed `lua_State`. It is not thread-safe, so use one per thread.
 - `load(name, source)` runs the source as chunk `@name` in a fresh environment of its own. It must return a table, kept under `name`; otherwise the error is "`name`: the script must return a table".
@@ -22,3 +22,31 @@ Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched w
 - A tracking allocator caps the whole state at 8 MiB. A refused allocation becomes Lua's "not enough memory" error, and a full collection runs after any failed call. The host stays usable after budget and memory errors.
 
 **Determinism note:** Lua seeds its string hashing per state, so `pairs` order over string keys can differ between runs. Scripts must not depend on it; the engine's own randomness comes through the battle API (chunk 2).
+
+**Scripts in content.**
+- A skill has either `effect` or `script` (both, or neither, is an error naming the skill).
+- An enemy has either `behavior` or `script`. The script path is relative to the data folder and must stay inside it: no absolute paths, no `..`.
+- At load every referenced script is read and run once in a sandbox. Its file must exist, load without errors (syntax errors give `path:line`), and return a table with `cast` (skills) or `take_turn` (enemies).
+- The sources are kept in `Content::scripts()`. `ScriptHost(content)` loads them all; the game makes one host in `main` for the game thread and passes it through `Session` to `startMission` and `Battle`.
+
+**ctx** (`BattleApi`, bound in `ScriptHost`). Scripts call these with a dot (`ctx.attack()`):
+- `ctx.self` and `ctx.target` are read-only views: `name`, `hp`, `max_hp`, `mp`, `max_mp`, `atk`, `def`, `life`, and `has("stun"|"defense_down"|"reflect")`. For an enemy turn `self` is the enemy; for a skill `self` is the hero.
+  - A view only names a side, never holds a pointer. Values are read live, so they change after an attack.
+  - A view kept by a script past its battle reads the next battle's fighter, or fails cleanly between battles.
+- `ctx.turn` is the current turn.
+- `ctx.rng(n)`, with `n` from 1 to 1,000,000, draws from the battle's RNG.
+- `ctx.attack()` emits `Attacked` and makes a normal hit.
+- `ctx.damage(power, apply_def)` makes a Skill hit, with `power` from 0 to 10,000,000.
+- `ctx.heal(who, amount)`, `ctx.halve_hp(who)` and `ctx.apply_status(who, id, turns)` take `who` as `"self"` or `"target"`, and `turns` from 1 to 20.
+- `ctx.extra_turn()` is for enemy scripts only.
+- `ctx.say(text)` emits `ScriptSaid`. Anything that isn't printable ASCII becomes `?`, and the text is cut to 80 characters, so nothing reaches the terminal raw.
+- `ctx.over()` says whether the battle has ended.
+- Every number must be a whole number in range: Lua floats such as `1.5` or `3.0` are refused. A bad argument, a write to `ctx` or to a view, or `extra_turn` from a skill is a script error.
+- After each operation the death checks run, hero first (the same order as native turns). Once the battle is over every operation does nothing and returns 0.
+- `ctx` is one table per host. Its functions act on the battle whose script is running.
+
+**When a script fails**, through an error, the budget or memory:
+- **Enemy turn:** the battle restores both fighters, the RNG and the action's events to how they were before the script ran. It emits `ScriptError{script, message}` and the enemy makes a native basic attack instead, with no extra turn.
+- **Skill:** the whole action is rolled back (MP unspent, turn not started) and `act()` returns `ActionError::ScriptFailed`. It's still the hero's turn.
+- **No host:** a battle without a script host treats scripted enemies and skills as failing the same way.
+- **Player-facing text:** the battle log shows "Something went wrong with <enemy>'s magic." for a `ScriptError`, and "Something went wrong with that skill's magic." for `ScriptFailed`. The detailed message is for developers and never shown.

@@ -1,6 +1,11 @@
 #include "game/battle.hpp"
 
+#include "game/script/battle_api.hpp"
+#include "game/script/script_host.hpp"
+
 #include <algorithm>
+#include <format>
+#include <optional>
 
 namespace heroes::game {
 
@@ -32,9 +37,9 @@ Combatant enemyCombatant(const EnemyDef& enemy) {
 }
 
 Battle::Battle(const Content& content, Combatant hero, const EnemyDef& enemy,
-               std::set<std::string> learnedSkills, Rng rng)
+               std::set<std::string> learnedSkills, Rng rng, script::ScriptHost* scripts)
     : content_(&content), hero_(std::move(hero)), enemy_(enemyCombatant(enemy)), enemyId_(enemy.id),
-      learnedSkills_(std::move(learnedSkills)), rng_(rng) {}
+      learnedSkills_(std::move(learnedSkills)), rng_(rng), scripts_(scripts) {}
 
 std::vector<Event> Battle::start() {
     return {ev::BattleStarted{hero_.name, enemy_.name, enemyId_}};
@@ -141,9 +146,66 @@ void Battle::castSkill(const SkillDef& skill, Events& out) {
         applyStatus(Side::Enemy, spec, out);
 }
 
-// EnemyBehavior::MedusaPattern is the only behavior in core.
+bool Battle::checkDeaths(Events& out) {
+    if (hero_.hp == 0) {
+        out.push_back(ev::Defeated{Side::Hero});
+        finish(Outcome::Defeat, out);
+        return true;
+    }
+    if (enemy_.hp == 0) { // e.g. killed by reflected damage on its own turn
+        out.push_back(ev::Defeated{Side::Enemy});
+        finish(Outcome::Victory, out);
+        return true;
+    }
+    return false;
+}
+
+void Battle::basicAttack(Side attacker, Events& out) {
+    out.push_back(ev::Attacked{attacker});
+    hit(attacker, combatant(attacker).atk, true, DamageCause::Attack, out);
+    checkDeaths(out);
+}
+
+// EnemyBehavior::MedusaPattern.
+bool Battle::medusaTurn(Events& out) {
+    const std::uint32_t roll = rng_.below(10);
+    out.push_back(ev::Attacked{Side::Enemy});
+    hit(Side::Enemy, enemy_.atk, true, DamageCause::Attack, out);
+    if (checkDeaths(out))
+        return false;
+    if (roll < 5) { // Strike: regenerate
+        heal(Side::Enemy, enemy_.life, out);
+        return false;
+    }
+    return rng_.below(10) < 6; // Gaze: chance of an immediate extra turn
+}
+
+// A failed script is undone completely (combatants, RNG, its events) and reported, and the
+// enemy makes a basic attack instead, with no extra turn (lua-interfaces.md §5).
+bool Battle::scriptedEnemyTurn(const std::string& script, Events& out) {
+    const Combatant hero = hero_, enemy = enemy_;
+    const Rng rng = rng_;
+    const std::size_t events = out.size();
+    script::BattleApi api(*this, Side::Enemy, out);
+    const auto ran = scripts_ ? scripts_->runEnemyTurn(script, api)
+                              : std::expected<void, std::string>(std::unexpected(
+                                    std::format("{}: no script host to run it", script)));
+    if (ran)
+        return api.extraTurnRequested() && !over_;
+    hero_ = hero;
+    enemy_ = enemy;
+    rng_ = rng;
+    over_ = false;
+    outcome_ = Outcome::Draw;
+    out.erase(out.begin() + static_cast<std::ptrdiff_t>(events), out.end());
+    out.push_back(ev::ScriptError{script, ran.error()});
+    basicAttack(Side::Enemy, out);
+    return false;
+}
+
 void Battle::enemyPhase(Events& out) {
     acting_ = Side::Enemy;
+    const std::optional<std::string>& script = content_->enemy(enemyId_).script;
     for (;;) {
         out.push_back(ev::TurnStarted{Side::Enemy, turn_});
         if (hasStatus(enemy_, StatusId::Stun)) {
@@ -151,29 +213,21 @@ void Battle::enemyPhase(Events& out) {
             endTurn(Side::Enemy, out);
             return;
         }
-        const std::uint32_t roll = rng_.below(10);
-        out.push_back(ev::Attacked{Side::Enemy});
-        hit(Side::Enemy, enemy_.atk, true, DamageCause::Attack, out);
-        if (hero_.hp == 0) {
-            out.push_back(ev::Defeated{Side::Hero});
-            finish(Outcome::Defeat, out);
+        const bool extraTurn = script ? scriptedEnemyTurn(*script, out) : medusaTurn(out);
+        if (over_)
             return;
-        }
-        if (enemy_.hp == 0) { // killed by reflected damage
-            out.push_back(ev::Defeated{Side::Enemy});
-            finish(Outcome::Victory, out);
-            return;
-        }
-        bool extraTurn = false;
-        if (roll < 5) // Strike: regenerate
-            heal(Side::Enemy, enemy_.life, out);
-        else // Gaze: chance of an immediate extra turn
-            extraTurn = rng_.below(10) < 6;
         endTurn(Side::Enemy, out);
         if (!extraTurn)
             return;
         out.push_back(ev::ExtraTurn{Side::Enemy});
     }
+}
+
+bool Battle::castScriptedSkill(const SkillDef& skill, Events& out) {
+    hero_.mp -= skill.mpCost;
+    out.push_back(ev::SkillCast{skill.id, skill.mpCost});
+    script::BattleApi api(*this, Side::Hero, out);
+    return scripts_ && scripts_->runSkill(*skill.script, api).has_value();
 }
 
 std::expected<std::vector<Event>, ActionError> Battle::act(const PlayerAction& action) {
@@ -183,6 +237,12 @@ std::expected<std::vector<Event>, ActionError> Battle::act(const PlayerAction& a
         if (auto ok = validate(*cast); !ok)
             return std::unexpected(ok.error());
     }
+
+    // A scripted skill that fails undoes the whole action, including this turn's start.
+    std::optional<Battle> rollback;
+    if (const auto* cast = std::get_if<CastSkill>(&action);
+        cast && content_->findSkill(cast->skillId)->script)
+        rollback = *this;
 
     Events out;
     ++turn_;
@@ -197,7 +257,15 @@ std::expected<std::vector<Event>, ActionError> Battle::act(const PlayerAction& a
         return out;
     } else {
         if (const auto* cast = std::get_if<CastSkill>(&action)) {
-            castSkill(*content_->findSkill(cast->skillId), out);
+            const SkillDef& skill = *content_->findSkill(cast->skillId);
+            if (!skill.script) {
+                castSkill(skill, out);
+            } else if (!castScriptedSkill(skill, out)) {
+                *this = std::move(*rollback);
+                return std::unexpected(ActionError::ScriptFailed);
+            }
+            if (over_) // a script's operations already ran the death checks
+                return out;
         } else {
             out.push_back(ev::Attacked{Side::Hero});
             hit(Side::Hero, hero_.atk, true, DamageCause::Attack, out);

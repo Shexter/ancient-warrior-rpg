@@ -65,11 +65,20 @@ struct BattleEnded {
     Outcome outcome;
     int turns;
 };
+struct ScriptSaid { // a script's ctx.say line: printable ASCII, at most 80 characters
+    Side side;
+    std::string text;
+};
+struct ScriptError { // an enemy script failed and was undone; a basic attack follows
+    std::string script;
+    std::string message; // for developers; players see a generic line
+};
 } // namespace ev
 
 using Event =
     std::variant<ev::BattleStarted, ev::TurnStarted, ev::TurnSkipped, ev::Attacked, ev::SkillCast,
                  ev::HpHalved, ev::Damaged, ev::Healed, ev::StatusApplied, ev::StatusExpired,
-                 ev::ExtraTurn, ev::Fled, ev::Defeated, ev::BattleEnded>;
+                 ev::ExtraTurn, ev::Fled, ev::Defeated, ev::BattleEnded, ev::ScriptSaid,
+                 ev::ScriptError>;
 
 } // namespace heroes::game

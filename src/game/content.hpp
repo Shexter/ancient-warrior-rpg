@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -66,7 +67,8 @@ struct SkillDef {
     int mpCost, learnLevel;
     std::int64_t goldCost;
     std::string keyItem;
-    SkillEffect effect;
+    SkillEffect effect;                // when there is no script
+    std::optional<std::string> script; // a Lua file under the data dir, instead of `effect`
 };
 
 enum class EnemyBehavior { MedusaPattern }; // the only behavior in core; Lua replaces this later
@@ -74,7 +76,8 @@ enum class EnemyBehavior { MedusaPattern }; // the only behavior in core; Lua re
 struct EnemyDef {
     std::string id, name, sprite;
     int maxHp, atk, def, life;
-    EnemyBehavior behavior;
+    EnemyBehavior behavior = EnemyBehavior::MedusaPattern; // when there is no script
+    std::optional<std::string> script; // a Lua file under the data dir, instead of `behavior`
     std::int64_t rewardExp, rewardGold;
     std::vector<std::string> rewardItems;
 };
@@ -126,6 +129,9 @@ class Content {
 
     const StoryDef& story() const { return story_; }
 
+    // The source of every script referenced by skills and enemies, by its path ("scripts/x.lua").
+    const std::map<std::string, std::string, std::less<>>& scripts() const { return scripts_; }
+
   private:
     template <class T> struct Table {
         std::vector<T> all;
@@ -151,6 +157,7 @@ class Content {
     Table<MissionDef> missions_;
     Table<RecipeDef> recipes_;
     StoryDef story_;
+    std::map<std::string, std::string, std::less<>> scripts_;
 };
 
 } // namespace heroes::game

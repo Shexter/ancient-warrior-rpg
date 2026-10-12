@@ -1,11 +1,15 @@
 #include "game/content_loader.hpp"
 
+#include "game/script/script_host.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <array>
 #include <format>
 #include <fstream>
+#include <iterator>
+#include <map>
 #include <limits>
 #include <optional>
 #include <type_traits>
@@ -18,8 +22,10 @@ struct ContentBuilder {
     static Content assemble(std::vector<ItemDef> items, std::vector<PathDef> paths,
                             std::vector<SkillDef> skills, std::vector<EnemyDef> enemies,
                             std::vector<MissionDef> missions, std::vector<RecipeDef> recipes,
-                            StoryDef story) {
+                            StoryDef story,
+                            std::map<std::string, std::string, std::less<>> scripts = {}) {
         Content c;
+        c.scripts_ = std::move(scripts);
         c.items_.all = std::move(items);
         c.paths_.all = std::move(paths);
         c.skills_.all = std::move(skills);
@@ -324,7 +330,8 @@ std::vector<StatusSpec> parseStatuses(Fields& f, std::string_view key) {
 SkillDef parseSkill(Ctx& ctx, const Json& j, std::size_t index) {
     Fields f(
         ctx, j, entryLabel("skill", j, index),
-        {"id", "name", "description", "mpCost", "learnLevel", "goldCost", "keyItem", "effect"});
+        {"id", "name", "description", "mpCost", "learnLevel", "goldCost", "keyItem", "effect",
+         "script"});
     SkillDef d;
     d.id = f.req<std::string>("id");
     d.name = f.req<std::string>("name");
@@ -333,6 +340,12 @@ SkillDef parseSkill(Ctx& ctx, const Json& j, std::size_t index) {
     d.learnLevel = f.req<int>("learnLevel", 0, kMaxStat);
     d.goldCost = f.req<std::int64_t>("goldCost", 0, kMaxStat);
     d.keyItem = f.req<std::string>("keyItem");
+    if (f.raw("script")) {
+        d.script = f.req<std::string>("script");
+        if (f.raw("effect"))
+            f.fail("has both 'effect' and 'script'; use one");
+        return d;
+    }
     if (const Json* e = f.raw("effect")) {
         Fields ef(ctx, *e, f.entry(),
                   {"healToFull", "atkMultiplier", "ignoreDef", "halveTargetHpFirst",
@@ -349,15 +362,15 @@ SkillDef parseSkill(Ctx& ctx, const Json& j, std::size_t index) {
         s.targetStatuses = parseStatuses(ef, "targetStatuses");
         s.requiresTargetNotStunned = ef.opt<bool>("requiresTargetNotStunned", false);
     } else {
-        f.fail("missing required key 'effect'");
+        f.fail("needs 'effect' or 'script'");
     }
     return d;
 }
 
 EnemyDef parseEnemy(Ctx& ctx, const Json& j, std::size_t index) {
     Fields f(ctx, j, entryLabel("enemy", j, index),
-             {"id", "name", "sprite", "maxHp", "atk", "def", "life", "behavior", "rewardExp",
-              "rewardGold", "rewardItems"});
+             {"id", "name", "sprite", "maxHp", "atk", "def", "life", "behavior", "script",
+              "rewardExp", "rewardGold", "rewardItems"});
     EnemyDef d;
     d.id = f.req<std::string>("id");
     d.name = f.req<std::string>("name");
@@ -366,7 +379,13 @@ EnemyDef parseEnemy(Ctx& ctx, const Json& j, std::size_t index) {
     d.atk = f.req<int>("atk", 0, kMaxStat);
     d.def = f.req<int>("def", 0, kMaxStat);
     d.life = f.req<int>("life", 0, kMaxStat);
-    d.behavior = readEnum(f, "behavior", kBehaviors);
+    if (f.raw("script")) {
+        d.script = f.req<std::string>("script");
+        if (f.raw("behavior"))
+            f.fail("has both 'behavior' and 'script'; use one");
+    } else {
+        d.behavior = readEnum(f, "behavior", kBehaviors);
+    }
     d.rewardExp = f.req<std::int64_t>("rewardExp", 0, kMaxStat);
     d.rewardGold = f.req<std::int64_t>("rewardGold", 0, kMaxStat);
     d.rewardItems = f.strings("rewardItems", false);
@@ -417,6 +436,37 @@ StoryDef loadStory(Ctx& ctx, const std::filesystem::path& dir, bool& fileOk) {
     s.opening = f.strings("opening", true);
     s.pathIntro = f.strings("pathIntro", true);
     return s;
+}
+
+// Reads one referenced script into `sources` and checks it in `host`: the path stays inside the
+// data folder, the file exists, it loads in the sandbox, and it returns a table with `function`.
+void checkScript(Ctx& ctx, const std::string& entry, const std::string& path,
+                 std::string_view function, const std::filesystem::path& dataDir,
+                 script::ScriptHost& host, std::map<std::string, std::string, std::less<>>& sources) {
+    auto fail = [&](std::string message) {
+        ctx.errors.push_back({ctx.file, entry, std::move(message)});
+    };
+    const std::filesystem::path relative(path);
+    if (path.empty() || relative.is_absolute() || relative.has_root_name() ||
+        std::ranges::any_of(relative, [](const auto& part) { return part == ".."; })) {
+        fail(std::format("script path '{}' must stay inside the data folder", path));
+        return;
+    }
+    if (!sources.contains(path)) {
+        std::ifstream in(dataDir / relative, std::ios::binary);
+        if (!in) {
+            fail(std::format("script file '{}' not found", path));
+            return;
+        }
+        std::string source((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (auto loaded = host.load(path, source); !loaded) {
+            fail(loaded.error());
+            return;
+        }
+        sources.emplace(path, std::move(source));
+    }
+    if (!host.hasFunction(path, function))
+        fail(std::format("script '{}' must return a table with a '{}' function", path, function));
 }
 
 void checkItemRef(Ctx& ctx, const Content& c, const std::string& entry, const std::string& what,
@@ -489,7 +539,17 @@ loadContent(const std::filesystem::path& dataDir) {
     }
 
     // Cross-references are checked only when every file was read, to avoid cascading noise.
+    std::map<std::string, std::string, std::less<>> scripts;
     if (allFilesRead) {
+        script::ScriptHost host;
+        for (const SkillDef& d : skills)
+            if (d.script)
+                checkScript(skillsCtx, std::format("skill '{}'", d.id), *d.script, "cast", dataDir,
+                            host, scripts);
+        for (const EnemyDef& d : enemies)
+            if (d.script)
+                checkScript(enemiesCtx, std::format("enemy '{}'", d.id), *d.script, "take_turn",
+                            dataDir, host, scripts);
         Content refs =
             ContentBuilder::assemble(items, paths, skills, enemies, missions, recipes, story);
         for (const ItemDef& d : items)
@@ -531,7 +591,7 @@ loadContent(const std::filesystem::path& dataDir) {
         return std::unexpected(std::move(errors));
     return ContentBuilder::assemble(std::move(items), std::move(paths), std::move(skills),
                                     std::move(enemies), std::move(missions), std::move(recipes),
-                                    std::move(story));
+                                    std::move(story), std::move(scripts));
 }
 
 } // namespace heroes::game

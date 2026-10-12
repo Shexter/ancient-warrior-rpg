@@ -6,6 +6,7 @@
 #include "engine/sprite.hpp"
 #include "game/content.hpp"
 #include "game/game_state.hpp"
+#include "game/script/script_host.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -44,6 +45,7 @@ struct Session {
     Layout layout = Layout::Auto;
     ArtStyle art = ArtStyle::Glyph;
     LargeSprites large{};
+    game::script::ScriptHost* scripts = nullptr; // the game thread's script sandbox
 };
 
 class Screen;

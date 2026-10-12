@@ -84,7 +84,9 @@ std::expected<void, TownError> deposit(GameState&, std::string_view id, int qty)
 std::expected<void, TownError> withdraw(GameState&, std::string_view id, int qty);
 
 // Missions
-std::expected<Battle, TownError> startMission(GameState&, const Content&, std::string_view id);
+// `scripts` runs scripted enemies and skills in the battle (one host per thread).
+std::expected<Battle, TownError> startMission(GameState&, const Content&, std::string_view id,
+                                              script::ScriptHost* scripts = nullptr);
 // Precondition: battle.over(). Copies HP/MP back on every outcome.
 std::expected<MissionResult, TownError> finishMission(GameState&, const Content&,
                                                       std::string_view id, const Battle&);

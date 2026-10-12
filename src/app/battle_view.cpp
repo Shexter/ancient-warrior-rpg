@@ -208,6 +208,14 @@ double BattleView::begin(const game::Event& event) {
         log(std::format("{} flees the battle.", hero_.name));
         return 0.5;
     }
+    if (const auto* e = std::get_if<ev::ScriptSaid>(&event)) {
+        log(e->text);
+        return 0.5;
+    }
+    if (std::holds_alternative<ev::ScriptError>(event)) { // details are for developers only
+        log(std::format("Something went wrong with {}'s magic.", enemy_.name));
+        return 0.3;
+    }
     if (const auto* e = std::get_if<ev::BattleEnded>(&event))
         ended_ = e->outcome;
     return 0; // BattleStarted, BattleEnded

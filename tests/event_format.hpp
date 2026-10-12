@@ -92,6 +92,12 @@ inline std::string toString(const Event& event) {
         std::string operator()(const ev::BattleEnded& e) const {
             return std::format("BattleEnded {} {}", o(e.outcome), e.turns);
         }
+        std::string operator()(const ev::ScriptSaid& e) const {
+            return std::format("ScriptSaid {} {}", s(e.side), e.text);
+        }
+        std::string operator()(const ev::ScriptError& e) const {
+            return std::format("ScriptError {}", e.script);
+        }
     };
     return std::visit(Visitor{side, status, cause, outcome}, event);
 }

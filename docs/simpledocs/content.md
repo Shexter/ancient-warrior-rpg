@@ -9,4 +9,4 @@ Seven files: `paths`, `items`, `skills`, `enemies`, `missions`, `recipes`, `stor
 - Enemy sprites are looked up in `<dataDir>/../assets/sprites/`.
 - `formatError` renders `file: entry: message`.
 
-`Content` is immutable after loading. `item(id)` and friends assume the id exists; `findItem(id)` returns `nullptr` instead. Lists keep file order, which `rollDrop` depends on.
+Skills have `effect` or `script`, and enemies `behavior` or `script` (exactly one each). Referenced scripts are checked and kept as described in `scripting.md`. `Content` is immutable after loading. `item(id)` and friends assume the id exists; `findItem(id)` returns `nullptr` instead. Lists keep file order, which `rollDrop` depends on.

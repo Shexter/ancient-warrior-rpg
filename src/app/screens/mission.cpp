@@ -30,6 +30,8 @@ std::string_view describe(game::ActionError e) {
         return "That skill can't be used right now.";
     case game::ActionError::UnknownSkill:
         return "There is no such skill.";
+    case game::ActionError::ScriptFailed:
+        return "Something went wrong with that skill's magic.";
     }
     return "That action is not possible.";
 }
@@ -121,7 +123,8 @@ Transition MissionIntroScreen::update(std::span<const KeyEvent> keys, double dtS
             confirm_.reset();
             if (!*answer)
                 return Replace{std::make_unique<MissionSelectScreen>(session_)};
-            auto battle = game::startMission(*session_.state, session_.content, missionId_);
+            auto battle = game::startMission(*session_.state, session_.content, missionId_,
+                                             session_.scripts);
             if (!battle) {
                 message_.emplace(game::describe(battle.error()));
                 continue;
