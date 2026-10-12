@@ -23,6 +23,14 @@ inline std::string rowText(const heroes::engine::Framebuffer& frame, int y) {
     return out;
 }
 
+// `width` cells starting at (x, y), as UTF-8 (unlike substr on rowText, immune to wide bytes).
+inline std::string cellText(const heroes::engine::Framebuffer& frame, int x, int y, int width) {
+    heroes::engine::Framebuffer one(width, 1);
+    for (int i = 0; i < width; ++i)
+        one.at(i, 0) = frame.at(x + i, y);
+    return rowText(one, 0);
+}
+
 inline bool frameContains(const heroes::engine::Framebuffer& frame, const std::string& needle) {
     for (int y = 0; y < frame.height(); ++y)
         if (rowText(frame, y).find(needle) != std::string::npos)

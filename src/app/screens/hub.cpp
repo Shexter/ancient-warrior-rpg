@@ -1,6 +1,7 @@
 #include "app/screens/hub.hpp"
 
 #include "app/app.hpp"
+#include "app/screens/training.hpp"
 #include "game/hero.hpp"
 #include "game/save.hpp"
 
@@ -99,7 +100,9 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
             if (Transition next = quit(); !std::holds_alternative<Stay>(next))
                 return next;
             break;
-        default: // Training, Mission and Town screens arrive in tasks 10.3-10.5.
+        case kTraining:
+            return Push{std::make_unique<TrainingSetupScreen>(session_)};
+        default: // Mission and Town screens arrive in tasks 10.4-10.5.
             break;
         }
     }
