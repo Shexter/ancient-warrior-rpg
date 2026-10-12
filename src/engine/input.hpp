@@ -6,11 +6,13 @@
 
 namespace heroes::engine {
 
-enum class Key { Up, Down, Left, Right, Enter, Escape, Backspace, Tab, Char };
+// Click is a left-button press or a touch (terminals report taps as mouse clicks).
+enum class Key { Up, Down, Left, Right, Enter, Escape, Backspace, Tab, Char, Click };
 
 struct KeyEvent {
     Key key;
-    char ch = 0; // set when key == Char (printable 0x20-0x7E)
+    char ch = 0;      // set when key == Char (printable 0x20-0x7E)
+    int x = 0, y = 0; // set when key == Click: the 0-based cell (terminal, then canvas, coordinates)
     bool operator==(const KeyEvent&) const = default;
 };
 

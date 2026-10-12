@@ -2,9 +2,9 @@
 
 ## 1. Tap to select (primary input on phones)
 
-- [ ] 1.1 Enable SGR mouse reporting in the terminal and disable it on every restore path; decode presses into `Key::Click{x, y}`; verify input tests for click sequences and terminal tests for the restore bytes
-- [ ] 1.2 Menus choose the row under a click, and dialogs gain tappable `[Yes]`/`[No]`/`[OK]` (all layouts); verify screen tests tapping a Hub row and answering a ConfirmBox by tap
-- [ ] 1.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Enable SGR mouse reporting in the terminal and disable it on every restore path; decode presses into `Key::Click{x, y}`; verify input tests for click sequences and terminal tests for the restore bytes
+- [x] 1.2 Menus choose the row under a click, and dialogs gain tappable `[Yes]`/`[No]`/`[OK]` (all layouts); verify screen tests tapping a Hub row and answering a ConfirmBox by tap
+- [x] 1.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Portrait canvas and minimum size
 

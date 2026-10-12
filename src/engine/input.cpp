@@ -1,5 +1,7 @@
 #include "engine/input.hpp"
 
+#include <algorithm>
+
 namespace heroes::engine {
 
 namespace {
@@ -19,6 +21,33 @@ std::optional<Key> arrowFor(char final) {
     }
 }
 
+// An SGR mouse report's parameters ("<b;x;y" before the final M or m) as a left press, if it is
+// one. Releases, other buttons, motion and wheel events are ignored; modifier bits are allowed.
+std::optional<KeyEvent> sgrClick(std::string_view params, char final) {
+    if (final != 'M' || params.empty() || params[0] != '<')
+        return std::nullopt;
+    int values[3] = {};
+    int count = 0;
+    bool digits = false;
+    for (const char c : params.substr(1)) {
+        if (c >= '0' && c <= '9' && count < 3) {
+            if (values[count] > 100000)
+                return std::nullopt;
+            values[count] = values[count] * 10 + (c - '0');
+            digits = true;
+        } else if (c == ';' && digits && count < 2) {
+            ++count;
+            digits = false;
+        } else {
+            return std::nullopt;
+        }
+    }
+    constexpr int kModifiers = 4 | 8 | 16;
+    if (count != 2 || !digits || (values[0] & ~kModifiers) != 0 || values[1] < 1 || values[2] < 1)
+        return std::nullopt;
+    return KeyEvent{Key::Click, 0, values[1] - 1, values[2] - 1};
+}
+
 } // namespace
 
 void InputDecoder::feed(std::string_view bytes) {
@@ -30,7 +59,8 @@ void InputDecoder::feed(std::string_view bytes) {
                 keys_.push_back({Key::Escape});
                 continue;
             }
-            // ESC [ ... final  or  ESC O final. Arrows are kept, everything else is dropped.
+            // ESC [ ... final  or  ESC O final. Arrows and SGR left clicks are kept, everything
+            // else is dropped.
             const bool csi = bytes[i + 1] == '[';
             std::size_t j = i + 2;
             if (csi)
@@ -39,7 +69,14 @@ void InputDecoder::feed(std::string_view bytes) {
             if (j < bytes.size()) {
                 if (const auto arrow = arrowFor(bytes[j]))
                     keys_.push_back({*arrow});
+                else if (const auto click = sgrClick(bytes.substr(i + 2, j - i - 2), bytes[j]);
+                         csi && click)
+                    keys_.push_back(*click);
             }
+            // A legacy (non-SGR) mouse report, ESC [ M plus three raw bytes, is skipped whole so
+            // its bytes don't turn into keys.
+            if (csi && j == i + 2 && j < bytes.size() && bytes[j] == 'M')
+                j = std::min(j + 3, bytes.size() - 1);
             i = j;
         } else if (b == '\r' || b == '\n') {
             keys_.push_back({Key::Enter});

@@ -56,7 +56,17 @@ bool Loop::frame(double dtSeconds) {
         pending_.clear();
         drawResizeNotice(screen_, cols, rows);
     } else {
-        pending_.insert(pending_.end(), keys.begin(), keys.end());
+        // A click is translated from terminal to canvas cells using the canvas as last drawn
+        // (what the player tapped); clicks on the margin are dropped.
+        for (KeyEvent key : keys) {
+            if (key.key == Key::Click) {
+                key.x -= canvasLeft_;
+                key.y -= canvasTop_;
+                if (key.x < 0 || key.y < 0 || key.x >= canvas_.width() || key.y >= canvas_.height())
+                    continue;
+            }
+            pending_.push_back(key);
+        }
         const int steps = stepper_.advance(dtSeconds);
         for (int i = 0; i < steps; ++i) {
             if (!update_(pending_, kStepSeconds))
@@ -71,8 +81,8 @@ bool Loop::frame(double dtSeconds) {
             canvas_ = Framebuffer(want.width, want.height);
         draw_(canvas_);
         screen_.clear(background_);
-        const int left = (cols - want.width) / 2;
-        const int top = (rows - want.height) / 2;
+        const int left = canvasLeft_ = (cols - want.width) / 2;
+        const int top = canvasTop_ = (rows - want.height) / 2;
         for (int y = 0; y < want.height; ++y)
             for (int x = 0; x < want.width; ++x)
                 screen_.at(left + x, top + y) = canvas_.at(x, y);

@@ -10,6 +10,12 @@
 
 namespace heroes::platform {
 
+// Alternate screen, hidden cursor, and (POSIX) SGR mouse reporting so taps arrive as clicks.
+// The leave sequence undoes all of it; it is written on every exit path.
+inline constexpr std::string_view kEnterSequence = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h";
+inline constexpr std::string_view kLeaveSequence =
+    "\x1b[?1006l\x1b[?1000l\x1b[0m\x1b[?25h\x1b[?1049l";
+
 // RAII: the constructor enters raw mode and the alternate screen, the destructor restores both.
 // Only one may exist at a time. The constructor throws std::runtime_error if the process is
 // not attached to an interactive terminal. Ctrl+C and termination signals also restore it.

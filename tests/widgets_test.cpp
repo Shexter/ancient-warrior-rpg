@@ -203,3 +203,49 @@ TEST(StatusPanel, LevelOneGearHasNoPlusAndHpColorsFollowThresholds) {
     EXPECT_EQ(hpColor(21, 100), palette::kHpMid);
     EXPECT_EQ(hpColor(20, 100), palette::kHpLow);
 }
+
+TEST(Menu, AClickOnADrawnRowChoosesIt) {
+    Menu menu = threeWithMiddleDisabled();
+    Framebuffer frame(80, 24);
+    EXPECT_EQ(menu.handle({Key::Click, 0, 6, 9}), std::nullopt); // not drawn yet
+    menu.draw(frame, 4, 7);
+    EXPECT_EQ(menu.handle({Key::Click, 0, 70, 9}), 2); // anywhere along the row
+    EXPECT_EQ(menu.selected(), 2);
+    EXPECT_EQ(menu.handle({Key::Click, 0, 6, 8}), std::nullopt); // disabled
+    EXPECT_EQ(menu.handle({Key::Click, 0, 3, 7}), std::nullopt); // left of the menu
+    EXPECT_EQ(menu.handle({Key::Click, 0, 6, 10}), std::nullopt); // below it
+    EXPECT_EQ(menu.handle({Key::Click, 0, 4, 7}), 0);
+}
+
+TEST(Menu, AClickInAHorizontalMenuHitsTheItemsLabel) {
+    Menu menu({{"Attack"}, {"Skill"}}, Menu::Layout::Horizontal);
+    Framebuffer frame(80, 24);
+    menu.draw(frame, 2, 20); // "▶ Attack    Skill": Skill's cells are 14..20
+    EXPECT_EQ(menu.handle({Key::Click, 0, 15, 20}), 1);
+    EXPECT_EQ(menu.handle({Key::Click, 0, 11, 20}), std::nullopt); // the gap
+    EXPECT_EQ(menu.handle({Key::Click, 0, 3, 20}), 0);
+}
+
+TEST(MessageBox, ATapDismissesIt) {
+    MessageBox box("Game saved.");
+    EXPECT_TRUE(box.handle({Key::Click, 0, 0, 0}));
+}
+
+TEST(ConfirmBox, TappingYesOrNoAnswers) {
+    ConfirmBox box("Quit without saving?");
+    Framebuffer frame(80, 24);
+    box.draw(frame);
+    int fx = -1, fy = -1;
+    for (int y = 0; y < 24 && fx < 0; ++y)
+        for (int x = 0; x + 1 < 80; ++x)
+            if (frame.at(x, y).glyph == U'[' && frame.at(x + 1, y).glyph == U'Y') {
+                fx = x;
+                fy = y;
+                break;
+            }
+    ASSERT_GE(fx, 0);
+    EXPECT_EQ(box.handle({Key::Click, 0, fx + 2, fy - 1}), std::nullopt); // above the buttons
+    EXPECT_EQ(box.handle({Key::Click, 0, fx + 6, fy}), std::nullopt);     // the " / "
+    EXPECT_EQ(box.handle({Key::Click, 0, fx + 2, fy}), true);             // [Y]es
+    EXPECT_EQ(box.handle({Key::Click, 0, fx + 9, fy}), false);            // [N]o
+}

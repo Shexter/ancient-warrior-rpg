@@ -74,7 +74,8 @@ class Menu {
 
     explicit Menu(std::vector<Item> items, Layout layout = Layout::Vertical);
 
-    // The chosen index, or nullopt if the key only moved the selection (or did nothing).
+    // The chosen index, or nullopt if the key only moved the selection (or did nothing). A click
+    // on a row drawn by the last draw() chooses it, like its number key.
     std::optional<int> handle(const engine::KeyEvent& key);
     // An unfocused menu (the other list of a two-list screen) hides its selection. Rows are
     // clipped to `maxWidth` cells from `x`.
@@ -89,9 +90,15 @@ class Menu {
   private:
     void move(int step);
 
+    // Where each row was last drawn, for clicks.
+    struct Hit {
+        int x0, x1, y, index; // cells x0 <= x < x1 on row y
+    };
+
     std::vector<Item> items_;
     Layout layout_;
     int selected_ = 0;
+    mutable std::vector<Hit> hits_;
 };
 
 enum class InputResult { Editing, Submitted, Cancelled };
@@ -136,7 +143,7 @@ class NumberInput {
 class MessageBox {
   public:
     explicit MessageBox(std::string_view text);
-    bool handle(const engine::KeyEvent& key); // true once dismissed
+    bool handle(const engine::KeyEvent& key); // true once dismissed (a tap anywhere dismisses)
     void draw(engine::Framebuffer& frame) const;
 
   private:
@@ -147,11 +154,13 @@ class MessageBox {
 class ConfirmBox {
   public:
     explicit ConfirmBox(std::string_view text);
-    std::optional<bool> handle(const engine::KeyEvent& key); // the answer, once given
+    // The answer, once given; a tap on "[Y]es" or "[N]o" answers too.
+    std::optional<bool> handle(const engine::KeyEvent& key);
     void draw(engine::Framebuffer& frame) const;
 
   private:
     std::vector<std::string> lines_;
+    mutable int footerX_ = -1, footerY_ = -1; // where "[Y]es / [N]o" was last drawn
 };
 
 // Reveals wrapped text at 40 characters per second. Enter reveals the rest at once; a second

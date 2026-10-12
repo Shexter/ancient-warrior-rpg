@@ -247,3 +247,24 @@ TEST(Loop, CanvasSizesThatCannotFitFallBackTo80x24) {
     loop.frame(kStepSeconds);
     EXPECT_EQ(drawn, kCompactCanvas);
 }
+
+TEST(Loop, ClicksAreMovedIntoCanvasCellsAndMarginClicksDropped) {
+    FakeIo io;
+    io.cols = 100; // the 80x24 canvas sits at column 10, row 3
+    io.rows = 30;
+    Renderer renderer(ColorMode::TrueColor);
+    std::vector<KeyEvent> seen;
+    Loop loop(
+        io, renderer,
+        [&](std::span<const KeyEvent> keys, double) {
+            seen.insert(seen.end(), keys.begin(), keys.end());
+            return true;
+        },
+        [](Framebuffer&) {});
+    loop.frame(kStepSeconds); // place the canvas
+    io.queued = {{Key::Click, 0, 10, 3}, {Key::Click, 0, 89, 26}, {Key::Click, 0, 5, 5},
+                 {Key::Click, 0, 90, 3}, {Key::Enter}};
+    loop.frame(kStepSeconds);
+    EXPECT_EQ(seen, (std::vector<KeyEvent>{
+                        {Key::Click, 0, 0, 0}, {Key::Click, 0, 79, 23}, {Key::Enter}}));
+}

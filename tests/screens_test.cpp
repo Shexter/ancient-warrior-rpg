@@ -194,3 +194,35 @@ TEST(Title, ASaveThatNeedsTheMissingModNamesIt) {
     EXPECT_FALSE(h.session.state.has_value());
     EXPECT_EQ(readFile(h.session.saveFile), body);
 }
+
+TEST(Taps, TappingAHubRowOpensIt) {
+    Harness h("tap_hub");
+    h.startAtHub(freshGame());
+    (void)h.frame(); // the menu is tappable where it was drawn
+    ASSERT_TRUE(h.press({{Key::Click, 0, 40, 9}})); // the Town row
+    EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
+}
+
+TEST(Taps, QuitIsConfirmedByTappingYes) {
+    Harness h("tap_quit");
+    h.startAtHub(freshGame());
+    h.session.dirty = true;
+    (void)h.frame();
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 11}})); // Quit
+    const Framebuffer frame = h.frame();
+    ASSERT_TRUE(frameContains(frame, "Quit without saving?"));
+    int fx = -1, fy = -1;
+    for (int y = 0; y < frame.height() && fx < 0; ++y)
+        for (int x = 0; x + 1 < frame.width(); ++x)
+            if (frame.at(x, y).glyph == U'[' && frame.at(x + 1, y).glyph == U'N') {
+                fx = x;
+                fy = y;
+                break;
+            }
+    ASSERT_GE(fx, 0);
+    ASSERT_TRUE(h.press({{Key::Click, 0, fx + 1, fy}})); // [N]o keeps playing
+    (void)h.frame();
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 11}}));
+    (void)h.frame(); // the loop draws every frame; the harness draws on request
+    EXPECT_FALSE(h.press({{Key::Click, 0, fx - 6, fy}})); // [Y]es quits
+}

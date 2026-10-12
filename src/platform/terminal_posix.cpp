@@ -14,8 +14,6 @@ namespace heroes::platform {
 
 namespace {
 
-constexpr char kEnter[] = "\x1b[?1049h\x1b[?25l";
-constexpr char kLeave[] = "\x1b[0m\x1b[?25h\x1b[?1049l";
 // SIGABRT covers failed asserts and std::terminate.
 constexpr int kSignals[] = {SIGINT, SIGTERM, SIGHUP, SIGABRT};
 
@@ -27,7 +25,7 @@ bool gAtexitRegistered = false;
 void restoreTerminal() {
     if (!gActive.exchange(false))
         return;
-    const ssize_t ignored = write(STDOUT_FILENO, kLeave, sizeof kLeave - 1);
+    const ssize_t ignored = write(STDOUT_FILENO, kLeaveSequence.data(), kLeaveSequence.size());
     (void)ignored;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &gSaved);
 }
@@ -65,7 +63,7 @@ Terminal::Terminal() {
     for (const int sig : kSignals)
         signal(sig, onFatalSignal);
     gActive = true;
-    write(kEnter);
+    write(kEnterSequence);
 }
 
 Terminal::~Terminal() {

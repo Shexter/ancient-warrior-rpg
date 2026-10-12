@@ -70,3 +70,22 @@ TEST(Input, PopReturnsKeysInOrderAcrossFeeds) {
     EXPECT_EQ(d.pop(), (KeyEvent{Key::Up}));
     EXPECT_FALSE(d.pop().has_value());
 }
+
+TEST(Input, SgrLeftPressIsAClickAtTheZeroBasedCell) {
+    EXPECT_EQ(decode("\x1b[<0;10;5M"), (std::vector<KeyEvent>{{Key::Click, 0, 9, 4}}));
+    EXPECT_EQ(decode("\x1b[<4;1;1M"), (std::vector<KeyEvent>{{Key::Click, 0, 0, 0}})); // shift
+}
+
+TEST(Input, OtherMouseReportsAreDroppedWhole) {
+    for (const char* report : {"\x1b[<0;10;5m",   // release
+                               "\x1b[<2;10;5M",   // right button
+                               "\x1b[<32;10;5M",  // drag
+                               "\x1b[<64;10;5M",  // wheel
+                               "\x1b[<0;0;5M",    // no such cell
+                               "\x1b[<0;10M",     // malformed
+                               "\x1b[<0;1;2;3M",  // malformed
+                               "\x1b[<0;99999999;5M"})
+        EXPECT_TRUE(decode(report).empty()) << report + 1;
+    // A legacy report's three raw bytes don't become keys.
+    EXPECT_EQ(decode("\x1b[M !!q"), (std::vector<KeyEvent>{{Key::Char, 'q'}}));
+}

@@ -4,6 +4,7 @@
 #include <cctype>
 #include <charconv>
 #include <format>
+#include <tuple>
 #include <utility>
 
 namespace heroes::app {
@@ -45,8 +46,9 @@ void put(Framebuffer& frame, int x, int y, char32_t glyph, Rgb fg) {
 }
 
 // Centered dialog box: text lines, then `footer` right-aligned in dim on the last inner row.
-void drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
-                std::string_view footer) {
+// Returns where the footer was drawn.
+std::pair<int, int> drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
+                               std::string_view footer) {
     int inner = static_cast<int>(footer.size());
     for (const std::string& line : lines)
         inner = std::max(inner, static_cast<int>(line.size()));
@@ -57,7 +59,9 @@ void drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
     drawPanel(frame, x, y, w, h);
     for (std::size_t i = 0; i < lines.size(); ++i)
         drawText(frame, x + 2, y + 1 + static_cast<int>(i), lines[i], palette::kText, w - 4);
-    drawText(frame, x + w - 2 - static_cast<int>(footer.size()), y + h - 2, footer, palette::kDim);
+    const int footerX = x + w - 2 - static_cast<int>(footer.size());
+    drawText(frame, footerX, y + h - 2, footer, palette::kDim);
+    return {footerX, y + h - 2};
 }
 
 } // namespace
@@ -178,6 +182,15 @@ std::optional<int> Menu::handle(const KeyEvent& key) {
     if (items_.empty())
         return std::nullopt;
     const bool vertical = layout_ == Layout::Vertical;
+    if (key.key == Key::Click) {
+        for (const Hit& hit : hits_)
+            if (key.y == hit.y && key.x >= hit.x0 && key.x < hit.x1 &&
+                items_[static_cast<std::size_t>(hit.index)].enabled) {
+                selected_ = hit.index;
+                return hit.index;
+            }
+        return std::nullopt;
+    }
     const char c = static_cast<char>(std::tolower(static_cast<unsigned char>(key.ch)));
     const bool isChar = key.key == Key::Char;
     if ((vertical && (key.key == Key::Up || (isChar && c == 'w'))) ||
@@ -209,6 +222,7 @@ void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) co
         return maxWidth == INT_MAX ? INT_MAX : x + maxWidth - from;
     };
     int cursor = x;
+    hits_.clear();
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const bool chosen = focused && static_cast<int>(i) == selected_;
@@ -222,6 +236,11 @@ void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) co
         const int noteX = col + 4 + static_cast<int>(labelWidth);
         if (!item.note.empty() && room(noteX) > 0)
             drawText(frame, noteX, row, item.note, palette::kDim, room(noteX));
+        // A vertical row is tappable across its whole width; a horizontal item up to its label.
+        const int end = layout_ == Layout::Vertical
+                            ? (maxWidth == INT_MAX ? frame.width() : x + maxWidth)
+                            : col + 2 + textWidth(item.label);
+        hits_.push_back({col, end, row, static_cast<int>(i)});
         cursor += 2 + static_cast<int>(item.label.size()) + 4;
     }
 }
@@ -292,16 +311,22 @@ void NumberInput::draw(Framebuffer& frame, int x, int y) const {
 MessageBox::MessageBox(std::string_view text) : lines_(wordWrap(text, kDialogMaxWidth - 4)) {}
 
 bool MessageBox::handle(const KeyEvent& key) {
-    return key.key == Key::Enter || key.key == Key::Escape;
+    return key.key == Key::Enter || key.key == Key::Escape || key.key == Key::Click;
 }
 
-void MessageBox::draw(Framebuffer& frame) const { drawDialog(frame, lines_, "[Enter]"); }
+void MessageBox::draw(Framebuffer& frame) const { (void)drawDialog(frame, lines_, "[Enter]"); }
 
 ConfirmBox::ConfirmBox(std::string_view text) : lines_(wordWrap(text, kDialogMaxWidth - 4)) {}
 
 std::optional<bool> ConfirmBox::handle(const KeyEvent& key) {
     if (key.key == Key::Escape)
         return false;
+    if (key.key == Key::Click && key.y == footerY_) {
+        if (key.x >= footerX_ && key.x < footerX_ + 5) // "[Y]es"
+            return true;
+        if (key.x >= footerX_ + 8 && key.x < footerX_ + 12) // "[N]o"
+            return false;
+    }
     if (key.key != Key::Char)
         return std::nullopt;
     if (key.ch == 'y' || key.ch == 'Y')
@@ -311,7 +336,9 @@ std::optional<bool> ConfirmBox::handle(const KeyEvent& key) {
     return std::nullopt;
 }
 
-void ConfirmBox::draw(Framebuffer& frame) const { drawDialog(frame, lines_, "[Y]es / [N]o"); }
+void ConfirmBox::draw(Framebuffer& frame) const {
+    std::tie(footerX_, footerY_) = drawDialog(frame, lines_, "[Y]es / [N]o");
+}
 
 // ---- Typewriter --------------------------------------------------------------------------
 

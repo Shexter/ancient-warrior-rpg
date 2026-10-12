@@ -9,9 +9,9 @@
 **App:** a stack of `Screen`s on the fixed-step loop. Each step the top screen gets the new keys and returns `Stay`, `Push`, `Pop`, `Replace` (pop then push) or `Quit`. Quit, or popping the last screen, ends the program with exit code 0. Only the top screen is drawn; dialogs are drawn by the screen that owns them. Each frame the top screen's `canvasSize(terminal)` picks the canvas (80x24 unless the screen overrides it), centered in larger terminals with the `bg` color around it.
 
 **Widgets** (`src/app/widgets.hpp`, colors from ui.md's palette):
-- `Menu`: vertical (↑/↓, `w`/`s`) or horizontal (←/→, `a`/`d`). Selection wraps and skips disabled items; Enter or `1`-`9` chooses an enabled item. The selected row shows `▶` in the accent color, disabled rows are dim, and an optional dim note follows the label. An unfocused menu (the other list of a two-list screen) hides its `▶`.
+- `Menu`: vertical (↑/↓, `w`/`s`) or horizontal (←/→, `a`/`d`). Selection wraps and skips disabled items; Enter or `1`-`9` chooses an enabled item, and so does a tap on a row where it was last drawn (a vertical row anywhere along its width, a horizontal item on its label). The selected row shows `▶` in the accent color, disabled rows are dim, and an optional dim note follows the label. An unfocused menu (the other list of a two-list screen) hides its `▶`.
 - `TextInput` (printable ASCII up to a max length, blinking `_`), `NumberInput` (digits only, no more digits than the maximum has; Enter on an empty or out-of-range value shows "Enter a number from MIN to MAX" in the damage color).
-- `MessageBox` (centered, at most 60 columns, word-wrapped, Enter or Esc dismisses), `ConfirmBox` (`Y`/`N`, Esc means No).
+- `MessageBox` (centered, at most 60 columns, word-wrapped, Enter, Esc or a tap anywhere dismisses), `ConfirmBox` (`Y`/`N` or a tap on `[Y]es`/`[N]o`, Esc means No).
 - `Typewriter`: 40 characters per second; the first Enter reveals the rest, the second finishes.
 - Status panel: rows 0-4. Row 1: name, path, level, HP bar (20 cells, colored by the >50% / >20% thresholds), Fervor bar labeled `FV` (8 cells; the player-facing name of MP). Row 2: ATK/DEF/LIFE including equipment, EXP, Next, Gold. Row 3: `Weapon <name>[+N]   Armor <name>`, with `+N` only above upgrade 1 and `—` for an empty slot. Text is clipped at the border, never drawn over it.
 

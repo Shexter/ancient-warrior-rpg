@@ -78,6 +78,7 @@ class Loop {
     Framebuffer canvas_{kCanvasWidth, kCanvasHeight}; // reallocated only when its size changes
     Framebuffer screen_{0, 0}; // terminal-sized; reallocated only when the size changes
     std::vector<KeyEvent> pending_;
+    int canvasLeft_ = 0, canvasTop_ = 0; // where the canvas was last placed in the terminal
     std::string out_;
 };
 
