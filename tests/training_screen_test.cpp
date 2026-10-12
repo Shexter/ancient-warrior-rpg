@@ -86,7 +86,7 @@ TEST(TrainingScreen, TotalsMatchTheStatusPanelAndReturnToTheHub) {
     const Expected e = expected(1, 5);
     ASSERT_TRUE(h.press({kEsc}));
     const Framebuffer totals = h.frame();
-    EXPECT_TRUE(frameContains(totals, "TRAINING RESULTS"));
+    EXPECT_TRUE(frameContains(totals, "CATACOMB RESULTS"));
     const std::int64_t gold = e.after.hero.gold - 20000;
     EXPECT_TRUE(frameContains(totals, std::format("+{}", gold)));
     EXPECT_TRUE(frameContains(totals, std::format("Gold {}", e.after.hero.gold))); // panel
@@ -102,7 +102,7 @@ TEST(TrainingScreen, PlaybackReachesTheTotalsOnItsOwn) {
     Harness h("training_auto");
     startTraining(h, 1, 2);
     ASSERT_TRUE(h.wait(10));
-    EXPECT_TRUE(frameContains(h.frame(), "TRAINING RESULTS"));
+    EXPECT_TRUE(frameContains(h.frame(), "CATACOMB RESULTS"));
 }
 
 TEST(TrainingScreen, DefeatIsShownAndTheHubThenBlocksTraining) {
@@ -113,5 +113,5 @@ TEST(TrainingScreen, DefeatIsShownAndTheHubThenBlocksTraining) {
     EXPECT_EQ(h.session.state->hero.hp, 0);
     ASSERT_TRUE(h.press({kEnter}));
     ASSERT_TRUE(h.wait(1.0 / 60)); // the Hub refreshes its menu on its first step back
-    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Guildmaster"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Prior"), std::string::npos);
 }

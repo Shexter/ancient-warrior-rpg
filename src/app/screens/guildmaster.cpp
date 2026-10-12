@@ -32,7 +32,7 @@ engine::Rgb metColor(bool met) { return met ? palette::kHeal : palette::kDmg; }
 } // namespace
 
 GuildmasterScreen::GuildmasterScreen(Session& session)
-    : TownScreen(session, "GUILDMASTER"), menu_({}), skills_({}) {
+    : TownScreen(session, "THE PRIOR"), menu_({}), skills_({}) {
     std::vector<Menu::Item> rows;
     for (const game::SkillDef& skill : content().skills())
         rows.emplace_back(skill.name);
@@ -42,7 +42,7 @@ GuildmasterScreen::GuildmasterScreen(Session& session)
     const std::int64_t goldBefore = hero().gold;
     if (game::revive(state())) {
         session_.dirty = true;
-        modal_.message(std::format("Great warrior, be careful next time... (revived for {} gold)",
+        modal_.message(std::format("Rise. Mercy asks only that you be more careful. ({} gold to the poor box)",
                                    goldBefore - hero().gold));
     }
 }
@@ -76,13 +76,13 @@ Transition GuildmasterScreen::onKey(const engine::KeyEvent& key) {
         restoration();
         break;
     case kCharisma:
-        modal_.choose("Raise which stat?", {{"Max HP"}, {"Max MP"}, {"ATK"}, {"DEF"}},
+        modal_.choose("Raise which stat?", {{"Max HP"}, {"Max Fervor"}, {"ATK"}, {"DEF"}},
                       [this](int index) {
                           static constexpr std::array kStats{CharismaStat::MaxHp,
                                                              CharismaStat::MaxMp,
                                                              CharismaStat::Atk, CharismaStat::Def};
                           static constexpr std::array<std::string_view, 4> kNames{
-                              "Max HP", "Max MP", "ATK", "DEF"};
+                              "Max HP", "Max Fervor", "ATK", "DEF"};
                           const auto i = static_cast<std::size_t>(index);
                           charisma(kStats[i], std::string(kNames[i]));
                       });
@@ -125,7 +125,7 @@ void GuildmasterScreen::restoration() {
     modal_.choose("Use which item?", std::move(rows), [this, ids](int index) {
         const std::string& id = ids[static_cast<std::size_t>(index)];
         if (succeeded(game::useConsumable(state(), content(), id)))
-            modal_.message(std::format("You use the {}. HP {}/{} · MP {}/{}",
+            modal_.message(std::format("You use the {}. HP {}/{} · Fervor {}/{}",
                                        content().item(id).name, hero().hp, hero().maxHp, hero().mp,
                                        hero().maxMp));
     });

@@ -11,10 +11,10 @@
 
 ## 2. Player-facing vocabulary
 
-- [ ] 2.1 Relabel MP as Fervor in the UI per the vocabulary table (status panel and battle "FV", Create Hero preview, skill overlay header, "Not enough Fervor.", Charisma "Max Fervor", Restoration message); verify a screen test finds no visible "MP" label on the Hub, Battle, Create Hero and Guildmaster screens
-- [ ] 2.2 Rename the Town menu, NPC screen titles, Training titles and the Hub's fallen reason, and re-voice the four NPC lines per the table; verify the existing town, training and hub screen tests updated to the new strings pass
-- [ ] 2.3 Update SimpleDocs `app.md` (screen text) and record the vocabulary in `docs/world-bible.md` as implemented; verify the docs match the screens
-- [ ] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Relabel MP as Fervor in the UI per the vocabulary table (status panel and battle "FV", Create Hero preview, skill overlay header, "Not enough Fervor.", Charisma "Max Fervor", Restoration message); verify a screen test finds no visible "MP" label on the Hub, Battle, Create Hero and Guildmaster screens
+- [x] 2.2 Rename the Town menu, NPC screen titles, Training titles and the Hub's fallen reason, and re-voice the four NPC lines per the table; verify the existing town, training and hub screen tests updated to the new strings pass
+- [x] 2.3 Update SimpleDocs `app.md` (screen text) and record the vocabulary in `docs/world-bible.md` as implemented; verify the docs match the screens
+- [x] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. The Avaritia mission
 

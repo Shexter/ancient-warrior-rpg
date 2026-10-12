@@ -14,7 +14,7 @@ constexpr double kBidSeconds = 0.6; // one auction bid per 600 ms (ui.md)
 } // namespace
 
 MerchantScreen::MerchantScreen(Session& session)
-    : TownScreen(session, "MERCHANT"), shop_({}), bag_({}) {
+    : TownScreen(session, "ALMONRY"), shop_({}), bag_({}) {
     std::vector<Menu::Item> rows;
     for (const game::ItemDef& item : content().items())
         if (item.price > 0) {
@@ -23,7 +23,7 @@ MerchantScreen::MerchantScreen(Session& session)
         }
     shop_.setItems(std::move(rows));
     if (hero().hp <= 0)
-        modal_.message("I have no business with you!", [this] { leave_ = true; });
+        modal_.message("The Almonry serves the living. See the Prior first.", [this] { leave_ = true; });
 }
 
 void MerchantScreen::refresh() { bag_.setItems(slotItems(hero().bag, content())); }

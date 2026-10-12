@@ -275,7 +275,7 @@ void BattleView::drawStats(Framebuffer& frame) const {
     drawText(frame, 10, 16, "HP", palette::kText);
     drawBar(frame, 13, 16, 20, hero_.hp, hero_.maxHp, hpColor(hero_.hp, hero_.maxHp));
     drawText(frame, 34, 16, std::format("{}/{}", hero_.hp, hero_.maxHp), palette::kText, 9);
-    drawText(frame, 10, 17, "MP", palette::kText);
+    drawText(frame, 10, 17, "FV", palette::kText); // Fervor
     drawBar(frame, 13, 17, 8, hero_.mp, hero_.maxMp, palette::kMp);
     drawText(frame, 22, 17, std::format("{}/{}", hero_.mp, hero_.maxMp), palette::kText, 7);
     int x = 30;

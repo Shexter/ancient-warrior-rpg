@@ -200,8 +200,8 @@ enum TownChoice { kMerchant, kBlacksmith, kGuildmaster, kBank, kBack };
 } // namespace
 
 TownMenuScreen::TownMenuScreen(Session& session)
-    : TownScreen(session, "TOWN"),
-      menu_({{"Merchant"}, {"Blacksmith"}, {"Guildmaster"}, {"Bank"}, {"Back"}}) {}
+    : TownScreen(session, "CIVITAS LUCIS"),
+      menu_({{"Almonry"}, {"Forge"}, {"Prior"}, {"Thesaurus"}, {"Back"}}) {}
 
 Transition TownMenuScreen::onKey(const KeyEvent& key) {
     if (key.key == Key::Escape)
@@ -226,11 +226,11 @@ void TownMenuScreen::drawBody(Framebuffer& frame) const { menu_.draw(frame, 4, 7
 
 // ---- Bank --------------------------------------------------------------------------------
 
-BankScreen::BankScreen(Session& session) : TownScreen(session, "BANK"), bank_({}), bag_({}) {
+BankScreen::BankScreen(Session& session) : TownScreen(session, "THESAURUS"), bank_({}), bag_({}) {
     if (hero().bank)
         return;
     modal_.confirm(
-        std::format("Open an account for {} gold?", game::kBankCost),
+        std::format("Open a place in the Thesaurus for {} gold?", game::kBankCost),
         [this] {
             if (succeeded(game::openBank(state()), [this] { leave_ = true; }))
                 modal_.message("Your account is open.");

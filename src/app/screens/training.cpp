@@ -76,7 +76,7 @@ Transition TrainingSetupScreen::update(std::span<const engine::KeyEvent> keys, d
 void TrainingSetupScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
     drawStatusPanel(frame, session_.state->hero, session_.content);
-    drawText(frame, 2, 5, "TRAINING CAVE", palette::kAccent);
+    drawText(frame, 2, 5, "THE CATACOMBS", palette::kAccent);
     drawText(frame, 4, 7, "Cave level (1–30):", palette::kText);
     if (!cave_) {
         caveInput_.draw(frame, 6, 8);
@@ -192,7 +192,7 @@ std::string TrainingPlaybackScreen::summary(std::size_t index) const {
 
 void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
     const game::TrainingRound& r = rounds_[round_];
-    drawText(frame, 2, 1, std::format("TRAINING CAVE · Level {}", r.caveLevel), palette::kAccent);
+    drawText(frame, 2, 1, std::format("THE CATACOMBS · Level {}", r.caveLevel), palette::kAccent);
 
     const game::Hero& hero = session_.state->hero;
     if (const auto it = session_.sprites.find(std::format("hero_{}.sprite", hero.pathId));
@@ -219,7 +219,7 @@ void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
 void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
     const game::Hero& hero = session_.state->hero;
     drawStatusPanel(frame, hero, session_.content);
-    drawText(frame, 2, 5, "TRAINING RESULTS", palette::kAccent);
+    drawText(frame, 2, 5, "CATACOMB RESULTS", palette::kAccent);
 
     int won = 0;
     std::vector<std::string> drops, lost;

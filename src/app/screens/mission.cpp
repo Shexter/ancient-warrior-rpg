@@ -23,7 +23,7 @@ std::string_view describe(game::ActionError e) {
     case game::ActionError::SkillNotLearned:
         return "You haven't learned that skill.";
     case game::ActionError::NotEnoughMp:
-        return "Not enough MP.";
+        return "Not enough Fervor.";
     case game::ActionError::SkillNotReady:
         return "That skill can't be used right now.";
     case game::ActionError::UnknownSkill:
@@ -258,6 +258,7 @@ void BattleScreen::draw(Framebuffer& frame) const {
                  palette::kDim);
     if (skills_) {
         drawPanel(frame, 16, 14, 64, 7);
+        drawText(frame, 18, 14, " Skills · Fervor cost in () ", palette::kAccent); // on the border
         skills_->draw(frame, 18, 15, true, 61); // inside the panel's right border
     }
     if (const int offset = view_.shake())

@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cctype>
 #include <format>
 #include <string>
 #include <vector>
@@ -220,4 +221,41 @@ TEST(Battle, SkillOverlayDimsUnlearnedSkillsAndEscCloses) {
 
     ASSERT_TRUE(h.press({ch('2'), ch('1')})); // cast it
     EXPECT_TRUE(frameContains(h.frame(), "ARIA casts Guardian Angel!"));
+}
+
+TEST(Vocabulary, NoScreenShowsAnMpLabel) {
+    // "MP" as a whole word, anywhere on the screen.
+    const auto showsMp = [](const Framebuffer& frame) {
+        for (int y = 0; y < frame.height(); ++y) {
+            const std::string row = " " + rowText(frame, y) + " ";
+            for (std::size_t at = row.find("MP"); at != std::string::npos; at = row.find("MP", at + 1))
+                if (!std::isalpha(static_cast<unsigned char>(row[at - 1])) &&
+                    !std::isalpha(static_cast<unsigned char>(row[at + 2])))
+                    return true;
+        }
+        return false;
+    };
+
+    Harness create("vocab_create");
+    create.startAtTitle();
+    ASSERT_TRUE(create.press({ch('1'), kEnter, kEnter}));
+    ASSERT_TRUE(create.type("Aria"));
+    ASSERT_TRUE(create.press({kEnter, kEnter, kEnter}));
+    EXPECT_TRUE(frameContains(create.frame(), "Fervor 50"));
+    EXPECT_FALSE(showsMp(create.frame())) << "Create Hero";
+
+    Harness hub("vocab_hub");
+    game::GameState state = levelTwenty();
+    hub.startAtHub(state);
+    EXPECT_TRUE(frameContains(hub.frame(), "FV "));
+    EXPECT_FALSE(showsMp(hub.frame())) << "Hub";
+    ASSERT_TRUE(hub.press({ch('3'), ch('3'), ch('2')})); // Town, Prior, Build Charisma
+    EXPECT_TRUE(frameContains(hub.frame(), "Max Fervor"));
+    EXPECT_FALSE(showsMp(hub.frame())) << "Prior";
+
+    Harness battle("vocab_battle");
+    enterBattle(battle, levelTwenty());
+    ASSERT_TRUE(battle.press({ch('2')})); // skill overlay open
+    EXPECT_TRUE(frameContains(battle.frame(), "Fervor cost"));
+    EXPECT_FALSE(showsMp(battle.frame())) << "Battle";
 }

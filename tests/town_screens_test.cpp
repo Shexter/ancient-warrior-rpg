@@ -21,7 +21,7 @@ const KeyEvent kTab{Key::Tab};
 void enterNpc(Harness& h, game::GameState state, char npc) {
     h.startAtHub(std::move(state));
     ASSERT_TRUE(h.press({ch('3')}));
-    ASSERT_TRUE(frameContains(h.frame(), "TOWN"));
+    ASSERT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
     ASSERT_TRUE(h.press({ch(npc)}));
 }
 
@@ -36,9 +36,9 @@ game::GameState withItem(std::string_view id, int qty) {
 TEST(Town, EscReturnsFromTheTownToTheHub) {
     Harness h("town_esc");
     enterNpc(h, freshGame(), '1');
-    EXPECT_TRUE(frameContains(h.frame(), "MERCHANT"));
+    EXPECT_TRUE(frameContains(h.frame(), "ALMONRY"));
     ASSERT_TRUE(h.press({kEsc}));
-    EXPECT_TRUE(frameContains(h.frame(), "Guildmaster"));
+    EXPECT_TRUE(frameContains(h.frame(), "Prior"));
     ASSERT_TRUE(h.press({kEsc}));
     EXPECT_EQ(h.app->depth(), 1u);
     EXPECT_TRUE(frameContains(h.frame(), "▶ Town")); // the Hub keeps its selection
@@ -112,16 +112,16 @@ TEST(Merchant, TurnsAwayAFallenHero) {
     game::GameState state = freshGame();
     state.hero.hp = 0;
     enterNpc(h, state, '1');
-    EXPECT_TRUE(frameContains(h.frame(), "I have no business with you!"));
+    EXPECT_TRUE(frameContains(h.frame(), "The Almonry serves the living. See the Prior first."));
     ASSERT_TRUE(h.press({kEnter}));
-    EXPECT_TRUE(frameContains(h.frame(), "TOWN"));
+    EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
     EXPECT_EQ(h.app->depth(), 2u);
 }
 
 TEST(Bank, OpensAnAccountThenDepositsAndWithdraws) {
     Harness h("bank");
     enterNpc(h, withItem("topaz", 3), '4');
-    EXPECT_TRUE(frameContains(h.frame(), "Open an account for 10000 gold?"));
+    EXPECT_TRUE(frameContains(h.frame(), "Open a place in the Thesaurus for 10000 gold?"));
     ASSERT_TRUE(h.press({ch('y'), kEnter}));
     EXPECT_TRUE(h.session.state->hero.bank.has_value());
     EXPECT_EQ(h.session.state->hero.gold, 10000);
@@ -141,7 +141,7 @@ TEST(Bank, DecliningTheAccountLeavesEverythingAsItWas) {
     enterNpc(h, freshGame(), '4');
     const game::GameState before = *h.session.state;
     ASSERT_TRUE(h.press({ch('n')}));
-    EXPECT_TRUE(frameContains(h.frame(), "TOWN"));
+    EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
     EXPECT_EQ(*h.session.state, before);
 }
 
@@ -214,7 +214,7 @@ TEST(Guildmaster, RevivesAFallenHeroOnEntry) {
     state.hero.hp = 0;
     state.hero.gold = 40;
     enterNpc(h, state, '3');
-    EXPECT_TRUE(frameContains(h.frame(), "Great warrior, be careful next time..."));
+    EXPECT_TRUE(frameContains(h.frame(), "Rise. Mercy asks only that you be more careful."));
     EXPECT_EQ(h.session.state->hero.hp, 100);
     EXPECT_EQ(h.session.state->hero.gold, 0);
     EXPECT_TRUE(h.session.dirty);

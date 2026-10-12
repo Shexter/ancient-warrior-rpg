@@ -183,7 +183,7 @@ TEST(StatusPanel, ShowsStatsWithEquipmentBarsAndGear) {
     const std::string row1 = rowText(frame, 1);
     EXPECT_NE(row1.find("ARIA  Knight Lv 1   HP "), std::string::npos) << row1;
     EXPECT_NE(row1.find("███████████████░░░░░ 250/350"), std::string::npos) << row1;
-    EXPECT_NE(row1.find("MP █████░░░ 30/50"), std::string::npos) << row1;
+    EXPECT_NE(row1.find("FV █████░░░ 30/50"), std::string::npos) << row1;
     const std::string row2 = rowText(frame, 2);
     // 50 base + 50 x 2 from the +2 Iron Sword; no armor.
     EXPECT_NE(row2.find("ATK 150  DEF 5  LIFE 0   EXP 0  Next 100   Gold 20000"), std::string::npos)

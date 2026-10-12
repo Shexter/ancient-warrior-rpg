@@ -116,11 +116,11 @@ void CreateHeroScreen::drawPathPreview(engine::Framebuffer& frame) const {
     for (std::size_t i = 0; i < flavor.size(); ++i)
         drawText(frame, kX + 2, kY + 3 + static_cast<int>(i), flavor[i], palette::kText);
     const int statsY = kY + 4 + static_cast<int>(flavor.size());
-    drawText(frame, kX + 2, statsY, std::format("HP   {}", path.maxHp), palette::kText);
-    drawText(frame, kX + 2, statsY + 1, std::format("MP   {}", path.maxMp), palette::kText);
-    drawText(frame, kX + 2, statsY + 2, std::format("ATK  {}", path.atk), palette::kText);
-    drawText(frame, kX + 2, statsY + 3, std::format("DEF  {}", path.def), palette::kText);
-    drawText(frame, kX + 2, statsY + 4, std::format("LIFE {}", path.life), palette::kText);
+    drawText(frame, kX + 2, statsY, std::format("HP     {}", path.maxHp), palette::kText);
+    drawText(frame, kX + 2, statsY + 1, std::format("Fervor {}", path.maxMp), palette::kText);
+    drawText(frame, kX + 2, statsY + 2, std::format("ATK    {}", path.atk), palette::kText);
+    drawText(frame, kX + 2, statsY + 3, std::format("DEF    {}", path.def), palette::kText);
+    drawText(frame, kX + 2, statsY + 4, std::format("LIFE   {}", path.life), palette::kText);
     drawText(frame, kX + 2, statsY + 6, std::format("EXP per level x{}", path.multiplier),
              palette::kDim);
     const auto sprite = session_.sprites.find(std::format("hero_{}.sprite", path.id));

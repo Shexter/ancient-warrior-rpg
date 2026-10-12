@@ -27,14 +27,14 @@ engine::Rgb affordColor(bool enough) { return enough ? palette::kHeal : palette:
 } // namespace
 
 BlacksmithScreen::BlacksmithScreen(Session& session)
-    : TownScreen(session, "BLACKSMITH"),
+    : TownScreen(session, "FORGE OF THE ORDER"),
       menu_({{"Change Equipment"}, {"Upgrade"}, {"Forge"}, {"Back"}}), recipes_({}) {
     std::vector<Menu::Item> rows;
     for (const game::RecipeDef& recipe : content().recipes())
         rows.emplace_back(content().item(recipe.result).name);
     recipes_.setItems(std::move(rows));
     if (hero().hp <= 0)
-        modal_.message("Empty soul, you don't belong here", [this] { leave_ = true; });
+        modal_.message("No blade for an empty soul. See the Prior first.", [this] { leave_ = true; });
 }
 
 Transition BlacksmithScreen::onKey(const engine::KeyEvent& key) {

@@ -129,7 +129,7 @@ TEST(Hub, AdventureOptionsExplainWhyTheyAreDisabled) {
 
     h.session.state->hero.hp = 0;
     ASSERT_TRUE(h.press({ch('x')})); // any step refreshes the menu
-    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Guildmaster"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Prior"), std::string::npos);
 
     h.session.state->hero.hp = 100;
     h.session.state->hero.weapon.reset();

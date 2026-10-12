@@ -73,7 +73,7 @@ std::string upper(std::string_view s) {
 
 std::string adventureBlocker(const game::Hero& hero) {
     if (hero.hp <= 0)
-        return "Fallen: visit the Guildmaster";
+        return "Fallen: visit the Prior";
     if (!game::canAdventure(hero))
         return "Equip a weapon and armor";
     return {};
@@ -368,7 +368,7 @@ void drawStatusPanel(Framebuffer& frame, const game::Hero& hero, const game::Con
         drawBar(frame, x, y, 20, hero.hp, hero.maxHp, hpColor(hero.hp, hero.maxHp));
         x += 20;
     }
-    add(std::format(" {}/{}   MP ", hero.hp, hero.maxHp), palette::kText);
+    add(std::format(" {}/{}   FV ", hero.hp, hero.maxHp), palette::kText); // Fervor
     if (x + 8 <= kRight) {
         drawBar(frame, x, y, 8, hero.mp, hero.maxMp, palette::kMp);
         x += 8;
