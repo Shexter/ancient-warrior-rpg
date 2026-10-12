@@ -197,10 +197,12 @@ constexpr std::array<std::pair<std::string_view, ItemKind>, 5> kItemKinds{{
     {"material", ItemKind::Material},
     {"consumable", ItemKind::Consumable},
 }};
-constexpr std::array<std::pair<std::string_view, StatusId>, 3> kStatuses{{
+constexpr std::array<std::pair<std::string_view, StatusId>, 5> kStatuses{{
     {"stun", StatusId::Stun},
     {"defense_down", StatusId::DefenseDown},
     {"reflect", StatusId::Reflect},
+    {"guard", StatusId::Guard},
+    {"charging", StatusId::Charging},
 }};
 constexpr std::array<std::pair<std::string_view, EnemyBehavior>, 1> kBehaviors{{
     {"basic", EnemyBehavior::Basic},

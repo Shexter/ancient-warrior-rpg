@@ -32,6 +32,8 @@ std::string_view describe(game::ActionError e) {
         return "There is no such skill.";
     case game::ActionError::ScriptFailed:
         return "Something went wrong with that skill's magic.";
+    case game::ActionError::ItemNotInStock:
+        return "You have none of that left.";
     }
     return "That action is not possible.";
 }
@@ -57,7 +59,7 @@ std::string itemNames(const std::vector<std::string>& ids, const game::Content& 
     return out;
 }
 
-enum Action { kAttack, kSkill, kFlee };
+enum Action { kAttack, kSkill, kItem, kDefend, kFlee };
 
 } // namespace
 
@@ -159,23 +161,40 @@ void MissionIntroScreen::draw(Framebuffer& frame) const {
 BattleScreen::BattleScreen(Session& session, std::string missionId, game::Battle battle)
     : session_(session), missionId_(std::move(missionId)), battle_(std::move(battle)),
       view_(session.content, battle_.hero(), battle_.enemy()),
-      actions_({{"Attack"}, {"Skill"}, {"Flee"}}, Menu::Layout::Horizontal) {
+      actions_({{"Attack"}, {"Skill"}, {"Item"}, {"Defend"}, {"Flee"}}, Menu::Layout::Horizontal) {
     view_.push(battle_.start(), battle_.hero(), battle_.enemy());
 }
 
-std::vector<Menu::Item> BattleScreen::skillItems() const {
+BattleScreen::Overlay BattleScreen::skillOverlay() const {
     const game::Hero& hero = session_.state->hero;
     int nameWidth = 0;
     for (const game::SkillDef& skill : session_.content.skills())
         nameWidth = std::max(nameWidth, textWidth(skill.name));
+    Overlay overlay{" Skills · Fervor cost in () ", Menu({}), {}};
     std::vector<Menu::Item> rows;
     for (const game::SkillDef& skill : session_.content.skills()) {
         const bool usable =
             hero.learnedSkills.contains(skill.id) && battle_.hero().mp >= skill.mpCost;
         rows.emplace_back(std::format("{:<{}}({})", skill.name, nameWidth + 1, skill.mpCost), usable,
                           skill.description);
+        overlay.actions.emplace_back(game::CastSkill{skill.id});
     }
-    return rows;
+    overlay.menu.setItems(std::move(rows));
+    return overlay;
+}
+
+std::optional<BattleScreen::Overlay> BattleScreen::itemOverlay() const {
+    if (battle_.items().empty())
+        return std::nullopt;
+    Overlay overlay{" Items · how many you carry ", Menu({}), {}};
+    std::vector<Menu::Item> rows;
+    for (const auto& [id, count] : battle_.items()) {
+        const game::ItemDef& item = session_.content.item(id);
+        rows.emplace_back(std::format("{} x{}", item.name, count), true, item.description);
+        overlay.actions.emplace_back(game::UseItem{id});
+    }
+    overlay.menu.setItems(std::move(rows));
+    return overlay;
 }
 
 void BattleScreen::act(const game::PlayerAction& action) {
@@ -205,14 +224,14 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
         }
         if (battle_.over())
             continue;
-        if (skills_) {
+        if (overlay_) {
             if (key.key == Key::Escape) {
-                skills_.reset();
-            } else if (const auto index = skills_->handle(key)) {
-                const std::string id =
-                    session_.content.skills()[static_cast<std::size_t>(*index)].id;
-                skills_.reset();
-                act(game::CastSkill{id});
+                overlay_.reset();
+            } else if (const auto index = overlay_->menu.handle(key)) {
+                const game::PlayerAction chosen =
+                    overlay_->actions[static_cast<std::size_t>(*index)];
+                overlay_.reset();
+                act(chosen);
             }
             continue;
         }
@@ -221,7 +240,15 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
             act(game::Attack{});
             break;
         case kSkill:
-            skills_.emplace(skillItems());
+            overlay_.emplace(skillOverlay());
+            break;
+        case kItem:
+            overlay_ = itemOverlay();
+            if (!overlay_)
+                view_.log("You carry no items to use.");
+            break;
+        case kDefend:
+            act(game::Defend{});
             break;
         case kFlee:
             act(game::Flee{});
@@ -269,17 +296,17 @@ void BattleScreen::draw(Framebuffer& frame) const {
         view_.draw(frame, compactArt(session_, heroFile()), compactArt(session_, enemyFile()),
                    kCompactBattle);
 
-    actions_.draw(frame, 1, frame.height() - 2, !view_.busy() && !skills_ && !battle_.over());
+    actions_.draw(frame, 1, frame.height() - 2, !view_.busy() && !overlay_ && !battle_.over());
     drawCentered(frame, frame.height() - 1,
                  "←→ select · Enter confirm · during animation: Enter skips", palette::kDim);
-    if (skills_) {
-        // One row per skill plus the border, ending on row 20 (compact: rows 14-20 for five
-        // skills, as in ui.md) or row 32 (large); mods can add skills, so it grows upward.
-        const int height = skills_->size() + 2;
+    if (overlay_) {
+        // One row per entry plus the border, ending on row 20 (compact: rows 14-20 for the five
+        // base skills, as in ui.md) or row 32 (large); more entries grow it upward.
+        const int height = overlay_->menu.size() + 2;
         const int left = large ? 28 : 16, top = (large ? 33 : 21) - height;
         drawPanel(frame, left, top, 64, height);
-        drawText(frame, left + 2, top, " Skills · Fervor cost in () ", palette::kAccent);
-        skills_->draw(frame, left + 2, top + 1, true, 61); // inside the panel's right border
+        drawText(frame, left + 2, top, overlay_->title, palette::kAccent); // on the border
+        overlay_->menu.draw(frame, left + 2, top + 1, true, 61); // inside the right border
     }
     if (const int offset = view_.shake())
         shiftFrame(frame, offset);

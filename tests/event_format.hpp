@@ -20,6 +20,10 @@ inline std::string toString(const Event& event) {
             return "defense_down";
         case StatusId::Reflect:
             return "reflect";
+        case StatusId::Guard:
+            return "guard";
+        case StatusId::Charging:
+            return "charging";
         }
         return "?";
     };
@@ -97,6 +101,12 @@ inline std::string toString(const Event& event) {
         }
         std::string operator()(const ev::ScriptError& e) const {
             return std::format("ScriptError {}", e.script);
+        }
+        std::string operator()(const ev::MpRestored& e) const {
+            return std::format("MpRestored {} {} {}", s(e.target), e.amount, e.mpAfter);
+        }
+        std::string operator()(const ev::ItemUsed& e) const {
+            return std::format("ItemUsed {}", e.itemId);
         }
     };
     return std::visit(Visitor{side, status, cause, outcome}, event);

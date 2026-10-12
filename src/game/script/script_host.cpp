@@ -160,8 +160,14 @@ StatusId statusArg(const sol::object& value, std::string_view what) {
             return StatusId::DefenseDown;
         if (id == "reflect")
             return StatusId::Reflect;
+        if (id == "guard")
+            return StatusId::Guard;
+        if (id == "charging")
+            return StatusId::Charging;
     }
-    reject(std::format("{} must be \"stun\", \"defense_down\" or \"reflect\"", what));
+    reject(std::format("{} must be \"stun\", \"defense_down\", \"reflect\", \"guard\" or "
+                       "\"charging\"",
+                       what));
 }
 
 // Builds the single ctx table this host hands to every script call.

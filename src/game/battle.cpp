@@ -37,9 +37,13 @@ Combatant enemyCombatant(const EnemyDef& enemy) {
 }
 
 Battle::Battle(const Content& content, Combatant hero, const EnemyDef& enemy,
-               std::set<std::string> learnedSkills, Rng rng, script::ScriptHost* scripts)
+               std::set<std::string> learnedSkills, Rng rng, script::ScriptHost* scripts,
+               ItemStock items)
     : content_(&content), hero_(std::move(hero)), enemy_(enemyCombatant(enemy)), enemyId_(enemy.id),
-      learnedSkills_(std::move(learnedSkills)), rng_(rng), scripts_(scripts) {}
+      learnedSkills_(std::move(learnedSkills)), rng_(rng), scripts_(scripts),
+      items_(std::move(items)) {
+    std::erase_if(items_, [](const auto& entry) { return entry.second <= 0; });
+}
 
 std::vector<Event> Battle::start() {
     return {ev::BattleStarted{hero_.name, enemy_.name, enemyId_}};
@@ -72,7 +76,9 @@ int Battle::hit(Side attacker, int power, bool applyDef, DamageCause cause, Even
     const Side targetSide = opponent(attacker);
     Combatant& target = combatant(targetSide);
     const int def = hasStatus(target, StatusId::DefenseDown) ? target.def / 2 : target.def;
-    const int damage = applyDef ? std::max(0, power - def) : power;
+    int damage = applyDef ? std::max(0, power - def) : power;
+    if (hasStatus(target, StatusId::Guard)) // halved before Reflect splits what's left
+        damage /= 2;
     if (hasStatus(target, StatusId::Reflect) && damage > 0) {
         const int reflected = damage / 2;
         const int taken = damage - reflected;
@@ -86,6 +92,31 @@ int Battle::hit(Side attacker, int power, bool applyDef, DamageCause cause, Even
     target.hp = std::max(0, target.hp - damage);
     out.push_back(ev::Damaged{targetSide, damage, target.hp, cause});
     return damage;
+}
+
+void Battle::restoreMp(Side side, int amount, Events& out) {
+    Combatant& c = combatant(side);
+    const int restored = std::min(amount, c.maxMp - c.mp);
+    if (restored <= 0)
+        return;
+    c.mp += restored;
+    out.push_back(ev::MpRestored{side, restored, c.mp});
+}
+
+// The consumable's usual effect (town useConsumable), on the hero in battle.
+void Battle::useItem(const ItemDef& item, Events& out) {
+    if (--items_[item.id] == 0)
+        items_.erase(item.id);
+    ++itemsUsed_[item.id];
+    out.push_back(ev::ItemUsed{item.id});
+    const ConsumableEffect& effect = *item.consumable;
+    if (effect.fullRestore) {
+        heal(Side::Hero, hero_.maxHp, out);
+        restoreMp(Side::Hero, hero_.maxMp, out);
+    } else {
+        heal(Side::Hero, effect.restoreHp, out);
+        restoreMp(Side::Hero, effect.restoreMp, out);
+    }
 }
 
 void Battle::applyStatus(Side target, const StatusSpec& spec, Events& out) {
@@ -227,6 +258,12 @@ std::expected<std::vector<Event>, ActionError> Battle::act(const PlayerAction& a
         if (auto ok = validate(*cast); !ok)
             return std::unexpected(ok.error());
     }
+    if (const auto* use = std::get_if<UseItem>(&action)) {
+        const auto stock = items_.find(use->itemId);
+        const ItemDef* item = content_->findItem(use->itemId);
+        if (stock == items_.end() || !item || !item->consumable)
+            return std::unexpected(ActionError::ItemNotInStock);
+    }
 
     // A scripted skill that fails undoes the whole action, including this turn's start.
     std::optional<Battle> rollback;
@@ -246,7 +283,12 @@ std::expected<std::vector<Event>, ActionError> Battle::act(const PlayerAction& a
         finish(Outcome::Fled, out);
         return out;
     } else {
-        if (const auto* cast = std::get_if<CastSkill>(&action)) {
+        if (const auto* use = std::get_if<UseItem>(&action)) {
+            useItem(*content_->findItem(use->itemId), out);
+        } else if (std::holds_alternative<Defend>(action)) {
+            applyStatus(Side::Hero, StatusSpec{StatusId::Guard, 1}, out);
+            restoreMp(Side::Hero, 10, out);
+        } else if (const auto* cast = std::get_if<CastSkill>(&action)) {
             const SkillDef& skill = *content_->findSkill(cast->skillId);
             if (!skill.script) {
                 castSkill(skill, out);

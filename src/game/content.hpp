@@ -45,7 +45,9 @@ struct PathDef {
     int multiplier, maxHp, maxMp, atk, def, life;
 };
 
-enum class StatusId { Stun, DefenseDown, Reflect };
+// Guard halves damage taken; Charging does nothing itself: a boss script sets it a turn before a
+// strong action, as a visible warning.
+enum class StatusId { Stun, DefenseDown, Reflect, Guard, Charging };
 
 struct StatusSpec {
     StatusId id;

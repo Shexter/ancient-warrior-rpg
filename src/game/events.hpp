@@ -65,6 +65,14 @@ struct BattleEnded {
     Outcome outcome;
     int turns;
 };
+struct MpRestored { // Defend or an item gave back MP (shown to players as Fervor); only if > 0
+    Side target;
+    int amount;
+    int mpAfter;
+};
+struct ItemUsed { // a consumable from the battle stock; its effect events follow
+    std::string itemId;
+};
 struct ScriptSaid { // a script's ctx.say line: printable ASCII, at most 80 characters
     Side side;
     std::string text;
@@ -79,6 +87,6 @@ using Event =
     std::variant<ev::BattleStarted, ev::TurnStarted, ev::TurnSkipped, ev::Attacked, ev::SkillCast,
                  ev::HpHalved, ev::Damaged, ev::Healed, ev::StatusApplied, ev::StatusExpired,
                  ev::ExtraTurn, ev::Fled, ev::Defeated, ev::BattleEnded, ev::ScriptSaid,
-                 ev::ScriptError>;
+                 ev::ScriptError, ev::MpRestored, ev::ItemUsed>;
 
 } // namespace heroes::game

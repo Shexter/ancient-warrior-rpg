@@ -2,15 +2,15 @@
 
 ## 1. Battle decisions
 
-- [ ] 1.1 Add `Guard` and `Charging` statuses (Guard halves damage before Reflect), `UseItem` and `Defend` actions, the battle item stock, `ItemUsed`, and `itemsUsed()`; `finishMission` removes used items on every outcome; verify battle tests for the Holy Water, item-not-in-stock, Defend-against-a-charge and Guard-timing scenarios, and that the Medusa golden tests pass with `battle_golden_data.hpp` unchanged
-- [ ] 1.2 Move the smart policy into `game/autoplay` (defend on Charging, heal with Angel Wings or the best item below 30%, strongest damage skill, attack); `heroes-sim` uses it and gains `--blessings N` and `--items id:count,...`; verify sim tests (thread independence and the policy scenarios) pass
-- [ ] 1.3 Battle screen: five actions with shortcuts 1-5, an Item overlay with counts, `[GUARD n]`/`[CHARGE]` tags, log lines for Defend and items, in compact and large layouts; verify screen tests for each, and that the compact battle fingerprint test is updated only for the new action row (record why)
-- [ ] 1.4 Update SimpleDocs (`hero-and-battle.md`, `app.md`, `simulator.md`); verify they describe the new actions and statuses
-- [ ] 1.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Add `Guard` and `Charging` statuses (Guard halves damage before Reflect), `UseItem` and `Defend` actions, the battle item stock, `ItemUsed`, and `itemsUsed()`; `finishMission` removes used items on every outcome; verify battle tests for the Holy Water, item-not-in-stock, Defend-against-a-charge and Guard-timing scenarios, and that the Medusa golden tests pass with `battle_golden_data.hpp` unchanged
+- [x] 1.2 Move the smart policy into `game/autoplay` (defend on Charging, heal with Angel Wings or the best item below 30%, strongest damage skill, attack); `heroes-sim` uses it and gains `--items id:count,...` (`--blessings N` moves to 2.1, which defines the gains); verify sim tests (thread independence and the policy scenarios) pass
+- [x] 1.3 Battle screen: five actions with shortcuts 1-5, an Item overlay with counts, `[GUARD n]`/`[CHARGE]` tags, log lines for Defend and items, in compact and large layouts; verify screen tests for each, and that the compact battle fingerprint test still passes (it covers the battle view, not the action row, so it needed no update)
+- [x] 1.4 Update SimpleDocs (`hero-and-battle.md`, `app.md`, `simulator.md`); verify they describe the new actions and statuses
+- [x] 1.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Blessings
 
-- [ ] 2.1 Add blessing points to the hero (one per level gained in `grantExp`), the all-or-nothing `blessing(state, stat)` action, and save version 3 (`level − 1` points for v1/v2 saves); verify hero, town and save tests for the multi-level, spend, no-points, cap and pre-blessing-save scenarios
+- [ ] 2.1 Add blessing points to the hero (one per level gained in `grantExp`), the all-or-nothing `blessing(state, stat)` action, save version 3 (`level − 1` points for v1/v2 saves), and `heroes-sim --blessings N` (spread evenly, remainders to HP first); verify hero, town and save tests for the multi-level, spend, no-points, cap and pre-blessing-save scenarios
 - [ ] 2.2 Prior "Blessings" menu (stat choice with the gain shown, points left) and level-up messages that mention new points (battle result and training totals); verify screen tests
 - [ ] 2.3 Update SimpleDocs (`hero-and-battle.md`, `town-and-training.md`, `save.md`, `app.md`); verify against the screens
 - [ ] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.

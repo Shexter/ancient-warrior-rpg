@@ -1,8 +1,12 @@
+#include "game/autoplay.hpp"
 #include "game/battle.hpp"
 #include "game/content_loader.hpp"
+#include "game/game_state.hpp"
 #include "game/script/script_host.hpp"
+#include "game/town.hpp"
 
 #include "event_format.hpp"
+#include "shipped_content.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -285,4 +289,113 @@ TEST(ScriptContent, ShippedEnemiesUseTheMedusaScript) {
     EXPECT_TRUE(content.scripts().contains("scripts/medusa.lua"));
     EXPECT_EQ(content.enemy("medusa").script, "scripts/medusa.lua");
     EXPECT_EQ(content.enemy("avaritia").script, "scripts/medusa.lua");
+}
+
+// ---- fun-pass: items and Defend (combat spec) ------------------------------------------------
+
+namespace {
+
+// An enemy that charges on odd turns and, when charged, strikes for 400 through DEF.
+const char* kChargingEnemy = "return { take_turn = function(ctx)\n"
+                             "  if ctx.self.has('charging') then ctx.damage(400, true)\n"
+                             "  else ctx.apply_status('self', 'charging', 1) end\n"
+                             "end }";
+
+} // namespace
+
+TEST(BattleChoices, HolyWaterMidBattleThenTheBagLosesOne) {
+    World w("holy_water", kAttackEnemy);
+    GameState state = newGame(*w.content, "Aria", "fighter", 7);
+    state.hero.level = 20;
+    state.hero.hp = 40;
+    ASSERT_TRUE(state.hero.bag.add("health_potion", 2).has_value());
+    state.hero.completedMissions.clear();
+    // A mission against the scripted enemy, so the real startMission/finishMission path runs.
+    Battle battle(*w.content, heroCombatant(state.hero, *w.content), w.content->enemy("scripted"),
+                  {}, Rng::stream(7, 0), &*w.host, ItemStock{{"health_potion", 2}});
+    const auto lines = formatted(battle.act(UseItem{"health_potion"}).value());
+    ASSERT_GE(lines.size(), 4u);
+    EXPECT_EQ(lines[1], "ItemUsed health_potion");
+    EXPECT_EQ(lines[2], "Healed Hero 100 140");
+    EXPECT_TRUE(has(lines, "Attacked Enemy")); // the turn was spent; the enemy acted
+    EXPECT_EQ(battle.items().at("health_potion"), 1);
+    EXPECT_EQ(battle.itemsUsed().at("health_potion"), 1);
+}
+
+TEST(BattleChoices, UsedItemsLeaveTheBagWhateverTheOutcome) {
+    GameState state = newGame(shippedContent(), "Aria", "fighter", 7);
+    state.hero.level = 20;
+    state.hero.hp = 40;
+    ASSERT_TRUE(state.hero.bag.add("health_potion", 2).has_value());
+    auto battle = startMission(state, shippedContent(), "the_gorgon", &shippedScripts());
+    ASSERT_TRUE(battle.has_value());
+    EXPECT_EQ(battle->items().at("health_potion"), 2); // the bag's consumables came along
+    ASSERT_TRUE(battle->act(UseItem{"health_potion"}).has_value());
+    if (!battle->over()) { // gtest's ASSERT is an if/else: keep it braced
+        ASSERT_TRUE(battle->act(Flee{}).has_value());
+    }
+    ASSERT_TRUE(finishMission(state, shippedContent(), "the_gorgon", *battle).has_value());
+    EXPECT_EQ(state.hero.bag.count("health_potion"), 1);
+}
+
+TEST(BattleChoices, AnItemNotInStockIsRejected) {
+    World w("no_item", kAttackEnemy);
+    Battle battle = w.battle();
+    const Combatant before = battle.hero();
+    EXPECT_EQ(battle.act(UseItem{"health_potion"}).error(), ActionError::ItemNotInStock);
+    EXPECT_EQ(battle.act(UseItem{"iron_sword"}).error(), ActionError::ItemNotInStock);
+    EXPECT_EQ(battle.hero(), before);
+    EXPECT_EQ(battle.turn(), 0); // still the hero's first turn
+}
+
+TEST(BattleChoices, DefendHalvesAChargedStrikeAndRestoresFervor) {
+    World w("defend", kChargingEnemy);
+    Combatant hero{"Aria", 1000, 1000, 100, 50, 400, 0, 0, {}};
+    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0),
+                  &*w.host);
+    const auto first = formatted(battle.act(Attack{}).value()); // the enemy charges
+    EXPECT_TRUE(has(first, "StatusApplied Enemy charging 1"));
+    const int mpBefore = battle.hero().mp;
+    const auto second = formatted(battle.act(Defend{}).value()); // and strikes into the guard
+    EXPECT_TRUE(has(second, "StatusApplied Hero guard 1"));
+    EXPECT_TRUE(has(second, "MpRestored Hero 10 60"));
+    EXPECT_TRUE(has(second, "Damaged Hero 200 800 Skill")); // 400 through 0 DEF, halved
+    EXPECT_EQ(mpBefore + 10, 60);
+}
+
+TEST(BattleChoices, GuardCoversOneEnemyPhaseAndExpiresAfterTheNextHeroTurn) {
+    World w("guard_timing", "return { take_turn = function(ctx) ctx.damage(100, false) end }");
+    Combatant hero{"Aria", 1000, 1000, 100, 50, 1, 0, 0, {}};
+    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0),
+                  &*w.host);
+    const auto turn1 = formatted(battle.act(Defend{}).value());
+    EXPECT_TRUE(has(turn1, "Damaged Hero 50 950 Skill")); // guarded
+    const auto turn2 = formatted(battle.act(Attack{}).value());
+    const auto expired = std::ranges::find(turn2, "StatusExpired Hero guard");
+    ASSERT_NE(expired, turn2.end());
+    // It expires at the end of the hero's turn 2, before the enemy's hit, which lands in full.
+    const auto hit = std::ranges::find(turn2, "Damaged Hero 100 850 Skill");
+    ASSERT_NE(hit, turn2.end());
+    EXPECT_LT(expired, hit);
+}
+
+TEST(SmartPolicy, DefendsAChargeAndHealsWhenLow) {
+    World w("smart_policy", kChargingEnemy);
+    Combatant hero{"Aria", 1000, 1000, 100, 100, 400, 0, 0, {}};
+    Battle battle(*w.content, hero, w.content->enemy("scripted"), {"angel_wings"},
+                  Rng::stream(1, 0), &*w.host, ItemStock{{"health_potion", 1}, {"eternal_youth", 1}});
+    EXPECT_TRUE(std::holds_alternative<Attack>(smartAction(*w.content, battle, {})));
+    ASSERT_TRUE(battle.act(Attack{}).has_value()); // the enemy charges
+    EXPECT_TRUE(std::holds_alternative<Defend>(smartAction(*w.content, battle, {})));
+
+    // Low on HP and not facing a charge: Angel Wings if known and affordable, else a potion.
+    Combatant low{"Aria", 1000, 200, 100, 100, 400, 0, 0, {}};
+    Battle hurt(*w.content, low, w.content->enemy("scripted"), {}, Rng::stream(1, 0), &*w.host,
+                ItemStock{{"health_potion", 1}, {"eternal_youth", 1}});
+    const auto withSkill = smartAction(*w.content, hurt, {"angel_wings"});
+    ASSERT_TRUE(std::holds_alternative<CastSkill>(withSkill));
+    EXPECT_EQ(std::get<CastSkill>(withSkill).skillId, "angel_wings");
+    const auto withItems = smartAction(*w.content, hurt, {});
+    ASSERT_TRUE(std::holds_alternative<UseItem>(withItems));
+    EXPECT_EQ(std::get<UseItem>(withItems).itemId, "eternal_youth"); // restores 800 > Holy Water's 100
 }

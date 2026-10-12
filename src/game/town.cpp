@@ -349,6 +349,19 @@ std::expected<void, TownError> withdraw(GameState& state, std::string_view id, i
 
 // ---- Missions ----------------------------------------------------------------------------
 
+namespace {
+
+// The consumables in the bag, which the hero can use during a battle.
+ItemStock consumableStock(const Hero& hero, const Content& content) {
+    ItemStock stock;
+    for (const Inventory::Slot& slot : hero.bag.slots())
+        if (slot && content.item(slot->first).kind == ItemKind::Consumable)
+            stock.emplace(slot->first, slot->second);
+    return stock;
+}
+
+} // namespace
+
 std::expected<Battle, TownError> startMission(GameState& state, const Content& content,
                                               std::string_view id, script::ScriptHost* scripts) {
     const Hero& hero = state.hero;
@@ -363,7 +376,7 @@ std::expected<Battle, TownError> startMission(GameState& state, const Content& c
         return fail(TownError::MissionCompleted);
 
     return Battle(content, heroCombatant(hero, content), content.enemy(mission->enemy),
-                  hero.learnedSkills, state.rng.fork(), scripts);
+                  hero.learnedSkills, state.rng.fork(), scripts, consumableStock(hero, content));
 }
 
 std::expected<MissionResult, TownError> finishMission(GameState& state, const Content& content,
@@ -378,6 +391,10 @@ std::expected<MissionResult, TownError> finishMission(GameState& state, const Co
     result.outcome = battle.outcome();
     hero.hp = battle.hero().hp;
     hero.mp = battle.hero().mp;
+    // Items used in battle are gone whatever the outcome. The stock came from this bag, so the
+    // counts are there unless the battle was built from something else; never remove more.
+    for (const auto& [itemId, used] : battle.itemsUsed())
+        (void)hero.bag.remove(itemId, std::min(used, hero.bag.count(itemId)));
 
     if (result.outcome == Outcome::Victory) {
         const EnemyDef& enemy = content.enemy(mission->enemy);

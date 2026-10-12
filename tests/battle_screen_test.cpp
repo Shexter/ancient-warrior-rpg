@@ -166,7 +166,7 @@ TEST(Battle, FleeingPlaysOutAndAppliesTheSameResult) {
     enterBattle(h, levelTwenty());
     EXPECT_TRUE(frameContains(h.frame(), "Turn 1"));
     EXPECT_TRUE(h.session.dirty);
-    ASSERT_TRUE(h.press({ch('3')}));
+    ASSERT_TRUE(h.press({ch('5')}));
     EXPECT_EQ(*h.session.state, expected); // applied before the animation finishes
     EXPECT_TRUE(frameContains(h.frame(), "ARIA flees the battle."));
     ASSERT_TRUE(h.wait(0.5));
@@ -204,7 +204,7 @@ TEST(Battle, KeysOtherThanEnterAreIgnoredWhileEventsPlay) {
     enterBattle(h, levelTwenty());
     ASSERT_TRUE(h.press({ch('1')})); // attack: its events start playing
     const game::GameState during = *h.session.state;
-    ASSERT_TRUE(h.press({ch('3')})); // Flee is ignored mid-animation
+    ASSERT_TRUE(h.press({ch('5')})); // Flee (5) is ignored mid-animation
     EXPECT_EQ(*h.session.state, during);
     EXPECT_FALSE(frameContains(h.frame(), "flees"));
 }
@@ -355,4 +355,44 @@ TEST(BattleView, ScriptLinesAndErrorsAreLogged) {
     f.view.skip();
     EXPECT_TRUE(frameContains(f.frame(), "Something went wrong with MEDUSA's magic."));
     EXPECT_FALSE(frameContains(f.frame(), "boom")); // details stay out of the player's log
+}
+
+TEST(BattleChoicesScreen, FiveActionsAndAnItemOverlayWithCounts) {
+    Harness h("item_overlay");
+    game::GameState state = levelTwenty();
+    state.hero.hp = 100;
+    ASSERT_TRUE(state.hero.bag.add("health_potion", 2).has_value());
+    enterBattle(h, state);
+    EXPECT_NE(rowText(h.frame(), 22).find("Attack      Skill      Item      Defend      Flee"),
+              std::string::npos);
+    ASSERT_TRUE(h.press({ch('3')})); // Item
+    Framebuffer frame = h.frame();
+    EXPECT_TRUE(frameContains(frame, "Items · how many you carry"));
+    EXPECT_TRUE(frameContains(frame, "Holy Water x2"));
+    ASSERT_TRUE(h.press({ch('1')}));
+    EXPECT_TRUE(frameContains(h.frame(), "ARIA uses Holy Water."));
+}
+
+TEST(BattleChoicesScreen, ItemWithNothingToUseSaysSo) {
+    Harness h("no_items");
+    enterBattle(h, levelTwenty());
+    ASSERT_TRUE(h.press({ch('3')}));
+    EXPECT_TRUE(frameContains(h.frame(), "You carry no items to use."));
+    EXPECT_FALSE(frameContains(h.frame(), "Items · how many"));
+}
+
+TEST(BattleChoicesScreen, DefendShowsTheGuard) {
+    Harness h("defend_screen");
+    enterBattle(h, levelTwenty());
+    ASSERT_TRUE(h.press({ch('4')}));
+    const Framebuffer frame = h.frame();
+    EXPECT_TRUE(frameContains(frame, "ARIA raises a guard."));
+    EXPECT_TRUE(frameContains(frame, "[GUARD 1]"));
+}
+
+TEST(BattleView, ChargingShowsATagAndAWarning) {
+    ViewFixture f;
+    f.play({ev::StatusApplied{Side::Enemy, game::StatusId::Charging, 1}});
+    EXPECT_TRUE(frameContains(f.frame(), "[CHARGE]"));
+    EXPECT_TRUE(frameContains(f.frame(), "MEDUSA is gathering its strength!"));
 }

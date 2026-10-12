@@ -222,3 +222,21 @@ TEST(AvaritiaBalance, TheCheckCatchesAStrongerAvaritia) {
     EXPECT_NE(avaritiaBandProblem(root / "data").find("mid-game"), std::string::npos)
         << avaritiaBandProblem(root / "data");
 }
+
+TEST(Sim, ItemsComeIntoEveryBattle) {
+    const std::string_view args[] = {"--path", "fighter", "--enemy", "medusa", "--battles", "10",
+                                     "--seed", "7", "--items", "health_potion:2,eternal_youth:1"};
+    const auto options = parseArgs(args, std::filesystem::path(HEROES_SOURCE_DIR) / "data", 1);
+    ASSERT_TRUE(options.has_value()) << options.error();
+    EXPECT_EQ(options->config.items,
+              (std::vector<std::pair<std::string, int>>{{"health_potion", 2}, {"eternal_youth", 1}}));
+    EXPECT_TRUE(runSimulation(options->config).has_value());
+
+    const std::string_view bad[] = {"--path", "fighter", "--enemy", "medusa", "--battles", "1",
+                                    "--seed", "7", "--items", "health_potion"};
+    EXPECT_EQ(parseArgs(bad, std::filesystem::path(HEROES_SOURCE_DIR) / "data", 1).error(),
+              "--items expects id:count,... (got 'health_potion')");
+    SimConfig notConsumable = startingFighter(1, 1);
+    notConsumable.items = {{"iron_sword", 1}};
+    EXPECT_EQ(runSimulation(notConsumable).error(), "unknown consumable 'iron_sword'");
+}

@@ -29,6 +29,10 @@ std::string tag(StatusId id, int turns) {
         return std::format("[DEF v {}]", turns); // `v`, not `↓`: single-width (ui.md)
     case StatusId::Reflect:
         return std::format("[REFLECT {}]", turns);
+    case StatusId::Guard:
+        return std::format("[GUARD {}]", turns);
+    case StatusId::Charging:
+        return "[CHARGE]"; // a warning, not a countdown
     }
     return {};
 }
@@ -172,6 +176,12 @@ double BattleView::begin(const game::Event& event) {
         case StatusId::Reflect:
             log(std::format("{} is shielded by a Golden Bell.", name(e->target)));
             break;
+        case StatusId::Guard:
+            log(std::format("{} raises a guard.", name(e->target)));
+            break;
+        case StatusId::Charging:
+            log(std::format("{} is gathering its strength!", name(e->target)));
+            break;
         }
         return 0.2;
     }
@@ -187,6 +197,11 @@ double BattleView::begin(const game::Event& event) {
             break;
         case StatusId::Reflect:
             log("The Golden Bell fades.");
+            break;
+        case StatusId::Guard:
+            log(std::format("{} lowers the guard.", name(e->target)));
+            break;
+        case StatusId::Charging: // the charged strike already said it all
             break;
         }
         return 0.2;
@@ -207,6 +222,15 @@ double BattleView::begin(const game::Event& event) {
     if (std::holds_alternative<ev::Fled>(event)) {
         log(std::format("{} flees the battle.", hero_.name));
         return 0.5;
+    }
+    if (const auto* e = std::get_if<ev::MpRestored>(&event)) {
+        fighter(e->target).mp = e->mpAfter;
+        log(std::format("{} regains {} Fervor.", name(e->target), e->amount));
+        return 0.2;
+    }
+    if (const auto* e = std::get_if<ev::ItemUsed>(&event)) {
+        log(std::format("{} uses {}.", hero_.name, content_.item(e->itemId).name));
+        return 0.3;
     }
     if (const auto* e = std::get_if<ev::ScriptSaid>(&event)) {
         log(e->text);

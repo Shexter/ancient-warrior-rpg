@@ -12,7 +12,7 @@ enable_testing()
 
 add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp
     src/game/inventory.cpp src/game/hero.cpp src/game/battle.cpp src/game/training.cpp src/game/town.cpp
-    src/game/save.cpp src/game/script/script_host.cpp
+    src/game/save.cpp src/game/autoplay.cpp src/game/script/script_host.cpp
     src/game/script/battle_api.cpp)
 target_include_directories(heroes_game PUBLIC src)
 target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json

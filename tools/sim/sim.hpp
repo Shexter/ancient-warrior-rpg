@@ -6,6 +6,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace heroes::sim {
@@ -25,6 +26,7 @@ struct SimConfig {
     std::string armorId = "steel_shield";
     int armorLevel = 1;
     std::vector<std::string> skills;
+    std::vector<std::pair<std::string, int>> items; // consumables carried in: id, count
     int bonusHp = 0, bonusMp = 0, bonusAtk = 0, bonusDef = 0;
 };
 

@@ -2,6 +2,7 @@
 
 #include "game/script/script_host.hpp"
 
+#include "game/autoplay.hpp"
 #include "game/battle.hpp"
 #include "game/content_loader.hpp"
 #include "game/game_state.hpp"
@@ -22,35 +23,14 @@ namespace {
 
 PlayerAction chooseAction(Policy policy, const Content& content, const Battle& battle,
                           const std::set<std::string>& learned) {
-    if (policy == Policy::Attack)
-        return Attack{};
-    const Combatant& hero = battle.hero();
-    auto ready = [&](std::string_view id) {
-        return learned.contains(std::string(id)) && hero.mp >= content.skill(id).mpCost;
-    };
-    auto has = [](const Combatant& c, StatusId id) {
-        for (const StatusInstance& s : c.statuses)
-            if (s.id == id)
-                return true;
-        return false;
-    };
-    if (hero.hp * 100 < hero.maxHp * 30 && ready("angel_wings"))
-        return CastSkill{"angel_wings"};
-    if (ready("supernova"))
-        return CastSkill{"supernova"};
-    if (ready("frozen_throne") && !has(battle.enemy(), StatusId::Stun))
-        return CastSkill{"frozen_throne"};
-    if (ready("meteor_fist"))
-        return CastSkill{"meteor_fist"};
-    if (ready("golden_bell") && !has(hero, StatusId::Reflect))
-        return CastSkill{"golden_bell"};
-    return Attack{};
+    return policy == Policy::Attack ? PlayerAction{Attack{}} : smartAction(content, battle, learned);
 }
 
 struct Setup {
     Content content;
     Combatant hero;
     std::set<std::string> skills;
+    ItemStock items;
     EnemyDef enemy;
     Report report; // everything except the tally
 };
@@ -106,6 +86,15 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
             return std::unexpected(std::format("unknown skill '{}'", id));
         skills.insert(id);
     }
+    ItemStock items;
+    for (const auto& [id, count] : config.items) {
+        const ItemDef* item = content.findItem(id);
+        if (!item || !item->consumable)
+            return std::unexpected(std::format("unknown consumable '{}'", id));
+        if (count < 1 || count > 99)
+            return std::unexpected(std::format("item count for '{}' must be 1-99", id));
+        items[id] += count;
+    }
 
     Hero hero = newGame(content, "Sim", config.pathId, config.seed).hero;
     hero.weapon = Equipped{config.weaponId, config.weaponLevel};
@@ -129,8 +118,8 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
     report.hp = combatant.maxHp;
     report.mp = combatant.maxMp;
     EnemyDef enemyDef = *enemy;
-    return Setup{std::move(content), std::move(combatant), std::move(skills), std::move(enemyDef),
-                 std::move(report)};
+    return Setup{std::move(content), std::move(combatant), std::move(skills), std::move(items),
+                 std::move(enemyDef), std::move(report)};
 }
 
 Tally runRange(const SimConfig& config, const Setup& setup, std::uint64_t begin,
@@ -140,7 +129,7 @@ Tally runRange(const SimConfig& config, const Setup& setup, std::uint64_t begin,
     script::ScriptHost scripts(setup.content);
     for (std::uint64_t i = begin; i < end; ++i) {
         Battle battle(setup.content, setup.hero, setup.enemy, setup.skills,
-                      Rng::stream(config.seed, i), &scripts);
+                      Rng::stream(config.seed, i), &scripts, setup.items);
         while (!battle.over()) {
             // Policies only pick learned, affordable, ready actions; a rejection is a bug.
             if (!battle.act(chooseAction(config.policy, setup.content, battle, setup.skills)))
@@ -314,6 +303,18 @@ std::expected<CliOptions, std::string> parseArgs(std::span<const std::string_vie
             result = parseGear(flag, value, c.armorId, c.armorLevel);
         else if (flag == "--skills")
             c.skills = splitCommas(value);
+        else if (flag == "--items") // id:count,id:count
+            for (const std::string& entry : splitCommas(value)) {
+                const auto colon = entry.find(':');
+                int count = 0;
+                const auto [end, ec] = std::from_chars(
+                    entry.data() + colon + 1, entry.data() + entry.size(), count);
+                if (colon == std::string::npos || ec != std::errc{} ||
+                    end != entry.data() + entry.size())
+                    return std::unexpected(
+                        std::format("--items expects id:count,... (got '{}')", entry));
+                c.items.emplace_back(entry.substr(0, colon), count);
+            }
         else if (flag == "--bonus-hp")
             result = number(c.bonusHp);
         else if (flag == "--bonus-mp")
