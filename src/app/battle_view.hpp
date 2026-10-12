@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/art.hpp"
 #include "engine/framebuffer.hpp"
 #include "engine/sprite.hpp"
 #include "game/battle.hpp"
@@ -14,9 +15,21 @@
 
 namespace heroes::app {
 
+// Where a battle is drawn. Columns of the hero's stats are fixed; the enemy's start at
+// enemyStatsX. The stats take statsRow and the row below; the log shows the newest logRows lines
+// from logRow.
+struct BattleLayout {
+    int heroX, heroY, enemyX, enemyY;
+    int bannerRow;
+    int statsRow, enemyStatsX;
+    int logRow, logRows;
+};
+inline constexpr BattleLayout kCompactBattle{6, 4, 44, 2, 9, 16, 44, 18, 4}; // ui.md, 80x24
+inline constexpr BattleLayout kLargeBattle{6, 3, 60, 2, 14, 29, 62, 32, 6};  // 120x40
+
 // Plays a Battle's events as timed animations (ui.md "Event animations"): one at a time, in
-// order, each applying its HP/status change and log line when it starts. Draws the arena
-// (rows 2-15), the HP/status rows 16-17 and the log on rows 18-21.
+// order, each applying its HP/status change and log line when it starts. Draws the arena, the
+// HP/status rows and the log where a BattleLayout says.
 class BattleView {
   public:
     BattleView(const game::Content& content, const game::Combatant& hero,
@@ -35,8 +48,8 @@ class BattleView {
     int turn() const { return turn_; }
     // Whole-frame horizontal offset while a skill is cast (±1), else 0.
     int shake() const;
-    void draw(engine::Framebuffer& frame, const engine::Sprite* heroSprite,
-              const engine::Sprite* enemySprite) const;
+    void draw(engine::Framebuffer& frame, Art hero, Art enemy,
+              const BattleLayout& layout = kCompactBattle) const;
 
   private:
     struct Fighter {
@@ -64,9 +77,9 @@ class BattleView {
     void startNext();
     double begin(const game::Event& event); // applies and logs the event; returns its duration
     void finishCurrent();
-    void drawFighter(engine::Framebuffer& frame, game::Side side,
-                     const engine::Sprite* sprite) const;
-    void drawStats(engine::Framebuffer& frame) const;
+    void drawFighter(engine::Framebuffer& frame, game::Side side, Art art,
+                     const BattleLayout& layout) const;
+    void drawStats(engine::Framebuffer& frame, const BattleLayout& layout) const;
 
     const game::Content& content_;
     Fighter hero_, enemy_;

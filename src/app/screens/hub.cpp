@@ -1,4 +1,5 @@
 #include "app/screens/hub.hpp"
+#include "app/art.hpp"
 
 #include "app/app.hpp"
 #include "app/screens/mission.hpp"
@@ -111,15 +112,25 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
     return Stay{};
 }
 
+engine::Size HubScreen::canvasSize(engine::Size terminal) const {
+    return artCanvas(session_, terminal,
+                     {std::format("hero_{}.sprite", session_.state->hero.pathId)});
+}
+
 void HubScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
     const game::Hero& hero = session_.state->hero;
     drawStatusPanel(frame, hero, session_.content);
-    const auto sprite = session_.sprites.find(std::format("hero_{}.sprite", hero.pathId));
-    if (sprite != session_.sprites.end())
-        engine::drawSprite(frame, sprite->second, 4, 6);
-    menu_.draw(frame, 34, 7);
-    drawText(frame, 2, 22, session_.lastMessage, palette::kText, 76);
+    const std::string heroFile = std::format("hero_{}.sprite", hero.pathId);
+    if (isLarge(frame)) {
+        largeArt(session_, heroFile).draw(frame, 4, 7);
+        menu_.draw(frame, 60, 12);
+    } else {
+        compactArt(session_, heroFile).draw(frame, 4, 6);
+        menu_.draw(frame, 34, 7);
+    }
+    drawText(frame, 2, frame.height() - 2, session_.lastMessage, palette::kText,
+             frame.width() - 4);
     if (message_)
         message_->draw(frame);
     if (confirm_)

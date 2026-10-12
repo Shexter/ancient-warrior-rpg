@@ -48,8 +48,12 @@ class BattleScreen final : public Screen {
     BattleScreen(Session& session, std::string missionId, game::Battle battle);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // 120x40 when the terminal fits it and both fighters have large art.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
+    std::string heroFile() const;
+    std::string enemyFile() const;
     void act(const game::PlayerAction& action);
     std::vector<Menu::Item> skillItems() const;
 

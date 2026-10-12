@@ -49,3 +49,15 @@ Tuning notes:
 - The Pilgrim's result has a cliff: at ATK 158 it wins 82.84%, at ATK 160 48.60%. With 100 max HP, one fewer enemy hit per fight decides it.
 - The Knight sat at about 42% across every HP, DEF and LIFE value tried (2000–2400, 15–90, 5–40). Its ceiling here is set by its damage output, not the boss's numbers.
 - These values are pinned by the `AvaritiaBalance` test (task 3.4).
+
+## Terminal output at 120x40 (add-large-art-layout task 4.4, 2026-10-12)
+
+`LargeLayout.DiffRenderingStillPaysOffAt120x40` uses the same method as above: bytes per frame from the persistent diff renderer against a fresh renderer every frame (a full redraw), truecolor. It runs over 120 frames (2 s) of a battle against Medusa, starting with an attack: the lunge, damage flash, floating number and log lines.
+
+| canvas | full redraw | diff | diff share |
+|---|---|---|---|
+| 80x24 compact | 10,916 bytes/frame | 883 bytes/frame | 8.1% |
+| 120x40 glyph sprites | 18,506 bytes/frame | 1,467 bytes/frame | 7.9% |
+| 120x40 half-block sprites | 31,245 bytes/frame | 2,786 bytes/frame | 8.9% |
+
+The large canvas has 2.5x the cells, but a glyph battle writes only 1.7x the bytes of a compact one, because glyph cells set only a foreground color. Half-blocks set two colors per cell and cost about 1.9x the glyph layout. The diff share is about the same at every size, since only the animated sprite region changes. These numbers are higher than the chunk 8 demo's 160 bytes/frame because a battle animation moves a whole sprite (the lunge) instead of a 12x3 box. The test fails if the diff renderer ever writes more than a quarter of a full redraw.

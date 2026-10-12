@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <cctype>
+#include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
@@ -36,8 +37,8 @@ struct ViewFixture {
     void play(std::vector<game::Event> events) { view.push(std::move(events), hero, enemy); }
     Framebuffer frame() const {
         Framebuffer f(80, 24);
-        view.draw(f, &shippedSprites().at("hero_fighter.sprite"),
-                  &shippedSprites().at("medusa.sprite"));
+        view.draw(f, Art{&shippedSprites().at("hero_fighter.sprite"), nullptr},
+                  Art{&shippedSprites().at("medusa.sprite"), nullptr});
         return f;
     }
 
@@ -304,4 +305,44 @@ TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
     EXPECT_EQ(h.session.state->hero.bag.count("gold_dust"), 1);
     EXPECT_EQ(h.session.state->hero.bag.count("black_pearl"), 1);
     EXPECT_TRUE(h.session.state->hero.completedMissions.contains("avaritia"));
+}
+
+namespace {
+
+// FNV-1a over every cell (glyph, colors) of a frame: a stable fingerprint across platforms.
+std::uint64_t fingerprint(const Framebuffer& frame, std::uint64_t hash = 14695981039346656037ull) {
+    const auto mix = [&hash](std::uint32_t v) {
+        for (int i = 0; i < 4; ++i) {
+            hash ^= (v >> (8 * i)) & 0xFF;
+            hash *= 1099511628211ull;
+        }
+    };
+    for (int y = 0; y < frame.height(); ++y)
+        for (int x = 0; x < frame.width(); ++x) {
+            const engine::Cell& c = frame.at(x, y);
+            mix(static_cast<std::uint32_t>(c.glyph));
+            mix(static_cast<std::uint32_t>(c.fg.r << 16 | c.fg.g << 8 | c.fg.b));
+            mix(static_cast<std::uint32_t>(c.bg.r << 16 | c.bg.g << 8 | c.bg.b));
+        }
+    return hash;
+}
+
+} // namespace
+
+// The compact battle layout must stay byte-identical when BattleView gains other layouts
+// (add-large-art-layout task 4.1). The expected value was recorded before that change.
+TEST(BattleView, CompactFramesAreUnchanged) {
+    ViewFixture f;
+    f.play({ev::TurnStarted{Side::Hero, 1}, ev::Attacked{Side::Hero},
+            ev::Damaged{Side::Enemy, 380, 2620, game::DamageCause::Attack},
+            ev::SkillCast{"angel_wings", 10}, ev::Healed{Side::Hero, 25, 300},
+            ev::StatusApplied{Side::Enemy, game::StatusId::Stun, 3}, ev::TurnSkipped{Side::Enemy, game::StatusId::Stun},
+            ev::HpHalved{Side::Enemy, 1310}, ev::ExtraTurn{Side::Enemy},
+            ev::Defeated{Side::Enemy}, ev::BattleEnded{game::Outcome::Victory, 2}});
+    std::uint64_t hash = 14695981039346656037ull;
+    for (int step = 0; step < 300; ++step) {
+        hash = fingerprint(f.frame(), hash);
+        f.view.tick(kStep);
+    }
+    EXPECT_EQ(hash, 1102535103608328823ull) << "record: " << hash;
 }

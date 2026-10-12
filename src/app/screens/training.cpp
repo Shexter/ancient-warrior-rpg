@@ -1,4 +1,5 @@
 #include "app/screens/training.hpp"
+#include "app/art.hpp"
 
 #include "game/errors.hpp"
 
@@ -190,30 +191,48 @@ std::string TrainingPlaybackScreen::summary(std::size_t index) const {
     return text;
 }
 
+engine::Size TrainingPlaybackScreen::canvasSize(engine::Size terminal) const {
+    if (totals_)
+        return engine::kCompactCanvas;
+    return artCanvas(session_, terminal,
+                     {std::format("hero_{}.sprite", session_.state->hero.pathId), "monster.sprite"});
+}
+
 void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
     const game::TrainingRound& r = rounds_[round_];
     drawText(frame, 2, 1, std::format("THE CATACOMBS · Level {}", r.caveLevel), palette::kAccent);
 
+    // Compact (ui.md): monster at (56, 6) with its stats below, hero at (4, 6) with name and bar
+    // on rows 19-20. Large: hero 48x24 at (6, 4), monster 32x16 at (80, 8).
+    const bool large = isLarge(frame);
     const game::Hero& hero = session_.state->hero;
-    if (const auto it = session_.sprites.find(std::format("hero_{}.sprite", hero.pathId));
-        it != session_.sprites.end())
-        engine::drawSprite(frame, it->second, 4, 6);
-    if (const auto it = session_.sprites.find("monster.sprite"); it != session_.sprites.end())
-        engine::drawSprite(frame, it->second, 56, 6);
+    const std::string heroFile = std::format("hero_{}.sprite", hero.pathId);
+    const Art heroArt = large ? largeArt(session_, heroFile) : compactArt(session_, heroFile);
+    const Art monsterArt =
+        large ? largeArt(session_, "monster.sprite") : compactArt(session_, "monster.sprite");
+    const int heroX = large ? 6 : 4, heroY = large ? 4 : 6;
+    const int monsterX = large ? 80 : 56, monsterY = large ? 8 : 6;
+    const int monsterStats = large ? 25 : 15, heroStats = large ? 29 : 19;
+    heroArt.draw(frame, heroX, heroY);
+    monsterArt.draw(frame, monsterX, monsterY);
 
-    drawText(frame, 56, 15, r.monsterName, palette::kText);
-    drawBar(frame, 56, 16, 20, monsterHp_, r.monsterMaxHp, hpColor(monsterHp_, r.monsterMaxHp));
-    drawText(frame, 56, 17, std::format("{}/{}", monsterHp_, r.monsterMaxHp), palette::kText);
+    drawText(frame, monsterX, monsterStats, r.monsterName, palette::kText);
+    drawBar(frame, monsterX, monsterStats + 1, 20, monsterHp_, r.monsterMaxHp,
+            hpColor(monsterHp_, r.monsterMaxHp));
+    drawText(frame, monsterX, monsterStats + 2, std::format("{}/{}", monsterHp_, r.monsterMaxHp),
+             palette::kText);
 
-    drawText(frame, 4, 19, upper(hero.name), palette::kAccent);
-    drawBar(frame, 4, 20, 20, heroHp_, hero.maxHp, hpColor(heroHp_, hero.maxHp));
-    drawText(frame, 25, 20, std::format("{}/{}", heroHp_, hero.maxHp), palette::kText);
+    drawText(frame, heroX, heroStats, upper(hero.name), palette::kAccent);
+    drawBar(frame, heroX, heroStats + 1, 20, heroHp_, hero.maxHp, hpColor(heroHp_, hero.maxHp));
+    drawText(frame, heroX + 21, heroStats + 1, std::format("{}/{}", heroHp_, hero.maxHp),
+             palette::kText);
 
+    const int summaryRow = frame.height() - 2;
     if (roundDone_)
-        drawText(frame, 2, 22, summary(round_), palette::kText, 76);
+        drawText(frame, 2, summaryRow, summary(round_), palette::kText, frame.width() - 4);
     else if (round_ > 0)
-        drawText(frame, 2, 22, summary(round_ - 1), palette::kDim, 76);
-    drawCentered(frame, 23, "Enter skip round · Esc skip to totals", palette::kDim);
+        drawText(frame, 2, summaryRow, summary(round_ - 1), palette::kDim, frame.width() - 4);
+    drawCentered(frame, frame.height() - 1, "Enter skip round · Esc skip to totals", palette::kDim);
 }
 
 void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {

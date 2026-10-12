@@ -1,4 +1,5 @@
 #include "app/screens/new_game.hpp"
+#include "app/art.hpp"
 
 #include "app/screens/hub.hpp"
 #include "game/errors.hpp"
@@ -102,11 +103,23 @@ Transition CreateHeroScreen::update(std::span<const engine::KeyEvent> keys, doub
     return Stay{};
 }
 
+engine::Size CreateHeroScreen::canvasSize(engine::Size terminal) const {
+    // The highlighted path can change at any time, so every path needs its large art.
+    if (step_ != Step::Path || artCanvas(session_, terminal, {}) != kLargeCanvas)
+        return engine::kCompactCanvas;
+    for (const game::PathDef& path : session_.content.paths())
+        if (!largeArt(session_, std::format("hero_{}.sprite", path.id)))
+            return engine::kCompactCanvas;
+    return kLargeCanvas;
+}
+
 void CreateHeroScreen::drawPathPreview(engine::Framebuffer& frame) const {
     const game::PathDef& path =
         session_.content.paths()[static_cast<std::size_t>(paths_.selected())];
-    // ui.md puts the sprite at col 60, but a 24-wide sprite there would run past column 79.
-    constexpr int kX = 30, kY = 4, kW = 49, kH = 17;
+    const bool large = isLarge(frame);
+    // Compact: ui.md puts the sprite at col 60, but a 24-wide sprite there would run past column
+    // 79, so it sits at col 52. Large: a 79x32 box with the 48x24 sprite at (66, 8).
+    const int kX = large ? 40 : 30, kY = 4, kW = large ? 79 : 49, kH = large ? 32 : 17;
     drawPanel(frame, kX, kY, kW, kH);
     drawText(frame, kX + 2, kY + 1, path.name, palette::kAccent);
     std::string sentence = path.flavor; // e.g. "blessed with the Strongest Fist"
@@ -123,9 +136,11 @@ void CreateHeroScreen::drawPathPreview(engine::Framebuffer& frame) const {
     drawText(frame, kX + 2, statsY + 4, std::format("LIFE   {}", path.life), palette::kText);
     drawText(frame, kX + 2, statsY + 6, std::format("EXP per level x{}", path.multiplier),
              palette::kDim);
-    const auto sprite = session_.sprites.find(std::format("hero_{}.sprite", path.id));
-    if (sprite != session_.sprites.end())
-        engine::drawSprite(frame, sprite->second, 52, 6);
+    const std::string file = std::format("hero_{}.sprite", path.id);
+    if (large)
+        largeArt(session_, file).draw(frame, 66, 8);
+    else
+        compactArt(session_, file).draw(frame, 52, 6);
 }
 
 void CreateHeroScreen::draw(engine::Framebuffer& frame) const {
@@ -146,7 +161,8 @@ void CreateHeroScreen::draw(engine::Framebuffer& frame) const {
         drawText(frame, 2, 4, "WARRIOR PATHS", palette::kAccent);
         paths_.draw(frame, 2, 6);
         drawPathPreview(frame);
-        drawCentered(frame, 22, "↑↓ select · Enter choose · Esc back", palette::kDim);
+        drawCentered(frame, frame.height() - 2, "↑↓ select · Enter choose · Esc back",
+                     palette::kDim);
         break;
     }
 }

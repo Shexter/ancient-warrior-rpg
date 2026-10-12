@@ -15,8 +15,6 @@ using engine::Key;
 using engine::KeyEvent;
 using engine::Rgb;
 
-constexpr int kCanvasWidth = 80;
-constexpr int kCanvasHeight = 24;
 constexpr int kDialogMaxWidth = 60;
 
 // Decodes one UTF-8 code point starting at `i`, advancing `i`. Malformed input gives '?'.
@@ -54,8 +52,8 @@ void drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
         inner = std::max(inner, static_cast<int>(line.size()));
     const int w = std::min(kDialogMaxWidth, inner + 4);
     const int h = static_cast<int>(lines.size()) + 4;
-    const int x = (kCanvasWidth - w) / 2;
-    const int y = (kCanvasHeight - h) / 2;
+    const int x = (frame.width() - w) / 2;
+    const int y = (frame.height() - h) / 2;
     drawPanel(frame, x, y, w, h);
     for (std::size_t i = 0; i < lines.size(); ++i)
         drawText(frame, x + 2, y + 1 + static_cast<int>(i), lines[i], palette::kText, w - 4);
@@ -92,7 +90,7 @@ int textWidth(std::string_view utf8) {
 }
 
 void drawCentered(Framebuffer& frame, int y, std::string_view utf8, Rgb fg) {
-    drawText(frame, (kCanvasWidth - textWidth(utf8)) / 2, y, utf8, fg);
+    drawText(frame, (frame.width() - textWidth(utf8)) / 2, y, utf8, fg);
 }
 
 std::vector<std::string> wordWrap(std::string_view text, int width) {
@@ -353,23 +351,23 @@ void Typewriter::draw(Framebuffer& frame, int x, int y, Rgb fg) const {
 void drawStatusPanel(Framebuffer& frame, const game::Hero& hero, const game::Content& content) {
     // Rows 0-4: ui.md's two-line layout overflows 80 columns once real gear names appear, so
     // the gear gets its own line (row 4 is free on every screen that shows the panel).
-    drawPanel(frame, 0, 0, kCanvasWidth, 5);
-    constexpr int kRight = kCanvasWidth - 2; // last column inside the border
+    drawPanel(frame, 0, 0, frame.width(), 5);
+    const int right = frame.width() - 2; // last column inside the border
     int x = 2;
     int y = 1;
     auto add = [&](std::string_view text, Rgb fg) {
-        x += drawText(frame, x, y, text, fg, std::max(0, kRight - x));
+        x += drawText(frame, x, y, text, fg, std::max(0, right - x));
     };
 
     add(upper(hero.name), palette::kAccent);
     add(std::format("  {} Lv {}   HP ", content.path(hero.pathId).name, hero.level),
         palette::kText);
-    if (x + 20 <= kRight) {
+    if (x + 20 <= right) {
         drawBar(frame, x, y, 20, hero.hp, hero.maxHp, hpColor(hero.hp, hero.maxHp));
         x += 20;
     }
     add(std::format(" {}/{}   FV ", hero.hp, hero.maxHp), palette::kText); // Fervor
-    if (x + 8 <= kRight) {
+    if (x + 8 <= right) {
         drawBar(frame, x, y, 8, hero.mp, hero.maxMp, palette::kMp);
         x += 8;
     }

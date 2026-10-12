@@ -34,6 +34,9 @@ class TrainingPlaybackScreen final : public Screen {
                            const game::Hero& before);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // 120x40 during playback when the terminal fits it and both sprites have large art; the
+    // totals stay 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     void apply(const game::Event& event);

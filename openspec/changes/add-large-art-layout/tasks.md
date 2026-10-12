@@ -25,9 +25,9 @@
 
 ## 4. Large layouts for the art screens
 
-- [ ] 4.1 Give `BattleView` a layout struct and make the current constants the compact instance; verify a test that compact battle frames are byte-identical to before the change for a fixed event sequence
-- [ ] 4.2 Add the 120×40 Battle layout (design Decision 6) for both looks; verify tests at 120×40 for sprite placement, log length, the skill overlay, and that resizing to 100×30 mid-battle switches to compact with the battle state unchanged
-- [ ] 4.3 Add the 120×40 Hub, Create Hero and Training playback layouts; verify tests at 120×40 for each, plus fallback to 80×24 when a needed large sprite is missing and with `--layout compact`
-- [ ] 4.4 Record full-redraw and diff bytes per frame for a 120×40 battle in `docs/benchmarks.md`; verify the numbers are measured, not estimated
-- [ ] 4.5 Run the real binary in a 150×45 pseudo-terminal through Hub → Battle with `--art glyph` and `--art blocks`, and shrink it mid-battle; confirm the layouts and fallback by screen capture. Update SimpleDocs and mark world-bible §11 items 5–6 as shipped
-- [ ] 4.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Give `BattleView` a layout struct and make the current constants the compact instance; verify a test that compact battle frames are byte-identical to before the change for a fixed event sequence
+- [x] 4.2 Add the 120×40 Battle layout (design Decision 6) for both looks; verify tests at 120×40 for sprite placement, log length, the skill overlay, and that resizing to 100×30 mid-battle switches to compact with the battle state unchanged
+- [x] 4.3 Add the 120×40 Hub, Create Hero and Training playback layouts; verify tests at 120×40 for each, plus fallback to 80×24 when a needed large sprite is missing and with `--layout compact`
+- [x] 4.4 Record full-redraw and diff bytes per frame for a 120×40 battle in `docs/benchmarks.md`; verify the numbers are measured, not estimated
+- [x] 4.5 Run the real binary in a 150×45 pseudo-terminal through Hub → Battle with `--art glyph` and `--art blocks`, and shrink it mid-battle; confirm the layouts and fallback by screen capture. Update SimpleDocs and mark world-bible §11 items 5–6 as shipped
+- [x] 4.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.

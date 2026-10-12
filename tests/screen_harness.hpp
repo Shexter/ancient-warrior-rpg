@@ -35,6 +35,14 @@ inline const SpriteBank& shippedSprites() {
     return bank;
 }
 
+inline const LargeSprites& shippedLargeSprites() {
+    static const LargeSprites large =
+        loadLargeSprites(game::shippedContent(),
+                         fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites" / "large")
+            .value();
+    return large;
+}
+
 class NullIo : public engine::LoopIo {
   public:
     std::pair<int, int> size() const override { return {80, 24}; }
@@ -83,8 +91,10 @@ struct Harness {
                 return false;
         return true;
     }
-    Framebuffer frame() const {
-        Framebuffer f(80, 24);
+    Framebuffer frame() const { return frame(engine::kCompactCanvas); }
+    // The top screen drawn into a canvas of `size` (what the loop does after canvasSize()).
+    Framebuffer frame(engine::Size size) const {
+        Framebuffer f(size.width, size.height);
         app->draw(f);
         return f;
     }

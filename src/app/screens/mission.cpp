@@ -1,5 +1,7 @@
 #include "app/screens/mission.hpp"
 
+#include "app/art.hpp"
+
 #include "game/errors.hpp"
 #include "game/hero.hpp"
 
@@ -30,11 +32,6 @@ std::string_view describe(game::ActionError e) {
         return "There is no such skill.";
     }
     return "That action is not possible.";
-}
-
-const engine::Sprite* findSprite(const SpriteBank& sprites, const std::string& file) {
-    const auto it = sprites.find(file);
-    return it == sprites.end() ? nullptr : &it->second;
 }
 
 // Moves every cell `offset` columns sideways (the skill-cast screen shake).
@@ -239,27 +236,45 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
     return Stay{};
 }
 
+std::string BattleScreen::heroFile() const {
+    return std::format("hero_{}.sprite", session_.state->hero.pathId);
+}
+
+std::string BattleScreen::enemyFile() const {
+    return session_.content.enemy(session_.content.mission(missionId_).enemy).sprite;
+}
+
+engine::Size BattleScreen::canvasSize(engine::Size terminal) const {
+    return artCanvas(session_, terminal, {heroFile(), enemyFile()});
+}
+
 void BattleScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    const bool large = isLarge(frame);
     const game::MissionDef& mission = session_.content.mission(missionId_);
     drawText(frame, 1, 0, mission.location, palette::kAccent, 60);
     // While events play, the turn they belong to; while choosing, the turn about to start.
     const int turnNumber =
         view_.busy() || battle_.over() ? view_.turn() : battle_.turn() + 1;
     const std::string turn = std::format("Turn {}", turnNumber);
-    drawText(frame, 79 - textWidth(turn), 0, turn, palette::kText);
+    drawText(frame, frame.width() - 1 - textWidth(turn), 0, turn, palette::kText);
 
-    const game::Hero& hero = session_.state->hero;
-    view_.draw(frame, findSprite(session_.sprites, std::format("hero_{}.sprite", hero.pathId)),
-               findSprite(session_.sprites, session_.content.enemy(mission.enemy).sprite));
+    if (large)
+        view_.draw(frame, largeArt(session_, heroFile()), largeArt(session_, enemyFile()),
+                   kLargeBattle);
+    else
+        view_.draw(frame, compactArt(session_, heroFile()), compactArt(session_, enemyFile()),
+                   kCompactBattle);
 
-    actions_.draw(frame, 1, 22, !view_.busy() && !skills_ && !battle_.over());
-    drawCentered(frame, 23, "←→ select · Enter confirm · during animation: Enter skips",
-                 palette::kDim);
+    actions_.draw(frame, 1, frame.height() - 2, !view_.busy() && !skills_ && !battle_.over());
+    drawCentered(frame, frame.height() - 1,
+                 "←→ select · Enter confirm · during animation: Enter skips", palette::kDim);
     if (skills_) {
-        drawPanel(frame, 16, 14, 64, 7);
-        drawText(frame, 18, 14, " Skills · Fervor cost in () ", palette::kAccent); // on the border
-        skills_->draw(frame, 18, 15, true, 61); // inside the panel's right border
+        // Compact: rows 14-20 over the arena and log (ui.md). Large: rows 26-32, over the log.
+        const int left = large ? 28 : 16, top = large ? 26 : 14;
+        drawPanel(frame, left, top, 64, 7);
+        drawText(frame, left + 2, top, " Skills · Fervor cost in () ", palette::kAccent);
+        skills_->draw(frame, left + 2, top + 1, true, 61); // inside the panel's right border
     }
     if (const int offset = view_.shake())
         shiftFrame(frame, offset);

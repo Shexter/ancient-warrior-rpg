@@ -215,3 +215,4 @@ Inspired by a reference video, "Water reflection test" from an ASCII MMORPG. Not
 - Neither fits the 80x24 canvas: 48x48 half-blocks are 24 rows tall, and the ramp figure was 60x37. So core ships 24x24 sprites from the same pipeline, and the post-core change adds:
   5. A larger layout (for example 120x40) when the terminal is big enough, with 80x24 kept as the fallback.
   6. A glyph-ramp sprite mode (character + color per cell) alongside the half-block `.sprite` format.
+- **Shipped 2026-10-12 (`add-large-art-layout`):** items 5 and 6. Battle, Hub, Create Hero and Training playback have 120x40 layouts with 48x48-class art. The glyph look is the default and `--art blocks` gives half-blocks. Items 1-4 (walkable world view, reflection, tile map) remain ideas.

@@ -26,6 +26,8 @@ class CreateHeroScreen final : public Screen {
     explicit CreateHeroScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // 120x40 on the path step when the terminal fits it and every path has large art.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     enum class Step { Name, Story, Path };

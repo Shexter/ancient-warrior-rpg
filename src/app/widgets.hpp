@@ -48,7 +48,7 @@ int drawText(engine::Framebuffer& frame, int x, int y, std::string_view utf8, en
              int maxWidth = INT_MAX);
 // Cells needed for UTF-8 text (one per code point).
 int textWidth(std::string_view utf8);
-// drawText centered on the 80-column canvas.
+// drawText centered on the frame's width.
 void drawCentered(engine::Framebuffer& frame, int y, std::string_view utf8, engine::Rgb fg);
 // Splits on spaces into lines of at most `width` characters (longer words are cut).
 std::vector<std::string> wordWrap(std::string_view text, int width);
@@ -170,7 +170,8 @@ class Typewriter {
     double shown_ = 0;
 };
 
-// The hero summary on rows 0-4 of most town screens (ui.md, plus a gear line).
+// The hero summary on rows 0-4 of most town screens (ui.md, plus a gear line), as wide as the
+// frame.
 void drawStatusPanel(engine::Framebuffer& frame, const game::Hero& hero,
                      const game::Content& content);
 
