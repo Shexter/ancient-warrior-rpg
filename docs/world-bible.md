@@ -1,6 +1,6 @@
 # World Bible — DRAFT
 
-Status: **proposal, not approved.** Nothing here is implemented or in OpenSpec. The core engine (`build-core-engine`) keeps its current names and the Medusa mission until this is approved and turned into its own OpenSpec change (see §10).
+Status: **Act I approved for the re-skin (2026-10-12)**, with the decisions in §9. Acts II and III remain drafts. Nothing here is implemented until its OpenSpec change (`reskin-act-one`) is applied.
 
 Every Latin term is a first-pass suggestion and needs a Latin check before it ships. Items marked **[open]** need the author's decision.
 
@@ -158,15 +158,18 @@ Replaces the 7-line opening and 4-line path intro in `story.json`.
 
 **Title:** *Miles Christi*, "Soldier of Christ", or *Ordo Lucis*, "Order of Light". **[open]** The first is more direct and the second is gentler.
 
-## 9. Open questions
+## 9. Decisions and open questions
 
-1. **Title:** *Miles Christi* or *Ordo Lucis*?
-2. **Fragment of the Cross:** is it appropriate as a skill-key item and a drop? It is a sacred object, so an alternative is a lesser relic.
-3. **Theological accuracy bar:** who reviews the text, and how strict should it be?
-4. **MP label:** keep "MP" or relabel it (*Fervor*, *Spirit*)?
-5. **Medusa:** replace her with a sin boss, or keep her as a bonus encounter in a non-Catholic "dream" sequence?
-6. **Act II format:** seven short fights, or fewer stops?
-7. **Real saints:** use named saints (St. Michael, etc.) or keep everything generic?
+Decided by the user, 2026-10-12:
+1. **Title:** *Ordo Lucis* ("Order of Light").
+2. **Fragment of the Cross:** keep it as the *Fiat Lux* key item, as drafted.
+3. **Theological accuracy bar:** the user reviews the text.
+4. **MP label:** relabel MP as **Fervor** everywhere the player sees it.
+5. **Medusa:** kept unchanged as a bonus mission (so her golden vectors stay valid). Act I gets a new mission against *Avaritia*, which uses Medusa's existing fight pattern until the Lua change gives it gold theft.
+6. **Real saints:** named saints are allowed where drafted (Mace of St. Michael).
+
+Still open:
+7. **Act II format:** seven short fights, or fewer stops?
 
 ## 10. How this lands in the project
 
