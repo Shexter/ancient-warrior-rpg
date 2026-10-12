@@ -11,7 +11,7 @@
 
 ## Blacksmith (refuses a dead hero)
 - `equip`: old item returns to the bag at upgrade 1; refused if the bag cannot take it, if the item is already equipped, or for the wrong slot.
-- `upgrade` at level L (to 10): consumes L materials, 1000·L EXP, 10000·L gold (`upgradeCost(L)`, also used by the screens).
+- `upgrade` at level L (to 10): consumes L materials, 1000·L EXP, 10000·L gold (`upgradeCost(L)`, also used by the screens). The limits the screens print (`kMaxUpgradeLevel`, `kBankCost`, `kRenameCost`, `kCharismaMinLevel`, `kLearnMinLevel`) are named in `town.hpp` so the text can't drift from the rules.
 - `forge`: ingredients must be in the bag (equipped items don't count) with room for the result. Ingredients are consumed even on failure; success chance is forge level × 10% (`forgeChancePercent`), and success raises forge level to at most 10.
 
 ## Guildmaster / bank (allowed when dead)

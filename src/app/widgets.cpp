@@ -194,14 +194,14 @@ std::optional<int> Menu::handle(const KeyEvent& key) {
     return std::nullopt;
 }
 
-void Menu::draw(Framebuffer& frame, int x, int y) const {
+void Menu::draw(Framebuffer& frame, int x, int y, bool focused) const {
     std::size_t labelWidth = 0;
     for (const Item& item : items_)
         labelWidth = std::max(labelWidth, item.label.size());
     int cursor = x;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
-        const bool chosen = static_cast<int>(i) == selected_;
+        const bool chosen = focused && static_cast<int>(i) == selected_;
         const Rgb color = !item.enabled ? palette::kDim
                           : chosen      ? palette::kAccent
                                         : palette::kText;

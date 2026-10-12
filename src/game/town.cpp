@@ -8,15 +8,10 @@ namespace heroes::game {
 namespace {
 
 constexpr int kMaxBuyQty = 99;
-constexpr int kMaxUpgradeLevel = 10;
-constexpr std::int64_t kBankCost = 10000;
-constexpr std::int64_t kRenameCost = 50000;
 constexpr std::int64_t kReviveCost = 100;
 constexpr int kReviveHp = 100;
-constexpr int kCharismaMinLevel = 10;
 constexpr std::int64_t kCharismaExpPerPoint = 50;
 constexpr std::int64_t kCharismaGoldPerPoint = 100;
-constexpr int kLearnMinLevel = 5;
 
 std::unexpected<TownError> fail(TownError e) { return std::unexpected(e); }
 

@@ -17,6 +17,12 @@
 // error means the GameState is bit-identical to before the call.
 namespace heroes::game {
 
+inline constexpr int kMaxUpgradeLevel = 10;
+inline constexpr std::int64_t kBankCost = 10000;
+inline constexpr std::int64_t kRenameCost = 50000;
+inline constexpr int kCharismaMinLevel = 10;
+inline constexpr int kLearnMinLevel = 5;
+
 enum class EquipSlot { Weapon, Armor };
 enum class CharismaStat { MaxHp, MaxMp, Atk, Def };
 
