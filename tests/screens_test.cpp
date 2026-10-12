@@ -125,7 +125,7 @@ TEST(Hub, AdventureOptionsExplainWhyTheyAreDisabled) {
     game::GameState state = freshGame();
     h.startAtHub(state);
     ASSERT_TRUE(h.press({}));
-    EXPECT_NE(rowText(h.frame(), 8).find("Requires Lv 20"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 8).find("Requires Lv 15"), std::string::npos);
 
     h.session.state->hero.hp = 0;
     ASSERT_TRUE(h.press({ch('x')})); // any step refreshes the menu
@@ -154,5 +154,5 @@ TEST(Sprites, MissingSpriteIsReportedByName) {
     const auto bank = loadSprites(game::shippedContent(), "/no/such/dir");
     ASSERT_FALSE(bank.has_value());
     EXPECT_NE(bank.error().find("monster.sprite"), std::string::npos);
-    EXPECT_EQ(shippedSprites().size(), 5u);
+    EXPECT_EQ(shippedSprites().size(), 6u);
 }

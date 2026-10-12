@@ -24,5 +24,6 @@ Every prompt ends with this style suffix: *Retro 16-bit video game character spr
 | `hero_rogue` | 24x24 | 42 | green | Full body side view of a slim medieval rogue facing right, deep purple hood and cloak, dark leather armor, a dagger in each hand, crouched ready stance. |
 | `medusa` | 32x28 | 7 | magenta | Side view of Medusa the gorgon facing left: upper body of a woman with green-teal scaly skin and a head of writhing green snakes for hair, and below the waist one long coiled serpent tail (no legs). Menacing pose, clawed hands raised. |
 | `monster` | 16x16 | 42 | green | Side view of a wild brown beast facing left, like a snarling boar-wolf on four legs, brown fur, small tusks. |
+| `avaritia` | 32x28 | 7 | green | Side view of Avaritia, the demon of greed, facing left: a gaunt hunched figure in a heavy crimson and gold robe, grey skin, long clawed fingers clutching a bulging sack of gold coins, a chain of coins around its neck, a crown of bent coins, glowing yellow eyes, menacing pose. |
 
 One exception: the fighter's suffix put the background before the last three phrases ("... margin, solid pure green background (#00FF00), no shadow, no ground, no text."). Same model, seed and exact prompt reproduce the image on the same Draw Things version.

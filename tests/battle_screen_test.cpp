@@ -10,6 +10,7 @@
 #include <cctype>
 #include <format>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace screen_test;
@@ -44,11 +45,13 @@ struct ViewFixture {
     BattleView view;
 };
 
-// Hub -> Mission -> the first mission's intro -> "Enter the lair?" -> Yes.
-void enterBattle(Harness& h, game::GameState state) {
+// Hub -> Mission -> a mission's intro -> "Enter the lair?" -> Yes. Missions: '1' Avaritia,
+// '2' the Medusa bonus.
+void enterBattle(Harness& h, game::GameState state, char mission = '2',
+                 std::string_view location = "MEDUSA LAIR") {
     h.startAtHub(std::move(state));
-    ASSERT_TRUE(h.press({ch('2'), ch('1')}));
-    ASSERT_TRUE(frameContains(h.frame(), "MEDUSA LAIR"));
+    ASSERT_TRUE(h.press({ch('2'), ch(mission)}));
+    ASSERT_TRUE(frameContains(h.frame(), std::string(location)));
     ASSERT_TRUE(h.press({kEnter, kEnter})); // reveal the story, then finish it
     ASSERT_TRUE(frameContains(h.frame(), "Enter the lair?"));
     ASSERT_TRUE(h.press({ch('y')}));
@@ -140,10 +143,12 @@ TEST(MissionSelect, ListsComingSoonAndDisablesClearedMissions) {
     h.startAtHub(state);
     ASSERT_TRUE(h.press({ch('2')}));
     const Framebuffer frame = h.frame();
-    EXPECT_NE(rowText(frame, 7).find("Cleared"), std::string::npos);
-    EXPECT_NE(rowText(frame, 8).find("Coming Soon"), std::string::npos);
+    EXPECT_NE(rowText(frame, 7).find("Act I: \"Avaritia\""), std::string::npos);
+    EXPECT_NE(rowText(frame, 8).find("Bonus: \"The Gorgon\""), std::string::npos);
+    EXPECT_NE(rowText(frame, 8).find("Cleared"), std::string::npos);
     EXPECT_NE(rowText(frame, 9).find("Coming Soon"), std::string::npos);
-    ASSERT_TRUE(h.press({ch('1'), kEsc}));
+    EXPECT_NE(rowText(frame, 10).find("Coming Soon"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('2'), kEsc})); // the cleared bonus can't be chosen
     EXPECT_EQ(h.app->depth(), 1u);
 }
 
@@ -258,4 +263,45 @@ TEST(Vocabulary, NoScreenShowsAnMpLabel) {
     ASSERT_TRUE(battle.press({ch('2')})); // skill overlay open
     EXPECT_TRUE(frameContains(battle.frame(), "Fervor cost"));
     EXPECT_FALSE(showsMp(battle.frame())) << "Battle";
+}
+
+TEST(Avaritia, MissionUnlocksAtLevel15) {
+    Harness h("avaritia_unlock");
+    game::GameState state = freshGame();
+    state.hero.level = 14;
+    h.startAtHub(state);
+    ASSERT_TRUE(h.press({}));
+    EXPECT_NE(rowText(h.frame(), 8).find("Requires Lv 15"), std::string::npos);
+    h.session.state->hero.level = 15;
+    ASSERT_TRUE(h.press({ch('x')})); // refresh
+    EXPECT_EQ(rowText(h.frame(), 8).find("Requires"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('2')}));
+    EXPECT_TRUE(frameContains(h.frame(), "Act I: \"Avaritia\""));
+    EXPECT_TRUE(frameContains(h.frame(), "Requires Lv 20")); // the Medusa bonus still waits
+}
+
+TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
+    game::GameState state = levelTwenty();
+    state.hero.level = 15;
+    state.hero.atk = 100000; // ends the fight in the hero's favor
+    game::GameState expected = state;
+    {
+        auto battle = game::startMission(expected, game::shippedContent(), "avaritia").value();
+        (void)battle.start();
+        while (!battle.over())
+            (void)battle.act(game::Attack{});
+        ASSERT_EQ(battle.outcome(), game::Outcome::Victory);
+        (void)game::finishMission(expected, game::shippedContent(), "avaritia", battle);
+    }
+
+    Harness h("avaritia_win");
+    enterBattle(h, state, '1', "THE COUNTING HOUSE");
+    EXPECT_TRUE(frameContains(h.frame(), "AVARITIA"));
+    ASSERT_TRUE(fightUntilResult(h, ch('1')));
+    EXPECT_EQ(*h.session.state, expected);
+    EXPECT_TRUE(frameContains(h.frame(), "VICTORY"));
+    EXPECT_TRUE(frameContains(h.frame(), "Items: Gold Dust, Dark Pearl"));
+    EXPECT_EQ(h.session.state->hero.bag.count("gold_dust"), 1);
+    EXPECT_EQ(h.session.state->hero.bag.count("black_pearl"), 1);
+    EXPECT_TRUE(h.session.state->hero.completedMissions.contains("avaritia"));
 }

@@ -91,7 +91,7 @@ TEST(ShippedSprites, AllFivePlaceholdersLoadWithTheDocumentedSizes) {
     };
     for (const Expected& e :
          {Expected{"hero_fighter.sprite", 24, 24}, Expected{"hero_hunter.sprite", 24, 24},
-          Expected{"hero_rogue.sprite", 24, 24}, Expected{"medusa.sprite", 32, 28},
+          Expected{"hero_rogue.sprite", 24, 24}, Expected{"medusa.sprite", 32, 28}, Expected{"avaritia.sprite", 32, 28},
           Expected{"monster.sprite", 16, 16}}) {
         const auto sprite = engine::loadSprite(dir / e.file);
         ASSERT_TRUE(sprite.has_value()) << sprite.error();

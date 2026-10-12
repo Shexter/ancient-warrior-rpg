@@ -14,6 +14,22 @@
       "rewardItems": [
         "thors_hammer"
       ]
+    },
+    {
+      "id": "avaritia",
+      "name": "Avaritia",
+      "sprite": "avaritia.sprite",
+      "maxHp": 2200,
+      "atk": 160,
+      "def": 15,
+      "life": 5,
+      "behavior": "medusa_pattern",
+      "rewardExp": 5000,
+      "rewardGold": 15000,
+      "rewardItems": [
+        "gold_dust",
+        "black_pearl"
+      ]
     }
   ]
 }

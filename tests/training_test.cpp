@@ -26,9 +26,8 @@ namespace fs = std::filesystem;
 fs::path dropFreeDataDir() {
     const fs::path root = fs::temp_directory_path() / "heroes_training_nodrop";
     fs::remove_all(root);
-    fs::create_directories(root / "assets" / "sprites");
-    fs::copy_file(fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites" / "medusa.sprite",
-                  root / "assets" / "sprites" / "medusa.sprite");
+    fs::create_directories(root / "assets");
+    fs::copy(fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites", root / "assets" / "sprites");
     fs::create_directories(root / "data");
     for (const auto& entry : fs::directory_iterator(fs::path(HEROES_SOURCE_DIR) / "data")) {
         if (entry.path().filename() != "items.json") {

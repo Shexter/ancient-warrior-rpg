@@ -1,6 +1,18 @@
 {
   "missions": [
     {
+      "id": "avaritia",
+      "name": "Act I: \"Avaritia\"",
+      "location": "THE COUNTING HOUSE",
+      "enemy": "avaritia",
+      "minLevel": 15,
+      "repeatable": false,
+      "story": [
+        "Greed has made a house of the old exchange.",
+        "Whatever it takes, it keeps. Take it back."
+      ]
+    },
+    {
       "id": "the_gorgon",
       "name": "Bonus: \"The Gorgon\"",
       "location": "MEDUSA LAIR",

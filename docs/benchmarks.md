@@ -33,3 +33,19 @@ frames: 120  full redraw: 5844 bytes/frame  diff: 160 bytes/frame (20 cells/fram
 ```
 
 The diff renderer writes under 3% of the bytes. Only the box moves (20 cells/s at 60 steps/s), so about one column changes per frame (20 cells). The sprite is static after the first frame. With only the box on screen (chunk 8) the same measurement was 2725 vs 219 bytes/frame.
+
+## Avaritia balance band (reskin-act-one task 3.3, 2026-10-12)
+
+`heroes-sim --enemy avaritia --battles 20000 --seed 7 --policy smart`, shipped data. Avaritia is 2200 HP / 160 ATK / 15 DEF / 5 LIFE with Medusa's fight pattern. The band (balance-simulator spec) is 40–80% for the mid-game build and under 5% for starting gear.
+
+| path | Sword +5, Iron Shield +5, Guardian Angel + Righteous Strike | starting gear, no skills |
+|---|---|---|
+| Knight (`fighter`) | 42.31% | 0.00% |
+| Hunter (`hunter`) | 61.51% | 0.00% |
+| Pilgrim (`rogue`) | 48.60% | 0.00% |
+
+Tuning notes:
+- Only ATK moved from the planned 2200/150/15/5. At ATK 150 the Pilgrim won 82.84%, above the band.
+- The Pilgrim's result has a cliff: at ATK 158 it wins 82.84%, at ATK 160 48.60%. With 100 max HP, one fewer enemy hit per fight decides it.
+- The Knight sat at about 42% across every HP, DEF and LIFE value tried (2000–2400, 15–90, 5–40). Its ceiling here is set by its damage output, not the boss's numbers.
+- These values are pinned by the `AvaritiaBalance` test (task 3.4).
