@@ -4,9 +4,9 @@ The reference is `reference/lua-interfaces.md` (abbreviated "ref" below).
 
 ## 1. Lua Runtime and Sandbox
 
-- [ ] 1.1 Add Lua 5.4.7 and sol2 v3.5.0 to `cmake/Dependencies.cmake` with the URLs and hashes in ref §1, build `lua_static`, and link `heroes_game`; verify all CI jobs build and a test runs `return 1 + 1` through sol2
+- [x] 1.1 Add Lua 5.4.7 and sol2 v3.5.0 to `cmake/Dependencies.cmake` with the URLs and hashes in ref §1, build `lua_static`, and link `heroes_game`; verify all CI jobs build and a test runs `return 1 + 1` through sol2
 - [x] 1.2 Implement `ScriptHost` (allowlist, frozen `_G`, per-script environments, chunk names, count hook, 8 MiB allocator) per ref §3; verify `tests/script_sandbox_test.cpp`: `io.open`, `os.time`, `require`, `load`, `math.random`, `debug`, and a global assignment each fail; `while true do end` and a 100 MB string build both stop with errors; the enumerated reachable globals equal the allowlist exactly; a syntax error message contains the file path and line
-- [ ] 1.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Battle API and Fallbacks
 
