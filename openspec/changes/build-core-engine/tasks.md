@@ -60,7 +60,8 @@ Each chunk's reading list is in `design.md` → Implementation Handoff. Build an
 
 - [x] 8.1 Implement `src/engine/color`, `framebuffer`, and `renderer` per §12; verify `tests/renderer_test.cpp`: the first present writes all cells; an identical second frame writes 0 cells; a one-cell change writes exactly 1 cell, and its bytes contain one cursor move; the Ansi256 mapping is pure red → 196, (16,16,24) → 16
 - [x] 8.2 Implement `src/engine/input` (`InputDecoder`); verify `tests/input_test.cpp`: the arrow sequences in both forms, a lone ESC, Enter for `\r` and `\n`, Backspace for 127, and unknown bytes dropped
-- [ ] 8.3 Implement `src/platform/terminal_posix.cpp` and `terminal_windows.cpp` per §12, plus `src/engine/loop`. Temporarily point `heroes` at a demo that draws a moving box and the key name pressed; verify manually on macOS that q, Ctrl+C, and `kill <pid>` all leave the shell usable, and that shrinking below 80×24 shows the resize message. Report what was checked
+- [x] 8.3 Implement `src/platform/terminal_posix.cpp` and `terminal_windows.cpp` per §12, plus `src/engine/loop`. Temporarily point `heroes` at a demo that draws a moving box and the key name pressed; verify manually on macOS that q, Ctrl+C, and `kill <pid>` all leave the shell usable, and that shrinking below 80×24 shows the resize message. Report what was checked
+  - Checked by the user on macOS, 2026-10-12, with the real game (the demo was replaced in 10.1): quitting, Ctrl+C, `kill <pid>`, and shrinking below 80×24 all behaved as required.
 - [x] 8.4 Record full-redraw vs diff bytes per frame for the demo in `docs/benchmarks.md`
 - [x] 8.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 

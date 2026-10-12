@@ -30,11 +30,12 @@ All screens are designed for exactly **80×24**. In a larger terminal, center th
 - **MessageBox**: a centered box of at most 60 columns with word-wrapped text and "[Enter]" in dim at the bottom right. Enter or Esc dismisses it.
 - **Typewriter**: reveals 40 characters per second. Enter reveals the rest of the current block instantly, and a second Enter advances.
 - **ConfirmBox**: a MessageBox with `[Y]es / [N]o`. Esc means No.
-- **Status panel** (rows 0–3, used on most town screens):
+- **Status panel** (rows 0–4, used on most town screens; changed 2026-10-12 from rows 0–3, approved by the user, because the gear on row 2 needed about 84 columns with real item names):
   ```
   ┌──────────────────────────────────────────────────────────────────────────────┐
-  │ ARIA  Fighter Lv 14   HP ████████████░░░░░░░░ 250/350   MP ██████░░ 30/50     │
-  │ ATK 100  DEF 25  LIFE 0   EXP 1200  Next 500   Gold 20000  W Iron Sword+1 A —  │
+  │ ARIA  Fighter Lv 14   HP ████████████░░░░░░░░ 250/350   MP ██████░░ 30/50    │
+  │ ATK 100  DEF 25  LIFE 0   EXP 1200  Next 500   Gold 20000                    │
+  │ Weapon Iron Sword+2   Armor —                                                │
   └──────────────────────────────────────────────────────────────────────────────┘
   ```
   The HP bar is 20 cells and the MP bar is 8 (`█` filled, `░` empty). ATK, DEF and LIFE include equipment. "+N" after a weapon or armor name is shown only when its upgrade level is above 1. "—" means the slot is empty.
@@ -67,7 +68,7 @@ Rows 4–9: the game title "Ancient Warrior RPG" in a 6-row box-drawn banner, ce
 
 ## Hub
 
-The status panel is on rows 0–3. The hero sprite is at col 4, row 6 (24×24 px, so 12 rows). A Menu at col 34, row 7 has Training, Mission, Town, Save, Quit.
+The status panel is on rows 0–4. The hero sprite is at col 4, row 6 (24×24 px, so 12 rows). A Menu at col 34, row 7 has Training, Mission, Town, Save, Quit.
 - Training and Mission are disabled with a reason shown in dim beside them when `!canAdventure`: "Equip a weapon and armor" or "Fallen: visit the Guildmaster".
 - Mission is disabled below level 20 ("Requires Lv 20").
 - Row 22 shows the last message (for example "Game saved.").
@@ -128,7 +129,7 @@ Events from `act()` play strictly in order. Input other than Enter (skip) is ign
 
 ## Town screens
 
-Every NPC screen shows the status panel on rows 0–3, the NPC title on row 5 in accent, and its content on rows 6–21. Results go in a MessageBox using `describe(TownError)` text on failure.
+Every NPC screen shows the status panel on rows 0–4, the NPC title on row 5 in accent, and its content on rows 6–21. Results go in a MessageBox using `describe(TownError)` text on failure.
 
 - **Merchant**: two side-by-side lists. "For sale" (cols 1–38) shows price > 0 items with their prices. "Your bag" (cols 41–78) shows the 10 slots, with "(empty)" in dim. Tab switches focus. Enter on a for-sale item asks "How many? (1–99)", then buys. Enter on a bag item opens a Menu: Sell (if price > 0, asks the quantity), Auction (if auctionValue > 0, plays the bids one per 600 ms: "Bid accepted at 550…", then "Merchant fee is 10%. You receive 495 gold."), Cancel. A dead hero sees only the MessageBox "I have no business with you!" and returns.
 - **Blacksmith** (dead hero: "Empty soul, you don't belong here"): Menu with Change Equipment, Upgrade, Forge, Back.
