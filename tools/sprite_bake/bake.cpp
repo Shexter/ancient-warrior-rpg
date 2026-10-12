@@ -1,10 +1,12 @@
 #include "bake.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -62,16 +64,20 @@ std::expected<engine::Sprite, std::string> loadPng(const std::filesystem::path& 
 }
 
 engine::GlyphSprite toGlyphs(const engine::Sprite& image) {
-    engine::GlyphSprite glyphs;
-    glyphs.width = image.width;
-    glyphs.height = (image.height + 1) / 2;
-    for (int row = 0; row < glyphs.height; ++row) {
+    struct Opaque {
+        double luminance;
+        engine::Rgb color;
+    };
+    std::vector<std::optional<Opaque>> cells;
+    double darkest = 255, brightest = 0;
+    const int rows = (image.height + 1) / 2;
+    for (int row = 0; row < rows; ++row) {
         for (int x = 0; x < image.width; ++x) {
             static const std::optional<engine::Rgb> kNone;
             const auto& top = image.at(x, row * 2);
             const auto& bottom = row * 2 + 1 < image.height ? image.at(x, row * 2 + 1) : kNone;
             if (!top && !bottom) {
-                glyphs.cells.emplace_back(std::nullopt);
+                cells.emplace_back(std::nullopt);
                 continue;
             }
             double luminance = 0;
@@ -82,10 +88,27 @@ engine::GlyphSprite toGlyphs(const engine::Sprite& image) {
                     ++opaque;
                 }
             luminance /= opaque;
-            // 1..9: never the space, which marks transparency.
-            const auto level = std::min<std::size_t>(8, static_cast<std::size_t>(luminance * 9 / 256));
-            glyphs.cells.emplace_back(engine::GlyphCell{kGlyphRamp[1 + level], top ? *top : *bottom});
+            darkest = std::min(darkest, luminance);
+            brightest = std::max(brightest, luminance);
+            cells.emplace_back(Opaque{luminance, top ? *top : *bottom});
         }
+    }
+
+    engine::GlyphSprite glyphs;
+    glyphs.width = image.width;
+    glyphs.height = rows;
+    const double range = brightest - darkest;
+    for (const auto& cell : cells) {
+        if (!cell) {
+            glyphs.cells.emplace_back(std::nullopt);
+            continue;
+        }
+        // 0..1 within this image; a one-brightness image keeps the absolute scale.
+        const double t = range >= 1 ? std::sqrt((cell->luminance - darkest) / range)
+                                    : cell->luminance / 256;
+        // 1..9: never the space, which marks transparency.
+        const auto level = std::min<std::size_t>(8, static_cast<std::size_t>(t * 9));
+        glyphs.cells.emplace_back(engine::GlyphCell{kGlyphRamp[1 + level], cell->color});
     }
     return glyphs;
 }

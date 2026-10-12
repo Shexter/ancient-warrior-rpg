@@ -21,6 +21,13 @@ namespace heroes::app {
 // Sprites by file name ("hero_fighter.sprite", "medusa.sprite", ...), loaded at startup.
 using SpriteBank = std::map<std::string, engine::Sprite, std::less<>>;
 
+// Optional large art for the large layouts, keyed like SpriteBank by the compact sprite's file
+// name. Either look may be missing for any sprite.
+struct LargeSprites {
+    std::map<std::string, engine::Sprite, std::less<>> blocks;      // 48x48-class half-blocks
+    std::map<std::string, engine::GlyphSprite, std::less<>> glyphs; // the same art as glyphs
+};
+
 enum class Layout { Auto, Compact }; // --layout: auto uses large layouts when they fit
 enum class ArtStyle { Glyph, Blocks }; // --art: which large sprites the large layouts draw
 
@@ -36,6 +43,7 @@ struct Session {
     std::string lastMessage{}; // shown on the Hub's bottom row
     Layout layout = Layout::Auto;
     ArtStyle art = ArtStyle::Glyph;
+    LargeSprites large{};
 };
 
 class Screen;

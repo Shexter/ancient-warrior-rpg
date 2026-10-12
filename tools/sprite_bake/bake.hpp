@@ -16,9 +16,11 @@ std::expected<engine::Sprite, std::string> loadPng(const std::filesystem::path& 
 inline constexpr std::string_view kGlyphRamp = " .:-=+*#%@";
 
 // An image W x 2H pixels as W x H glyph cells. Each cell covers one pixel column and two pixel
-// rows: transparent if both pixels are; otherwise its character comes from the average Rec. 709
-// luminance of its opaque pixels, and its color is the top pixel's (or the bottom's when the top
-// is transparent), so the result uses only the image's own colors.
+// rows: transparent if both pixels are. Otherwise its brightness is the average Rec. 709
+// luminance of its opaque pixels, stretched across the image's own darkest-to-brightest range and
+// lifted by a square root (so dark-colored areas still get visible glyphs); that picks the ramp
+// character. Its color is the top pixel's (or the bottom's when the top is transparent), so the
+// result uses only the image's own colors.
 engine::GlyphSprite toGlyphs(const engine::Sprite& image);
 
 enum class Format { HalfBlock, Glyphs };

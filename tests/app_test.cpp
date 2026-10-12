@@ -212,3 +212,47 @@ TEST(Options, DataDirPrecedence) {
     EXPECT_EQ(resolveDataDir({}, "/env", "/src"), fs::path("/env"));
     EXPECT_EQ(resolveDataDir({}, std::nullopt, "/src"), fs::path("/src/data"));
 }
+
+TEST(LargeSprites, ShippedArtLoadsInBothLooks) {
+    const auto large = loadLargeSprites(game::shippedContent(),
+                                        fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites" / "large");
+    ASSERT_TRUE(large.has_value()) << large.error();
+    EXPECT_EQ(large->blocks.size(), 6u);
+    EXPECT_EQ(large->glyphs.size(), 6u);
+    for (const char* hero : {"hero_fighter.sprite", "hero_hunter.sprite", "hero_rogue.sprite"}) {
+        EXPECT_EQ(large->blocks.at(hero).width, 48) << hero;
+        EXPECT_EQ(large->blocks.at(hero).height, 48) << hero;
+        EXPECT_EQ(large->glyphs.at(hero).width, 48) << hero; // the same cell footprint
+        EXPECT_EQ(large->glyphs.at(hero).height, 24) << hero;
+    }
+    for (const char* boss : {"medusa.sprite", "avaritia.sprite"}) {
+        EXPECT_EQ(large->blocks.at(boss).width, 56) << boss;
+        EXPECT_EQ(large->glyphs.at(boss).height, 26) << boss;
+    }
+    EXPECT_EQ(large->glyphs.at("monster.sprite").width, 32);
+    EXPECT_EQ(large->glyphs.at("monster.sprite").height, 16);
+}
+
+TEST(LargeSprites, MissingArtIsSimplyAbsent) {
+    const fs::path dir = fs::temp_directory_path() / "heroes_large_missing";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    std::ofstream(dir / "medusa.glyphs") << "glyphs 1 1\npalette\na #ffffff\nchars\n|@|\ncolors\na\n";
+    const auto large = loadLargeSprites(game::shippedContent(), dir);
+    ASSERT_TRUE(large.has_value()) << large.error();
+    EXPECT_TRUE(large->blocks.empty());
+    EXPECT_EQ(large->glyphs.size(), 1u); // only the one that exists
+    EXPECT_TRUE(large->glyphs.contains("medusa.sprite"));
+}
+
+TEST(LargeSprites, BrokenFileIsReportedByNameAndLine) {
+    const fs::path dir = fs::temp_directory_path() / "heroes_large_broken";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    std::ofstream(dir / "hero_fighter.glyphs")
+        << "glyphs 2 1\npalette\na #ffffff\nchars\n|@|\ncolors\na\n"; // row 1 char short
+    const auto large = loadLargeSprites(game::shippedContent(), dir);
+    ASSERT_FALSE(large.has_value());
+    EXPECT_NE(large.error().find("hero_fighter.glyphs"), std::string::npos) << large.error();
+    EXPECT_NE(large.error().find("line 5"), std::string::npos) << large.error();
+}

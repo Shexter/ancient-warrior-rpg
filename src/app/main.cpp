@@ -36,6 +36,11 @@ int main(int argc, char** argv) {
         std::cerr << sprites.error() << '\n';
         return 2;
     }
+    auto large = app::loadLargeSprites(*content, dataDir / ".." / "assets" / "sprites" / "large");
+    if (!large) {
+        std::cerr << large.error() << '\n';
+        return 2;
+    }
     const auto saveFile = platform::saveFilePath();
     if (!saveFile) {
         std::cerr << "heroes: error: cannot find a place to save; set HEROES_SAVE_DIR\n";
@@ -49,6 +54,7 @@ int main(int argc, char** argv) {
         app::Session session{*content, *sprites, *saveFile, options->seed};
         session.layout = options->layout;
         session.art = options->art;
+        session.large = std::move(*large);
         app::App game(terminal, renderer, std::make_unique<app::TitleScreen>(session));
         return game.run();
     } catch (const std::exception& e) {

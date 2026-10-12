@@ -41,6 +41,11 @@ std::string_view describe(game::SaveError error);
 std::expected<SpriteBank, std::string> loadSprites(const game::Content& content,
                                                    const std::filesystem::path& spriteDir);
 
+// For each of those sprites, loads `<largeDir>/<name>.sprite` and `<name>.glyphs` when present.
+// A missing file is simply absent; one that exists but doesn't parse is an error naming it.
+std::expected<LargeSprites, std::string> loadLargeSprites(const game::Content& content,
+                                                          const std::filesystem::path& largeDir);
+
 // Runs the screen stack on the fixed-step loop until a screen quits or the stack empties.
 class App {
   public:

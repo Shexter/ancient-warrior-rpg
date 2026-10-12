@@ -18,10 +18,10 @@
 
 ## 3. Large art
 
-- [ ] 3.1 Generate the large art with Draw Things: three heroes (48×48), Medusa and Avaritia (56×52), the training monster (32×32). Bake each in both looks into `assets/sprites/large/` and record prompts and seeds in `tools/art/README.md`; verify every file parses, and show the user a preview of all twelve before committing
-- [ ] 3.2 Load optional large art into the sprite bank (missing = absent; malformed = startup error naming the file, exit 2, before the terminal changes); verify loader tests for present, missing and malformed files, and the existing bad-content CTest still passes
-- [ ] 3.3 Update SimpleDocs `sprites.md` for the large set; verify the doc lists every shipped large file
-- [ ] 3.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Generate the large art with Draw Things: three heroes (48×48), Medusa and Avaritia (56×52), the training monster (32×32). Bake each in both looks into `assets/sprites/large/` and record prompts and seeds in `tools/art/README.md`; verify every file parses, and show the user a preview of all twelve before committing
+- [x] 3.2 Load optional large art into the sprite bank (missing = absent; malformed = startup error naming the file, exit 2, before the terminal changes); verify loader tests for present, missing and malformed files, and the existing bad-content CTest still passes
+- [x] 3.3 Update SimpleDocs `sprites.md` for the large set; verify the doc lists every shipped large file
+- [x] 3.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Large layouts for the art screens
 

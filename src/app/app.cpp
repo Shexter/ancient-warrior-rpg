@@ -69,15 +69,47 @@ std::string_view describe(game::SaveError error) {
     return "Something went wrong with the save file.";
 }
 
-std::expected<SpriteBank, std::string> loadSprites(const game::Content& content,
-                                                   const std::filesystem::path& spriteDir) {
+namespace {
+
+// Every sprite file the screens draw.
+std::vector<std::string> spriteFiles(const game::Content& content) {
     std::vector<std::string> files{"monster.sprite"};
     for (const game::PathDef& path : content.paths())
         files.push_back(std::format("hero_{}.sprite", path.id));
     for (const game::EnemyDef& enemy : content.enemies())
         files.push_back(enemy.sprite);
+    return files;
+}
+
+} // namespace
+
+std::expected<LargeSprites, std::string> loadLargeSprites(const game::Content& content,
+                                                          const std::filesystem::path& largeDir) {
+    LargeSprites large;
+    for (const std::string& file : spriteFiles(content)) {
+        const std::filesystem::path blocks = largeDir / file;
+        const std::filesystem::path glyphs = (largeDir / file).replace_extension(".glyphs");
+        std::error_code ec;
+        if (std::filesystem::exists(blocks, ec)) {
+            auto sprite = engine::loadSprite(blocks);
+            if (!sprite)
+                return std::unexpected(sprite.error());
+            large.blocks.insert_or_assign(file, std::move(*sprite));
+        }
+        if (std::filesystem::exists(glyphs, ec)) {
+            auto sprite = engine::loadGlyphs(glyphs);
+            if (!sprite)
+                return std::unexpected(sprite.error());
+            large.glyphs.insert_or_assign(file, std::move(*sprite));
+        }
+    }
+    return large;
+}
+
+std::expected<SpriteBank, std::string> loadSprites(const game::Content& content,
+                                                   const std::filesystem::path& spriteDir) {
     SpriteBank bank;
-    for (const std::string& file : files) {
+    for (const std::string& file : spriteFiles(content)) {
         auto sprite = engine::loadSprite(spriteDir / file);
         if (!sprite)
             return std::unexpected(sprite.error());

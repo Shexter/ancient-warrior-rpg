@@ -128,18 +128,23 @@ TEST(SpriteBake, GlyphsWithTooManyColorsWriteNothing) {
     EXPECT_FALSE(fs::exists(out));
 }
 
-TEST(SpriteBake, GlyphRampLevelsFollowLuminance) {
+TEST(SpriteBake, GlyphRampIsStretchedAcrossTheImage) {
     engine::Sprite image;
     image.width = 3;
     image.height = 2;
-    image.pixels = {engine::Rgb{0, 0, 0},       engine::Rgb{128, 128, 128}, engine::Rgb{255, 0, 0},
-                    engine::Rgb{0, 0, 0},       std::nullopt,               engine::Rgb{0, 0, 255}};
+    // Black (luminance 0), mid gray (128), and dark red over blue (average about 22).
+    image.pixels = {engine::Rgb{0, 0, 0}, engine::Rgb{128, 128, 128}, engine::Rgb{170, 0, 0},
+                    engine::Rgb{0, 0, 0}, std::nullopt,               engine::Rgb{0, 0, 120}};
     const auto glyphs = bake::toGlyphs(image);
-    EXPECT_EQ(glyphs.at(0, 0)->ch, bake::kGlyphRamp[1]);
-    EXPECT_EQ(glyphs.at(1, 0)->ch, bake::kGlyphRamp[5]); // 128 * 9 / 256 = 4.5 -> level 4
-    // Red over blue: luminance averages both, color is the top pixel's.
-    EXPECT_EQ(glyphs.at(2, 0)->color, (engine::Rgb{255, 0, 0}));
-    EXPECT_EQ(glyphs.at(2, 0)->ch, bake::kGlyphRamp[1 + static_cast<std::size_t>(
-                                                            (0.2126 * 255 + 0.0722 * 255) / 2 *
-                                                            9 / 256)]);
+    EXPECT_EQ(glyphs.at(0, 0)->ch, bake::kGlyphRamp[1]); // the image's darkest: sparse end
+    EXPECT_EQ(glyphs.at(1, 0)->ch, bake::kGlyphRamp[9]); // the image's brightest: dense end
+    // Red over blue: about 0.18 of the range, lifted to 0.42 by the square root -> level 3.
+    EXPECT_EQ(glyphs.at(2, 0)->ch, bake::kGlyphRamp[4]);
+    EXPECT_EQ(glyphs.at(2, 0)->color, (engine::Rgb{170, 0, 0})); // the top pixel's color
+
+    engine::Sprite flat; // one brightness: the absolute scale applies
+    flat.width = 1;
+    flat.height = 1;
+    flat.pixels = {engine::Rgb{255, 255, 255}};
+    EXPECT_EQ(bake::toGlyphs(flat).at(0, 0)->ch, bake::kGlyphRamp[9]);
 }

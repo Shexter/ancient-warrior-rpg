@@ -55,7 +55,7 @@ Alternative: extend `.sprite` with a glyph layer. Rejected: it would change a fo
 
 **5. Ramp baking.**
 - `sprite_bake in.png out.glyphs --glyphs` reads a PNG that is W × 2H pixels, and each cell covers one pixel column and two pixel rows.
-- The luminance (Rec. 709) of each cell's opaque pixels is averaged and picks a character from the ramp ` .:-=+*#%@`, with space reserved for transparent. The cell color is the top pixel's, or the bottom's if the top is transparent. (Changed in chunk 2 from the averaged color: averaging blends quantized colors into new ones and would break the palette cap. The cap is 62 colors with the same "reduce the palette first" error.)
+- The luminance (Rec. 709) of each cell's opaque pixels is averaged, stretched across the image's own darkest-to-brightest range and lifted by a square root (changed in chunk 3: the absolute scale left dark-colored figures as faint `.`/`:` in the preview), and picks a character from the ramp ` .:-=+*#%@`, with space reserved for transparent. The cell color is the top pixel's, or the bottom's if the top is transparent. (Changed in chunk 2 from the averaged color: averaging blends quantized colors into new ones and would break the palette cap. The cap is 62 colors with the same "reduce the palette first" error.)
 - The same PNG bakes both looks, so the half-block and glyph versions of a character always have the same cell footprint.
 
 **6. Large sprite sizes and placement at 120×40** (in cells; half-block heights are pixels / 2):

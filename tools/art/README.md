@@ -27,3 +27,21 @@ Every prompt ends with this style suffix: *Retro 16-bit video game character spr
 | `avaritia` | 32x28 | 7 | green | Side view of Avaritia, the demon of greed, facing left: a gaunt hunched figure in a heavy crimson and gold robe, grey skin, long clawed fingers clutching a bulging sack of gold coins, a chain of coins around its neck, a crown of bent coins, glowing yellow eyes, menacing pose. |
 
 One exception: the fighter's suffix put the background before the last three phrases ("... margin, solid pure green background (#00FF00), no shadow, no ground, no text."). Same model, seed and exact prompt reproduce the image on the same Draw Things version.
+
+## Large set (`assets/sprites/large/`, add-large-art-layout chunk 3)
+
+The same Draw Things images as the table above (same prompts and seeds, regenerated), fitted to bigger sizes and baked in both looks from one PNG each:
+
+| sprite | PNG size | half-block cells | glyph cells |
+|---|---|---|---|
+| `hero_fighter`, `hero_hunter`, `hero_rogue` | 48x48 | 48x24 | 48x24 |
+| `medusa`, `avaritia` | 56x52 | 56x26 | 56x26 |
+| `monster` | 32x32 | 32x16 | 32x16 |
+
+```
+python3 -I tools/art/to_sprite_png.py in.png green|magenta W H large.png
+./build/debug/sprite_bake large.png assets/sprites/large/NAME.sprite
+./build/debug/sprite_bake large.png assets/sprites/large/NAME.glyphs --glyphs
+```
+
+The glyph ramp is stretched across each image's own brightness range and lifted by a square root. With the absolute scale, dark colors (the Knight's red tunic, Avaritia's robe) became `.` and `:` and the figures didn't read. That change was decided from a preview of the first bake on 2026-10-12.
