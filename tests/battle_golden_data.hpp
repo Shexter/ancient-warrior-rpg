@@ -1,5 +1,5 @@
 // Expected event sequences copied verbatim from
-// openspec/changes/build-core-engine/reference/golden-vectors.md. Do not edit to make a test pass:
+// openspec/changes/archive/2026-10-11-build-core-engine/reference/golden-vectors.md. Do not edit to make a test pass:
 // if the engine disagrees, stop and report.
 #pragma once
 

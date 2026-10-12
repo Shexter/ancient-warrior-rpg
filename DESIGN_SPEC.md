@@ -1,6 +1,6 @@
 # Ancient Warrior RPG (Heroes RPG) — Design Spec from the original
 
-> **Superseded for numbers and rules.** This was a first-pass summary. A line-by-line read of the original later corrected several points, and the authoritative values are in `openspec/changes/build-core-engine/reference/content-tables.md`. Known errors below:
+> **Superseded for numbers and rules.** This was a first-pass summary. A line-by-line read of the original later corrected several points, and the authoritative values are in `openspec/changes/archive/2026-10-11-build-core-engine/reference/content-tables.md`. Known errors below:
 > - "Restore (revive/heal, 100 gold)" is wrong. Restoration uses consumables. Revive costs up to 100 gold and sets HP to 100.
 > - "buy stat points (100 gold per point)" is incomplete. Charisma spends EXP (50 per point) **and** gold, and requires level 10.
 > - EXP is a spendable currency separate from level progress.
