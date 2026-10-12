@@ -86,7 +86,7 @@ Approved plan (2026-10-11): stop for approval after each of 10.0-10.5; commit lo
 
 ## 11. Final Verification
 
-- [ ] 11.1 On a fresh clone: `cmake --preset debug`, build, `ctest`; `cmake --preset asan`, build, `ctest`; verify all pass and CI is green on all four jobs
-- [ ] 11.2 Run a full playthrough: create → train a few rounds → shop → save → reload → (save edited to level 20) → Medusa → save → reload; verify the state matches and that `git status` shows no stray files
-- [ ] 11.3 Run `openspec validate build-core-engine --strict` and verify it passes; list any SPEC DRIFT found during the change for the user
-- [ ] 11.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 11.1 On a fresh clone: `cmake --preset debug`, build, `ctest`; `cmake --preset asan`, build, `ctest`; verify all pass and CI is green on all four jobs
+- [x] 11.2 Run a full playthrough: create → train a few rounds → shop → save → reload → (save edited to level 20) → Medusa → save → reload; verify the state matches and that `git status` shows no stray files
+- [x] 11.3 Run `openspec validate build-core-engine --strict` and verify it passes; list any SPEC DRIFT found during the change for the user
+- [x] 11.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
