@@ -13,3 +13,4 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [sprites.md](sprites.md) | sprite format, drawing, tints, sprite_bake |
 | [simulator.md](simulator.md) | `heroes-sim` |
 | [app.md](app.md) | command line, screen stack, widgets, screens implemented so far |
+| [scripting.md](scripting.md) | Lua sandbox: ScriptHost, allowlist, budget, memory cap |

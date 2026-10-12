@@ -60,6 +60,12 @@ std::expected<void, std::vector<ContentError>> validateScripts(const Content&); 
   - Set `dofile`, `loadfile`, `load`, `require`, `collectgarbage`, `print`, `math.random`, and `math.randomseed` to nil.
   - Don't open `io`, `os`, `package`, `debug`, `coroutine`, or `utf8`.
   - After setup, freeze `_G` with a metatable whose `__newindex` raises `"globals are read-only"`. Scripts may use locals and their returned table only.
+  - **Added in chunk 1 after review:**
+    - also remove `warn` (it writes to stderr over the game screen), `rawset` (it writes past `__newindex`), `_G`, and sol2's `base`, which is a second name for the global table;
+    - replace `string`, `table` and `math` with read-only proxies, so scripts can't leave state in shared library tables;
+    - set `__metatable = false` on every protective metatable and on the string metatable, so they can't be read or removed;
+    - once the budget is exceeded, the hook re-arms to fire every instruction, so `pcall` can't swallow it and keep looping;
+    - add `math.acos`, `math.asin` and `math.atan`, standard Lua 5.4 functions, to the reachable list.
 - **Script shape.** Each file must `return` a table: `{ take_turn = function(ctx) end }` for enemies, or `{ cast = function(ctx) end }` for skills. Anything else is a load-time `ContentError` naming the file. Each script loads once in its own environment table, with `__index = _G`.
 - **Budget.** Before each call, reset the counter and set `lua_sethook(L, hook, LUA_MASKCOUNT, 10000)`. The hook raises `"instruction budget exceeded"` after 100 calls (≈1,000,000 instructions). Remove the hook after the call.
 - **Memory cap.** Create the state with `lua_newstate` and a custom allocator that tracks bytes and refuses growth past 8 MiB (returns NULL, which Lua turns into a memory error). With sol2, use `sol::state(sol::default_at_panic, allocator)`, or construct the raw state and wrap it in `sol::state_view`.

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(heroes VERSION 0.1.0 LANGUAGES CXX)
+project(heroes VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,9 +12,11 @@ enable_testing()
 
 add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp
     src/game/inventory.cpp src/game/hero.cpp src/game/battle.cpp src/game/training.cpp src/game/town.cpp
-    src/game/save.cpp)
+    src/game/save.cpp src/game/script/script_host.cpp)
 target_include_directories(heroes_game PUBLIC src)
-target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json PRIVATE heroes_warnings)
+target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json
+    PRIVATE heroes_warnings lua_static sol2::sol2)
+target_compile_definitions(heroes_game PRIVATE SOL_ALL_SAFETIES_ON=1)
 
 add_library(heroes_engine STATIC src/engine/color.cpp src/engine/framebuffer.cpp
     src/engine/renderer.cpp src/engine/input.cpp src/engine/loop.cpp src/engine/sprite.cpp)
@@ -66,12 +68,14 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_status_test.cpp tests/sim_test.cpp tests/training_test.cpp
     tests/town_merchant_test.cpp tests/town_blacksmith_test.cpp tests/town_guild_test.cpp
     tests/save_test.cpp tests/paths_test.cpp tests/framebuffer_test.cpp
-    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp tests/glyph_sprite_test.cpp
+    tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp tests/glyph_sprite_test.cpp tests/script_sandbox_test.cpp
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
     tests/battle_screen_test.cpp tests/large_layout_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
-    heroes_warnings GTest::gtest_main)
+    heroes_warnings GTest::gtest_main sol2::sol2)
+# Lua's headers for the sandbox tests; the library itself comes through heroes_game.
+target_include_directories(heroes_tests SYSTEM PRIVATE ${lua_SOURCE_DIR}/src)
 target_compile_definitions(heroes_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 include(GoogleTest)
 gtest_discover_tests(heroes_tests)
