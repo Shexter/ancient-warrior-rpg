@@ -1,5 +1,7 @@
 #include "sim/sim.hpp"
 
+#include "game/script/script_host.hpp"
+
 #include "game/battle.hpp"
 #include "game/content_loader.hpp"
 #include "game/game_state.hpp"
@@ -134,9 +136,11 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
 Tally runRange(const SimConfig& config, const Setup& setup, std::uint64_t begin,
                std::uint64_t end) {
     Tally tally;
+    // Lua states aren't thread-safe: each worker (each call) gets its own script host.
+    script::ScriptHost scripts(setup.content);
     for (std::uint64_t i = begin; i < end; ++i) {
         Battle battle(setup.content, setup.hero, setup.enemy, setup.skills,
-                      Rng::stream(config.seed, i));
+                      Rng::stream(config.seed, i), &scripts);
         while (!battle.over()) {
             // Policies only pick learned, affordable, ready actions; a rejection is a bug.
             if (!battle.act(chooseAction(config.policy, setup.content, battle, setup.skills)))

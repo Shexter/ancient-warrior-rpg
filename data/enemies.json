@@ -8,7 +8,7 @@
       "atk": 250,
       "def": 20,
       "life": 10,
-      "behavior": "medusa_pattern",
+      "script": "scripts/medusa.lua",
       "rewardExp": 10000,
       "rewardGold": 25000,
       "rewardItems": [
@@ -23,7 +23,7 @@
       "atk": 160,
       "def": 15,
       "life": 5,
-      "behavior": "medusa_pattern",
+      "script": "scripts/medusa.lua",
       "rewardExp": 5000,
       "rewardGold": 15000,
       "rewardItems": [

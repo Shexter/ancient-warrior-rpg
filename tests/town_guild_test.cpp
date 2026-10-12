@@ -222,10 +222,10 @@ TEST(Guild, RenameRefusals) {
 }
 
 TEST(Mission, StartRefusals) {
-    const auto start = [](GameState& s) { return startMission(s, content(), "the_gorgon"); };
+    const auto start = [](GameState& s) { return startMission(s, content(), "the_gorgon", &shippedScripts()); };
     expectRefused(freshState(), TownError::MissionLocked, start);
     expectRefused(freshState(), TownError::UnknownItem,
-                  [](GameState& s) { return startMission(s, content(), "nope"); });
+                  [](GameState& s) { return startMission(s, content(), "nope", &shippedScripts()); });
     GameState dead = missionReady();
     dead.hero.hp = 0;
     expectRefused(dead, TownError::HeroDead, start);
@@ -240,13 +240,13 @@ TEST(Mission, StartRefusals) {
 TEST(Mission, StartAdvancesMasterByOneFork) {
     GameState state = missionReady();
     const Rng expected = afterOneFork(state.rng);
-    ASSERT_TRUE(startMission(state, content(), "the_gorgon"));
+    ASSERT_TRUE(startMission(state, content(), "the_gorgon", &shippedScripts()));
     EXPECT_EQ(state.rng, expected);
 }
 
 TEST(Mission, VictoryGrantsRewardsAndMarksCompleted) {
     GameState state = missionReady();
-    auto battle = startMission(state, content(), "the_gorgon");
+    auto battle = startMission(state, content(), "the_gorgon", &shippedScripts());
     ASSERT_TRUE(battle.has_value());
     finish(*battle);
     ASSERT_EQ(battle->outcome(), Outcome::Victory);
@@ -262,13 +262,13 @@ TEST(Mission, VictoryGrantsRewardsAndMarksCompleted) {
     EXPECT_TRUE(state.hero.completedMissions.contains("the_gorgon"));
     EXPECT_EQ(state.hero.hp, battle->hero().hp);
     // Not repeatable.
-    EXPECT_EQ(startMission(state, content(), "the_gorgon").error(), TownError::MissionCompleted);
+    EXPECT_EQ(startMission(state, content(), "the_gorgon", &shippedScripts()).error(), TownError::MissionCompleted);
 }
 
 TEST(Mission, VictoryWithFullBagLosesRewardItem) {
     GameState state = missionReady();
     fillWithout(state.hero.bag, "thors_hammer", 10);
-    auto battle = startMission(state, content(), "the_gorgon");
+    auto battle = startMission(state, content(), "the_gorgon", &shippedScripts());
     ASSERT_TRUE(battle.has_value());
     finish(*battle);
     const auto result = finishMission(state, content(), "the_gorgon", *battle);
@@ -283,7 +283,7 @@ TEST(Mission, DefeatDestroysGear) {
     state.hero.atk = 1; // cannot hurt Medusa
     state.hero.def = 0;
     ASSERT_TRUE(state.hero.bag.add("iron_sword", 1));
-    auto battle = startMission(state, content(), "the_gorgon");
+    auto battle = startMission(state, content(), "the_gorgon", &shippedScripts());
     ASSERT_TRUE(battle.has_value());
     finish(*battle);
     ASSERT_EQ(battle->outcome(), Outcome::Defeat);
@@ -299,7 +299,7 @@ TEST(Mission, DefeatDestroysGear) {
 
 TEST(Mission, FleeChangesNothingButHpAndMp) {
     GameState state = missionReady();
-    auto battle = startMission(state, content(), "the_gorgon");
+    auto battle = startMission(state, content(), "the_gorgon", &shippedScripts());
     ASSERT_TRUE(battle.has_value());
     ASSERT_TRUE(battle->act(Flee{}));
     GameState expected = state;
@@ -307,5 +307,5 @@ TEST(Mission, FleeChangesNothingButHpAndMp) {
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result->outcome, Outcome::Fled);
     EXPECT_EQ(state, expected);
-    EXPECT_TRUE(startMission(state, content(), "the_gorgon").has_value());
+    EXPECT_TRUE(startMission(state, content(), "the_gorgon", &shippedScripts()).has_value());
 }

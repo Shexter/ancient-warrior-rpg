@@ -8,7 +8,7 @@
       "atk": 250,
       "def": 20,
       "life": 10,
-      "behavior": "medusa_pattern",
+      "behavior": "basic",
       "rewardExp": 10000,
       "rewardGold": 25000,
       "rewardItems": [

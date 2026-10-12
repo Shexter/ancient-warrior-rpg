@@ -12,7 +12,7 @@ namespace {
 
 Battle makeBattle(Combatant hero, std::set<std::string> learned) {
     return Battle(shippedContent(), std::move(hero), shippedContent().enemy("medusa"),
-                  std::move(learned), Rng::stream(5, 0));
+                  std::move(learned), Rng::stream(5, 0), &shippedScripts());
 }
 
 Combatant strongHero() { return {"Aria", 2000, 2000, 200, 200, 400, 200, 50, {}}; }

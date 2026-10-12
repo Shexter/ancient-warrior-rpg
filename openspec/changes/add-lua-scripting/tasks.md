@@ -17,9 +17,9 @@ The reference is `reference/lua-interfaces.md` (abbreviated "ref" below).
 
 ## 3. Port Medusa
 
-- [ ] 3.1 Add `data/scripts/medusa.lua` (ref §4), point Medusa and Avaritia (added by `reskin-act-one` with Medusa's pattern; and Gorgon Spawn, if dungeons have shipped) at it, and delete `EnemyBehavior::MedusaPattern` and its C++ code; verify core golden scenarios A–D and the `AvaritiaBalance` tests pass unchanged on all three CI platforms
-- [ ] 3.2 Give each simulator worker its own `ScriptHost`; verify the 1-vs-8-thread determinism test still passes, and record native (pre-change, from `docs/benchmarks.md`) vs scripted Medusa throughput; if below 25% of native, apply the ref §8 mitigation and re-measure
-- [ ] 3.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Add `data/scripts/medusa.lua` (ref §4), point Medusa and Avaritia (added by `reskin-act-one` with Medusa's pattern; and Gorgon Spawn, if dungeons have shipped) at it, and delete `EnemyBehavior::MedusaPattern` and its C++ code; verify core golden scenarios A–D and the `AvaritiaBalance` tests pass unchanged on all three CI platforms
+- [x] 3.2 Give each simulator worker its own `ScriptHost`; verify the 1-vs-8-thread determinism test still passes, and record native (pre-change, from `docs/benchmarks.md`) vs scripted Medusa throughput; if below 25% of native, apply the ref §8 mitigation and re-measure
+- [x] 3.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Mods
 

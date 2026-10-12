@@ -30,8 +30,9 @@ fs::path dropFreeDataDir() {
     fs::copy(fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites", root / "assets" / "sprites");
     fs::create_directories(root / "data");
     for (const auto& entry : fs::directory_iterator(fs::path(HEROES_SOURCE_DIR) / "data")) {
-        if (entry.path().filename() != "items.json") {
-            fs::copy_file(entry.path(), root / "data" / entry.path().filename());
+        if (entry.path().filename() != "items.json") { // scripts/ is a folder: copy recursively
+            fs::copy(entry.path(), root / "data" / entry.path().filename(),
+                     fs::copy_options::recursive);
             continue;
         }
         std::ifstream in(entry.path());

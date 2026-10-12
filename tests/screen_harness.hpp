@@ -62,6 +62,7 @@ struct Harness {
         fs::remove_all(dir);
         fs::create_directories(dir);
         session.saveFile = dir / "save.json";
+        session.scripts = &game::shippedScripts();
         session.seed = 7;
     }
 

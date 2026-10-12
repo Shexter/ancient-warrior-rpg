@@ -12,7 +12,7 @@ Combatant strongHero() { return {"Aria", 2000, 2000, 200, 200, 400, 200, 50, {}}
 
 Battle makeBattle(Combatant hero, std::set<std::string> learned = {}, std::uint64_t seed = 1) {
     return Battle(shippedContent(), std::move(hero), shippedContent().enemy("medusa"),
-                  std::move(learned), Rng::stream(seed, 0));
+                  std::move(learned), Rng::stream(seed, 0), &shippedScripts());
 }
 
 void expectActionError(Battle& battle, const PlayerAction& action, ActionError expected) {

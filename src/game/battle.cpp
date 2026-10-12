@@ -166,20 +166,6 @@ void Battle::basicAttack(Side attacker, Events& out) {
     checkDeaths(out);
 }
 
-// EnemyBehavior::MedusaPattern.
-bool Battle::medusaTurn(Events& out) {
-    const std::uint32_t roll = rng_.below(10);
-    out.push_back(ev::Attacked{Side::Enemy});
-    hit(Side::Enemy, enemy_.atk, true, DamageCause::Attack, out);
-    if (checkDeaths(out))
-        return false;
-    if (roll < 5) { // Strike: regenerate
-        heal(Side::Enemy, enemy_.life, out);
-        return false;
-    }
-    return rng_.below(10) < 6; // Gaze: chance of an immediate extra turn
-}
-
 // A failed script is undone completely (combatants, RNG, its events) and reported, and the
 // enemy makes a basic attack instead, with no extra turn (lua-interfaces.md §5).
 bool Battle::scriptedEnemyTurn(const std::string& script, Events& out) {
@@ -213,7 +199,11 @@ void Battle::enemyPhase(Events& out) {
             endTurn(Side::Enemy, out);
             return;
         }
-        const bool extraTurn = script ? scriptedEnemyTurn(*script, out) : medusaTurn(out);
+        bool extraTurn = false;
+        if (script)
+            extraTurn = scriptedEnemyTurn(*script, out);
+        else // EnemyBehavior::Basic
+            basicAttack(Side::Enemy, out);
         if (over_)
             return;
         endTurn(Side::Enemy, out);

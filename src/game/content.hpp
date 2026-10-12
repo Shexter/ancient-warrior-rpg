@@ -71,12 +71,12 @@ struct SkillDef {
     std::optional<std::string> script; // a Lua file under the data dir, instead of `effect`
 };
 
-enum class EnemyBehavior { MedusaPattern }; // the only behavior in core; Lua replaces this later
+enum class EnemyBehavior { Basic }; // a plain attack every turn; also the fallback for a failed scriptr
 
 struct EnemyDef {
     std::string id, name, sprite;
     int maxHp, atk, def, life;
-    EnemyBehavior behavior = EnemyBehavior::MedusaPattern; // when there is no script
+    EnemyBehavior behavior = EnemyBehavior::Basic; // when there is no script
     std::optional<std::string> script; // a Lua file under the data dir, instead of `behavior`
     std::int64_t rewardExp, rewardGold;
     std::vector<std::string> rewardItems;

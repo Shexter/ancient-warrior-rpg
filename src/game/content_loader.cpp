@@ -201,7 +201,7 @@ constexpr std::array<std::pair<std::string_view, StatusId>, 3> kStatuses{{
     {"reflect", StatusId::Reflect},
 }};
 constexpr std::array<std::pair<std::string_view, EnemyBehavior>, 1> kBehaviors{{
-    {"medusa_pattern", EnemyBehavior::MedusaPattern},
+    {"basic", EnemyBehavior::Basic},
 }};
 
 // "item 'iron_sword'", or "item #3" when the entry has no usable id.

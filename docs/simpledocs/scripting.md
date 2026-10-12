@@ -1,6 +1,6 @@
 # Scripting (`src/game/script/`)
 
-Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Lua is compiled as C++, so a Lua error is a C++ exception that unwinds the engine functions a script called (`SOL_USING_CXX_LUA`). Only `heroes_game` links them. The shipped data has no scripts yet: Medusa moves to Lua in add-lua-scripting chunk 3. Scripts come from content and tests.
+Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Lua is compiled as C++, so a Lua error is a C++ exception that unwinds the engine functions a script called (`SOL_USING_CXX_LUA`). Only `heroes_game` links them. Shipped scripts: `data/scripts/medusa.lua` is Medusa's (and Avaritia's) turn, the same rules and random-draw order as the old C++ pattern, which was deleted. The core golden battles and the Avaritia balance tests pass unchanged with it.
 
 **`ScriptHost`**: one sandboxed `lua_State`. It is not thread-safe, so use one per thread.
 - `load(name, source)` runs the source as chunk `@name` in a fresh environment of its own. It must return a table, kept under `name`; otherwise the error is "`name`: the script must return a table".
@@ -27,7 +27,7 @@ Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched w
 - A skill has either `effect` or `script` (both, or neither, is an error naming the skill).
 - An enemy has either `behavior` or `script`. The script path is relative to the data folder and must stay inside it: no absolute paths, no `..`.
 - At load every referenced script is read and run once in a sandbox. Its file must exist, load without errors (syntax errors give `path:line`), and return a table with `cast` (skills) or `take_turn` (enemies).
-- The sources are kept in `Content::scripts()`. `ScriptHost(content)` loads them all; the game makes one host in `main` for the game thread and passes it through `Session` to `startMission` and `Battle`.
+- The sources are kept in `Content::scripts()`. `ScriptHost(content)` loads them all. The game makes one host in `main` for the game thread and passes it through `Session` to `startMission` and `Battle`. The simulator makes one per worker thread, and tests share `shippedScripts()`.
 
 **ctx** (`BattleApi`, bound in `ScriptHost`). Scripts call these with a dot (`ctx.attack()`):
 - `ctx.self` and `ctx.target` are read-only views: `name`, `hp`, `max_hp`, `mp`, `max_mp`, `atk`, `def`, `life`, and `has("stun"|"defense_down"|"reflect")`. For an enemy turn `self` is the enemy; for a skill `self` is the hero.

@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <stdexcept>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ fs::path scriptedData(const std::string& name, const std::string& enemyScript,
     fs::create_directories(root / "assets");
     fs::copy(fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites", root / "assets" / "sprites",
              fs::copy_options::recursive);
-    fs::copy(fs::path(HEROES_SOURCE_DIR) / "data", root / "data");
+    fs::copy(fs::path(HEROES_SOURCE_DIR) / "data", root / "data", fs::copy_options::recursive);
     fs::create_directories(root / "data" / "scripts");
     std::ofstream(root / "data" / "scripts" / "enemy.lua") << enemyScript;
     std::ofstream(root / "data" / "scripts" / "skill.lua") << skillScript;
@@ -70,6 +71,8 @@ struct World {
 
     // A 400 ATK, 0 DEF hero with 100 MP who knows the scripted skill.
     Battle battle(std::uint64_t seed = 42, bool withHost = true) {
+        if (!content) // the load failure was reported in the constructor
+            throw std::runtime_error("scripted test content did not load");
         Combatant hero{"Aria", 1000, 1000, 100, 100, 400, 0, 0, {}};
         return Battle(*content, hero, content->enemy("scripted"), {"scripted_skill"},
                       Rng::stream(seed, 0), withHost ? &*host : nullptr);
@@ -276,6 +279,10 @@ TEST(ScriptContent, SyntaxErrorsNameThePathAndLine) {
         << errors[0];
 }
 
-TEST(ScriptContent, ShippedContentHasNoScriptsYet) { // Medusa moves to Lua in chunk 3
-    EXPECT_TRUE(loadContent(fs::path(HEROES_SOURCE_DIR) / "data").value().scripts().empty());
+TEST(ScriptContent, ShippedEnemiesUseTheMedusaScript) {
+    const Content content = loadContent(fs::path(HEROES_SOURCE_DIR) / "data").value();
+    EXPECT_EQ(content.scripts().size(), 1u);
+    EXPECT_TRUE(content.scripts().contains("scripts/medusa.lua"));
+    EXPECT_EQ(content.enemy("medusa").script, "scripts/medusa.lua");
+    EXPECT_EQ(content.enemy("avaritia").script, "scripts/medusa.lua");
 }

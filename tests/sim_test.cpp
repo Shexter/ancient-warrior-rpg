@@ -209,7 +209,7 @@ TEST(AvaritiaBalance, TheCheckCatchesAStrongerAvaritia) {
     const fs::path root = fs::temp_directory_path() / "heroes_avaritia_band";
     fs::remove_all(root);
     fs::create_directories(root);
-    fs::copy(fs::path(HEROES_SOURCE_DIR) / "data", root / "data");
+    fs::copy(fs::path(HEROES_SOURCE_DIR) / "data", root / "data", fs::copy_options::recursive);
     fs::copy(fs::path(HEROES_SOURCE_DIR) / "assets", root / "assets", fs::copy_options::recursive);
     std::ifstream in(root / "data" / "enemies.json");
     nlohmann::json enemies = nlohmann::json::parse(in);
@@ -218,5 +218,7 @@ TEST(AvaritiaBalance, TheCheckCatchesAStrongerAvaritia) {
         if (enemy["id"] == "avaritia")
             enemy["atk"] = enemy["atk"].get<int>() + 50;
     std::ofstream(root / "data" / "enemies.json") << enemies.dump();
-    EXPECT_NE(avaritiaBandProblem(root / "data"), "");
+    // Caught by the band itself, not by the copy failing to load.
+    EXPECT_NE(avaritiaBandProblem(root / "data").find("mid-game"), std::string::npos)
+        << avaritiaBandProblem(root / "data");
 }

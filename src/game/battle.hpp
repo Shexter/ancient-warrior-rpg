@@ -86,8 +86,7 @@ class Battle {
     // Runs a skill's script; false if it failed (the caller rolls the whole action back).
     bool castScriptedSkill(const SkillDef& skill, Events& out);
     void enemyPhase(Events& out);
-    // One enemy turn of each kind; each returns whether the enemy gets an extra turn.
-    bool medusaTurn(Events& out);
+    // A scripted enemy turn; returns whether the enemy gets an extra turn.
     bool scriptedEnemyTurn(const std::string& script, Events& out);
     void basicAttack(Side attacker, Events& out);
     // Defeated + BattleEnded for whoever is at 0 HP, hero first. True if the battle ended.

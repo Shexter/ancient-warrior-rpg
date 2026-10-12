@@ -25,7 +25,7 @@ std::vector<std::string> play(Combatant hero, std::uint64_t seed, std::vector<st
                               std::size_t limit = SIZE_MAX) {
     const std::set<std::string> learned(skills.begin(), skills.end());
     Battle battle(shippedContent(), std::move(hero), shippedContent().enemy("medusa"), learned,
-                  Rng::stream(seed, 0));
+                  Rng::stream(seed, 0), &shippedScripts());
     std::vector<std::string> lines;
     std::size_t next = 0;
     while (!battle.over() && lines.size() < limit) {

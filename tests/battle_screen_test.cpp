@@ -157,7 +157,7 @@ TEST(Battle, FleeingPlaysOutAndAppliesTheSameResult) {
     Harness h("battle_flee");
     game::GameState expected = levelTwenty();
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon").value();
+        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon", &game::shippedScripts()).value();
         (void)battle.start();
         (void)battle.act(game::Flee{});
         (void)game::finishMission(expected, game::shippedContent(), "the_gorgon", battle);
@@ -181,7 +181,7 @@ TEST(Battle, AttackingEveryTurnMatchesTheGameAndShowsTheResult) {
     game::GameState expected = levelTwenty();
     game::Outcome outcome;
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon").value();
+        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon", &game::shippedScripts()).value();
         (void)battle.start();
         while (!battle.over())
             (void)battle.act(game::Attack{});
@@ -287,7 +287,7 @@ TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
     state.hero.atk = 100000; // ends the fight in the hero's favor
     game::GameState expected = state;
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "avaritia").value();
+        auto battle = game::startMission(expected, game::shippedContent(), "avaritia", &game::shippedScripts()).value();
         (void)battle.start();
         while (!battle.over())
             (void)battle.act(game::Attack{});

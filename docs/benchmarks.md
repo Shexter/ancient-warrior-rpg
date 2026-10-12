@@ -61,3 +61,18 @@ Tuning notes:
 | 120x40 half-block sprites | 31,245 bytes/frame | 2,786 bytes/frame | 8.9% |
 
 The large canvas has 2.5x the cells, but a glyph battle writes only 1.7x the bytes of a compact one, because glyph cells set only a foreground color. Half-blocks set two colors per cell and cost about 1.9x the glyph layout. The diff share is about the same at every size, since only the animated sprite region changes. These numbers are higher than the chunk 8 demo's 160 bytes/frame because a battle animation moves a whole sprite (the lunge) instead of a 12x3 box. The test fails if the diff renderer ever writes more than a quarter of a full redraw.
+
+## Scripted vs native enemies (add-lua-scripting task 3.2, 2026-10-12)
+
+Medusa and Avaritia now take their turns through `data/scripts/medusa.lua`. Each simulator worker owns its own `ScriptHost`. Native numbers were measured on the same machine, immediately before the C++ pattern was deleted. Release preset, seed 7, 200,000 battles.
+
+| run | native | scripted | scripted / native |
+|---|---|---|---|
+| Medusa, starting Knight, `attack` policy, 1 thread | 2,341,146 battles/s | 886,889 battles/s | 38% |
+| same, 8 threads | 11,203,985 battles/s | 4,574,003 battles/s | 41% |
+| Avaritia, Hunter with Sword +5 / Iron Shield +5 and two skills, `smart`, 1 thread (4.3 turns) | 1,125,719 battles/s | 324,293 battles/s | 29% |
+| same, 8 threads | 3,659,393 battles/s | 1,565,320 battles/s | 43% |
+
+- Every run is above the 25% target, so the reference's §8 mitigation (caching function handles, reusing one ctx per battle) was not applied.
+- The longest fights cost the most. The 29% single-thread case spends most of its time in script calls (about two enemy turns per battle).
+- The results are identical to the native runs (same win rate, average turns and HP left), as the parity requirement demands.
