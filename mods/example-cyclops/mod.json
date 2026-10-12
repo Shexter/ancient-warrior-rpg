@@ -1,0 +1,6 @@
+{
+  "name": "example-cyclops",
+  "version": "1.0.0",
+  "priority": 0,
+  "description": "Example mod: a Cyclops mission with a scripted enemy, and a scripted skill."
+}

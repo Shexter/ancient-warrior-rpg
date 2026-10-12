@@ -1,0 +1,17 @@
+{
+  "enemies": [
+    {
+      "id": "cyclops",
+      "name": "Cyclops",
+      "sprite": "monster.sprite",
+      "maxHp": 2500,
+      "atk": 300,
+      "def": 60,
+      "life": 0,
+      "script": "scripts/cyclops.lua",
+      "rewardExp": 3000,
+      "rewardGold": 2000,
+      "rewardItems": []
+    }
+  ]
+}

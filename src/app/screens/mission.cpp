@@ -273,9 +273,11 @@ void BattleScreen::draw(Framebuffer& frame) const {
     drawCentered(frame, frame.height() - 1,
                  "←→ select · Enter confirm · during animation: Enter skips", palette::kDim);
     if (skills_) {
-        // Compact: rows 14-20 over the arena and log (ui.md). Large: rows 26-32, over the log.
-        const int left = large ? 28 : 16, top = large ? 26 : 14;
-        drawPanel(frame, left, top, 64, 7);
+        // One row per skill plus the border, ending on row 20 (compact: rows 14-20 for five
+        // skills, as in ui.md) or row 32 (large); mods can add skills, so it grows upward.
+        const int height = skills_->size() + 2;
+        const int left = large ? 28 : 16, top = (large ? 33 : 21) - height;
+        drawPanel(frame, left, top, 64, height);
         drawText(frame, left + 2, top, " Skills · Fervor cost in () ", palette::kAccent);
         skills_->draw(frame, left + 2, top + 1, true, 61); // inside the panel's right border
     }

@@ -6,6 +6,8 @@
 #include <charconv>
 #include <format>
 #include <fstream>
+#include <span>
+#include <vector>
 #include <iterator>
 #include <limits>
 #include <system_error>
@@ -17,7 +19,9 @@ namespace {
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
 
-constexpr int kVersion = 1;
+// 2 added "mods" (add-lua-scripting). Version 1 saves still load, with no mods.
+constexpr int kVersion = 2;
+constexpr int kOldestVersion = 1;
 constexpr std::uintmax_t kMaxSaveBytes = 1 << 20; // a real save is a few KB
 
 // Thrown by the field readers; caught at the loadGame boundary and turned into Corrupt.
@@ -135,7 +139,7 @@ std::set<std::string> idSet(const Json& obj, const char* key, Lookup known) {
     return out;
 }
 
-Json toJson(const GameState& state) {
+Json toJson(const GameState& state, std::span<const ModRef> mods) {
     const Hero& h = state.hero;
     Json hero{{"name", h.name},
               {"pathId", h.pathId},
@@ -158,7 +162,11 @@ Json toJson(const GameState& state) {
               {"completedMissions", h.completedMissions},
               {"forgeLevel", h.forgeLevel}};
     const Rng::State rng = state.rng.state();
+    Json modList = Json::array();
+    for (const ModRef& mod : mods)
+        modList.push_back({{"name", mod.name}, {"version", mod.version}});
     return Json{{"version", kVersion},
+                {"mods", std::move(modList)},
                 {"seed", hex64(state.seed)},
                 {"rng", {{"state", hex64(rng.state)}, {"inc", hex64(rng.inc)}}},
                 {"hero", std::move(hero)}};
@@ -211,8 +219,9 @@ GameState fromJson(const Json& root, const Content& content) {
 
 } // namespace
 
-std::expected<void, SaveError> saveGame(const GameState& state, const fs::path& file) {
-    const std::string body = toJson(state).dump(2);
+std::expected<void, SaveError> saveGame(const GameState& state, const fs::path& file,
+                                        std::span<const ModRef> mods) {
+    const std::string body = toJson(state, mods).dump(2);
     fs::path tmp = file;
     tmp += ".tmp";
 
@@ -241,7 +250,10 @@ std::expected<void, SaveError> saveGame(const GameState& state, const fs::path& 
     return {};
 }
 
-std::expected<GameState, SaveError> loadGame(const fs::path& file, const Content& content) {
+namespace {
+
+// Reads and parses a save, checking its size and version. Never modifies the file.
+std::expected<Json, SaveError> readRoot(const fs::path& file) {
     std::error_code ec;
     if (!fs::exists(file, ec))
         return std::unexpected(SaveError::NotFound);
@@ -259,15 +271,57 @@ std::expected<GameState, SaveError> loadGame(const fs::path& file, const Content
         return std::unexpected(SaveError::Unreadable);
 
     try {
-        const Json root = Json::parse(body);
+        Json root = Json::parse(body);
         const Json& version = field(root, "version");
         if (!version.is_number_integer())
             return std::unexpected(SaveError::Corrupt);
         if (version.get<std::int64_t>() > kVersion)
             return std::unexpected(SaveError::NewerVersion);
-        if (version.get<std::int64_t>() < kVersion)
+        if (version.get<std::int64_t>() < kOldestVersion)
             return std::unexpected(SaveError::Corrupt);
-        return fromJson(root, content);
+        return root;
+    } catch (const BadSave&) {
+        return std::unexpected(SaveError::Corrupt);
+    } catch (const Json::exception&) {
+        return std::unexpected(SaveError::Corrupt);
+    }
+}
+
+// The "mods" list of a version 2 save; none for version 1.
+std::vector<ModRef> modsFromJson(const Json& root) {
+    if (root.at("version").get<std::int64_t>() < 2)
+        return {};
+    const Json& list = field(root, "mods");
+    if (!list.is_array() || list.size() > 1000)
+        bad();
+    std::vector<ModRef> mods;
+    for (const Json& mod : list)
+        mods.push_back({text(mod, "name"), text(mod, "version")});
+    return mods;
+}
+
+} // namespace
+
+std::expected<std::vector<ModRef>, SaveError> readSaveMods(const fs::path& file) {
+    auto root = readRoot(file);
+    if (!root)
+        return std::unexpected(root.error());
+    try {
+        return modsFromJson(*root);
+    } catch (const BadSave&) {
+        return std::unexpected(SaveError::Corrupt);
+    } catch (const Json::exception&) {
+        return std::unexpected(SaveError::Corrupt);
+    }
+}
+
+std::expected<GameState, SaveError> loadGame(const fs::path& file, const Content& content) {
+    auto root = readRoot(file);
+    if (!root)
+        return std::unexpected(root.error());
+    try {
+        (void)modsFromJson(*root); // checked here too, so a bad list can't load
+        return fromJson(*root, content);
     } catch (const BadSave&) {
         return std::unexpected(SaveError::Corrupt);
     } catch (const Json::exception&) {

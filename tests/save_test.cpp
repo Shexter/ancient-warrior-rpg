@@ -169,7 +169,10 @@ TEST_P(BadSave, IsRejectedAndFileUntouched) {
 INSTANTIATE_TEST_SUITE_P(
     Cases, BadSave,
     testing::Values(
-        BadCase{"version2", MUT(j["version"] = 2), SaveError::NewerVersion},
+        BadCase{"version3", MUT(j["version"] = 3), SaveError::NewerVersion}, // newer than this game
+        BadCase{"modsNotList", MUT(j["mods"] = "cyclops"), SaveError::Corrupt},
+        BadCase{"modWithoutVersion", MUT(j["mods"] = Json::array({{{"name", "x"}}})),
+                SaveError::Corrupt},
         BadCase{"version99_with_other_shape", MUT(j = Json{{"version", 99}, {"x", 1}}),
                 SaveError::NewerVersion},
         BadCase{"version0", MUT(j["version"] = 0), SaveError::Corrupt},
@@ -240,4 +243,20 @@ TEST(Save, TruncatedValidSaveIsCorruptAtEveryLength) {
         ASSERT_FALSE(result.has_value()) << n;
         EXPECT_EQ(result.error(), SaveError::Corrupt) << n;
     }
+}
+
+TEST(SaveMods, ActiveModsAreRecordedAndReadBack) {
+    const fs::path file = scratchDir("mods_round_trip") / "save.json";
+    const std::vector<ModRef> mods{{"cyclops-pack", "1.2.0"}, {"more-swords", "0.1"}};
+    ASSERT_TRUE(saveGame(freshState(), file, mods).has_value());
+    EXPECT_EQ(readSaveMods(file).value(), mods);
+    EXPECT_TRUE(loadGame(file, shippedContent()).has_value()); // the mods don't block loading
+}
+
+TEST(SaveMods, AVersion1SaveHasNoMods) {
+    // Written by the game before saves recorded mods.
+    const fs::path old =
+        fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "pre_reskin_save.json";
+    EXPECT_TRUE(readSaveMods(old).value().empty());
+    EXPECT_TRUE(loadGame(old, shippedContent()).has_value());
 }

@@ -23,9 +23,11 @@ struct ContentBuilder {
                             std::vector<SkillDef> skills, std::vector<EnemyDef> enemies,
                             std::vector<MissionDef> missions, std::vector<RecipeDef> recipes,
                             StoryDef story,
-                            std::map<std::string, std::string, std::less<>> scripts = {}) {
+                            std::map<std::string, std::string, std::less<>> scripts = {},
+                            std::vector<ModRef> mods = {}) {
         Content c;
         c.scripts_ = std::move(scripts);
+        c.mods_ = std::move(mods);
         c.items_.all = std::move(items);
         c.paths_.all = std::move(paths);
         c.skills_.all = std::move(skills);
@@ -438,35 +440,38 @@ StoryDef loadStory(Ctx& ctx, const std::filesystem::path& dir, bool& fileOk) {
     return s;
 }
 
-// Reads one referenced script into `sources` and checks it in `host`: the path stays inside the
-// data folder, the file exists, it loads in the sandbox, and it returns a table with `function`.
-void checkScript(Ctx& ctx, const std::string& entry, const std::string& path,
-                 std::string_view function, const std::filesystem::path& dataDir,
-                 script::ScriptHost& host, std::map<std::string, std::string, std::less<>>& sources) {
+// Whether a script path written in content stays inside its folder: relative, no "..".
+bool containedPath(const std::string& path) {
+    const std::filesystem::path relative(path);
+    return !path.empty() && !relative.is_absolute() && !relative.has_root_name() &&
+           std::ranges::none_of(relative, [](const auto& part) { return part == ".."; });
+}
+
+using Sources = std::map<std::string, std::string, std::less<>>;
+
+// Reads one referenced script (named `key`, stored at `file`) into `sources` and checks it in
+// `host`: it exists, loads in the sandbox, and returns a table with `function`.
+void checkScript(Ctx& ctx, const std::string& entry, const std::string& key,
+                 const std::filesystem::path& file, std::string_view function,
+                 script::ScriptHost& host, Sources& sources) {
     auto fail = [&](std::string message) {
         ctx.errors.push_back({ctx.file, entry, std::move(message)});
     };
-    const std::filesystem::path relative(path);
-    if (path.empty() || relative.is_absolute() || relative.has_root_name() ||
-        std::ranges::any_of(relative, [](const auto& part) { return part == ".."; })) {
-        fail(std::format("script path '{}' must stay inside the data folder", path));
-        return;
-    }
-    if (!sources.contains(path)) {
-        std::ifstream in(dataDir / relative, std::ios::binary);
+    if (!sources.contains(key)) {
+        std::ifstream in(file, std::ios::binary);
         if (!in) {
-            fail(std::format("script file '{}' not found", path));
+            fail(std::format("script file '{}' not found", key));
             return;
         }
         std::string source((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-        if (auto loaded = host.load(path, source); !loaded) {
+        if (auto loaded = host.load(key, source); !loaded) {
             fail(loaded.error());
             return;
         }
-        sources.emplace(path, std::move(source));
+        sources.emplace(key, std::move(source));
     }
-    if (!host.hasFunction(path, function))
-        fail(std::format("script '{}' must return a table with a '{}' function", path, function));
+    if (!host.hasFunction(key, function))
+        fail(std::format("script '{}' must return a table with a '{}' function", key, function));
 }
 
 void checkItemRef(Ctx& ctx, const Content& c, const std::string& entry, const std::string& what,
@@ -482,33 +487,38 @@ std::string formatError(const ContentError& e) {
                            : std::format("{}: {}: {}", e.file, e.entry, e.message);
 }
 
-std::expected<Content, std::vector<ContentError>>
-loadContent(const std::filesystem::path& dataDir) {
+namespace {
+
+// Everything one layer of content defines: the base data folder, or one mod. Paths and story
+// come only from the base.
+struct Layer {
+    std::vector<ItemDef> items;
+    std::vector<SkillDef> skills;
+    std::vector<EnemyDef> enemies;
+    std::vector<MissionDef> missions;
+    std::vector<RecipeDef> recipes;
+};
+
+struct Base {
+    Layer layer;
+    std::vector<PathDef> paths;
+    StoryDef story;
+};
+
+// Where each script key's file lives: base keys are paths under the data folder; mod keys are
+// "mods/<name>/<path>" and live in the mod's folder.
+using ScriptFiles = std::map<std::string, std::filesystem::path, std::less<>>;
+
+// Merged content, checked: ids, kinds, required paths, cross references, sprites and scripts.
+// Returns every error; on success fills `sources` with each referenced script.
+Errors validate(const std::filesystem::path& dataDir, const Base& base, const Layer& merged,
+                const ScriptFiles& scriptFiles, Sources& sources) {
     Errors errors;
-    bool allFilesRead = true;
-    auto load = [&](const char* file, std::string_view arrayKey, auto parseOne) {
-        Ctx ctx{errors, file};
-        using T = decltype(parseOne(ctx, std::declval<const Json&>(), std::size_t{}));
-        auto list = loadList<T>(ctx, dataDir, arrayKey,
-                                [&](const Json& j, std::size_t i) { return parseOne(ctx, j, i); });
-        allFilesRead = allFilesRead && list.has_value();
-        return list.value_or(std::vector<T>{});
-    };
-
-    auto items = load("items.json", "items", parseItem);
-    auto paths = load("paths.json", "paths", parsePath);
-    auto skills = load("skills.json", "skills", parseSkill);
-    auto enemies = load("enemies.json", "enemies", parseEnemy);
-    auto missions = load("missions.json", "missions", parseMission);
-    auto recipes = load("recipes.json", "recipes", parseRecipe);
-    bool storyOk = false;
-    Ctx storyCtx{errors, "story.json"};
-    StoryDef story = loadStory(storyCtx, dataDir, storyOk);
-    allFilesRead = allFilesRead && storyOk;
-
     Ctx itemsCtx{errors, "items.json"}, pathsCtx{errors, "paths.json"},
         skillsCtx{errors, "skills.json"}, enemiesCtx{errors, "enemies.json"},
         missionsCtx{errors, "missions.json"}, recipesCtx{errors, "recipes.json"};
+    const auto& [items, skills, enemies, missions, recipes] = merged;
+    const auto& paths = base.paths;
     checkIds(itemsCtx, items, "item");
     checkIds(pathsCtx, paths, "path");
     checkIds(skillsCtx, skills, "skill");
@@ -531,67 +541,308 @@ loadContent(const std::filesystem::path& dataDir) {
             itemsCtx.errors.push_back(
                 {itemsCtx.file, entry, "'consumable' is only for consumables"});
     }
-    for (const char* required : {"fighter", "hunter", "rogue"}) {
-        if (allFilesRead &&
-            std::ranges::none_of(paths, [&](const PathDef& p) { return p.id == required; }))
+    for (const char* required : {"fighter", "hunter", "rogue"})
+        if (std::ranges::none_of(paths, [&](const PathDef& p) { return p.id == required; }))
             pathsCtx.errors.push_back(
                 {pathsCtx.file, "", std::format("missing required path '{}'", required)});
+
+    const Content refs =
+        ContentBuilder::assemble(items, paths, skills, enemies, missions, recipes, base.story);
+    for (const ItemDef& d : items)
+        if (d.upgradeMaterial)
+            checkItemRef(itemsCtx, refs, std::format("item '{}'", d.id), "upgrade material",
+                         *d.upgradeMaterial);
+    for (const SkillDef& d : skills)
+        checkItemRef(skillsCtx, refs, std::format("skill '{}'", d.id), "key item", d.keyItem);
+    const auto spriteDir = (dataDir / ".." / "assets" / "sprites").lexically_normal();
+    for (const EnemyDef& d : enemies) {
+        const std::string entry = std::format("enemy '{}'", d.id);
+        for (const std::string& reward : d.rewardItems)
+            checkItemRef(enemiesCtx, refs, entry, "reward item", reward);
+        if (!std::filesystem::exists(spriteDir / d.sprite))
+            enemiesCtx.errors.push_back(
+                {enemiesCtx.file, entry,
+                 std::format("sprite file '{}' not found in assets/sprites", d.sprite)});
+    }
+    for (const MissionDef& d : missions)
+        if (!refs.findEnemy(d.enemy))
+            missionsCtx.errors.push_back({missionsCtx.file, std::format("mission '{}'", d.id),
+                                          std::format("unknown enemy '{}'", d.enemy)});
+    for (const RecipeDef& d : recipes) {
+        const std::string entry = std::format("recipe '{}'", d.id);
+        checkItemRef(recipesCtx, refs, entry, "result item", d.result);
+        std::unordered_set<std::string> seen;
+        for (const auto& [item, count] : d.ingredients) {
+            checkItemRef(recipesCtx, refs, entry, "ingredient", item);
+            // forge() checks each entry's count separately, so one item must be one entry.
+            if (!seen.insert(item).second)
+                recipesCtx.errors.push_back(
+                    {recipesCtx.file, entry, std::format("ingredient '{}' listed twice", item)});
+        }
     }
 
-    // Cross-references are checked only when every file was read, to avoid cascading noise.
-    std::map<std::string, std::string, std::less<>> scripts;
-    if (allFilesRead) {
-        script::ScriptHost host;
-        for (const SkillDef& d : skills)
-            if (d.script)
-                checkScript(skillsCtx, std::format("skill '{}'", d.id), *d.script, "cast", dataDir,
-                            host, scripts);
-        for (const EnemyDef& d : enemies)
-            if (d.script)
-                checkScript(enemiesCtx, std::format("enemy '{}'", d.id), *d.script, "take_turn",
-                            dataDir, host, scripts);
-        Content refs =
-            ContentBuilder::assemble(items, paths, skills, enemies, missions, recipes, story);
-        for (const ItemDef& d : items)
-            if (d.upgradeMaterial)
-                checkItemRef(itemsCtx, refs, std::format("item '{}'", d.id), "upgrade material",
-                             *d.upgradeMaterial);
-        for (const SkillDef& d : skills)
-            checkItemRef(skillsCtx, refs, std::format("skill '{}'", d.id), "key item", d.keyItem);
-        const auto spriteDir = (dataDir / ".." / "assets" / "sprites").lexically_normal();
-        for (const EnemyDef& d : enemies) {
-            const std::string entry = std::format("enemy '{}'", d.id);
-            for (const std::string& reward : d.rewardItems)
-                checkItemRef(enemiesCtx, refs, entry, "reward item", reward);
-            if (!std::filesystem::exists(spriteDir / d.sprite))
-                enemiesCtx.errors.push_back(
-                    {enemiesCtx.file, entry,
-                     std::format("sprite file '{}' not found in assets/sprites", d.sprite)});
+    script::ScriptHost host;
+    const auto checkScriptOf = [&](Ctx& ctx, const std::string& entry, const std::string& key,
+                                   std::string_view function) {
+        if (const auto file = scriptFiles.find(key); file != scriptFiles.end()) {
+            checkScript(ctx, entry, key, file->second, function, host, sources);
+        } else if (!containedPath(key)) { // a base path: relative to the data folder
+            ctx.errors.push_back(
+                {ctx.file, entry,
+                 std::format("script path '{}' must stay inside the data folder", key)});
+        } else {
+            checkScript(ctx, entry, key, dataDir / key, function, host, sources);
         }
-        for (const MissionDef& d : missions)
-            if (!refs.findEnemy(d.enemy))
-                missionsCtx.errors.push_back({missionsCtx.file, std::format("mission '{}'", d.id),
-                                              std::format("unknown enemy '{}'", d.enemy)});
-        for (const RecipeDef& d : recipes) {
-            const std::string entry = std::format("recipe '{}'", d.id);
-            checkItemRef(recipesCtx, refs, entry, "result item", d.result);
-            std::unordered_set<std::string> seen;
-            for (const auto& [item, count] : d.ingredients) {
-                checkItemRef(recipesCtx, refs, entry, "ingredient", item);
-                // forge() checks each entry's count separately, so one item must be one entry.
-                if (!seen.insert(item).second)
-                    recipesCtx.errors.push_back(
-                        {recipesCtx.file, entry,
-                         std::format("ingredient '{}' listed twice", item)});
+    };
+    for (const SkillDef& d : skills)
+        if (d.script)
+            checkScriptOf(skillsCtx, std::format("skill '{}'", d.id), *d.script, "cast");
+    for (const EnemyDef& d : enemies)
+        if (d.script)
+            checkScriptOf(enemiesCtx, std::format("enemy '{}'", d.id), *d.script, "take_turn");
+    return errors;
+}
+
+// ---- Mods ----------------------------------------------------------------------------------
+
+struct Mod {
+    ModRef ref;
+    int priority = 0;
+    Layer layer;
+    ScriptFiles scriptFiles;
+};
+
+bool validModName(std::string_view name) {
+    return !name.empty() && name.size() <= 40 &&
+           std::ranges::all_of(name, [](char c) {
+               return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-';
+           });
+}
+
+// Reads one mod folder. Any problem (manifest, JSON, keys, a file mods can't change, a script
+// path leaving the folder) is returned as errors; the caller then skips the whole mod.
+std::expected<Mod, Errors> readMod(const std::filesystem::path& folder) {
+    const std::string folderName = folder.filename().string();
+    const std::string prefix = std::format("mods/{}/", folderName);
+    Errors errors;
+    Mod mod;
+    {
+        Ctx ctx{errors, "mod.json"};
+        if (auto doc = loadFile(ctx, folder)) {
+            Fields f(ctx, *doc, "", {"name", "version", "priority", "description"});
+            mod.ref.name = f.req<std::string>("name");
+            mod.ref.version = f.req<std::string>("version");
+            mod.priority = f.opt<int>("priority", 0, -1'000'000, 1'000'000);
+            (void)f.opt<std::string>("description", "");
+            if (errors.empty()) {
+                if (!validModName(mod.ref.name))
+                    f.fail("name must match [a-z0-9-] and be 1-40 characters");
+                else if (mod.ref.name != folderName)
+                    f.fail(std::format("name '{}' must match the folder name '{}'", mod.ref.name,
+                                       folderName));
+                else if (mod.ref.version.empty() || mod.ref.version.size() > 20)
+                    f.fail("version must be 1-20 characters");
             }
         }
     }
+    for (const char* fixed : {"paths.json", "story.json", "dungeon.json"})
+        if (std::filesystem::exists(folder / fixed))
+            errors.push_back({fixed, "", "mods can't change this file"});
+    const auto load = [&](const char* file, std::string_view key, std::string_view noun,
+                          auto parseOne, auto& out) {
+        if (!std::filesystem::exists(folder / file))
+            return; // a mod only has the files it changes
+        Ctx ctx{errors, file};
+        auto list = loadList<std::decay_t<decltype(out[0])>>(
+            ctx, folder, key, [&](const Json& j, std::size_t i) { return parseOne(ctx, j, i); });
+        if (list)
+            out = std::move(*list);
+        checkIds(ctx, out, noun);
+    };
+    load("items.json", "items", "item", parseItem, mod.layer.items);
+    load("skills.json", "skills", "skill", parseSkill, mod.layer.skills);
+    load("enemies.json", "enemies", "enemy", parseEnemy, mod.layer.enemies);
+    load("missions.json", "missions", "mission", parseMission, mod.layer.missions);
+    load("recipes.json", "recipes", "recipe", parseRecipe, mod.layer.recipes);
 
+    // Script paths are relative to the mod folder and must stay inside it.
+    const auto rehome = [&](std::optional<std::string>& script, const char* file,
+                            const std::string& entry) {
+        if (!script)
+            return;
+        if (!containedPath(*script)) {
+            errors.push_back({file, entry,
+                              std::format("script path '{}' must stay inside the mod folder",
+                                          *script)});
+            return;
+        }
+        const std::string key = prefix + *script;
+        mod.scriptFiles.emplace(key, folder / *script);
+        script = key;
+    };
+    for (SkillDef& d : mod.layer.skills)
+        rehome(d.script, "skills.json", std::format("skill '{}'", d.id));
+    for (EnemyDef& d : mod.layer.enemies)
+        rehome(d.script, "enemies.json", std::format("enemy '{}'", d.id));
+
+    if (!errors.empty()) {
+        for (ContentError& e : errors)
+            e.file = prefix + e.file;
+        return std::unexpected(std::move(errors));
+    }
+    return mod;
+}
+
+// Which mod each merged entry came from, keyed "<file>|<entry label>".
+using Origins = std::map<std::string, std::string, std::less<>>;
+
+template <class T>
+void mergeList(std::vector<T>& into, const std::vector<T>& from, const char* file,
+               std::string_view noun, const std::string& mod, Origins& origins,
+               std::vector<std::string>* overrides) {
+    for (const T& entry : from) {
+        const auto existing = std::ranges::find(into, entry.id, &T::id);
+        if (existing != into.end()) {
+            *existing = entry;
+            if (overrides)
+                overrides->push_back(std::format("mod '{}': overrides {}/{}", mod,
+                                                 std::string_view(file).substr(
+                                                     0, std::string_view(file).size() - 5),
+                                                 entry.id));
+        } else {
+            into.push_back(entry);
+        }
+        origins.insert_or_assign(std::format("{}|{} '{}'", file, noun, entry.id), mod);
+    }
+}
+
+Layer merge(const Layer& base, const std::vector<Mod>& mods, Origins& origins,
+            std::vector<std::string>* overrides) {
+    Layer out = base;
+    for (const Mod& m : mods) {
+        const std::string& name = m.ref.name;
+        mergeList(out.items, m.layer.items, "items.json", "item", name, origins, overrides);
+        mergeList(out.skills, m.layer.skills, "skills.json", "skill", name, origins, overrides);
+        mergeList(out.enemies, m.layer.enemies, "enemies.json", "enemy", name, origins,
+                  overrides);
+        mergeList(out.missions, m.layer.missions, "missions.json", "mission", name, origins,
+                  overrides);
+        mergeList(out.recipes, m.layer.recipes, "recipes.json", "recipe", name, origins,
+                  overrides);
+    }
+    return out;
+}
+
+std::string skipLine(const std::string& mod, const Errors& errors) {
+    std::string line = std::format("mod '{}' skipped: {}", mod, formatError(errors.front()));
+    if (errors.size() > 1)
+        line += std::format(" (and {} more)", errors.size() - 1);
+    return line;
+}
+
+} // namespace
+
+std::expected<Content, std::vector<ContentError>>
+loadContent(const std::filesystem::path& dataDir) {
+    return loadContent(dataDir, std::nullopt, nullptr);
+}
+
+std::expected<Content, std::vector<ContentError>>
+loadContent(const std::filesystem::path& dataDir, const std::optional<std::filesystem::path>& modsDir,
+            std::vector<std::string>* modLog) {
+    // 1. The base content, which must be valid on its own (as before mods existed).
+    Errors errors;
+    bool allFilesRead = true;
+    Base base;
+    const auto load = [&](const char* file, std::string_view arrayKey, auto parseOne, auto& out) {
+        Ctx ctx{errors, file};
+        auto list = loadList<std::decay_t<decltype(out[0])>>(
+            ctx, dataDir, arrayKey, [&](const Json& j, std::size_t i) { return parseOne(ctx, j, i); });
+        allFilesRead = allFilesRead && list.has_value();
+        if (list)
+            out = std::move(*list);
+    };
+    load("items.json", "items", parseItem, base.layer.items);
+    load("paths.json", "paths", parsePath, base.paths);
+    load("skills.json", "skills", parseSkill, base.layer.skills);
+    load("enemies.json", "enemies", parseEnemy, base.layer.enemies);
+    load("missions.json", "missions", parseMission, base.layer.missions);
+    load("recipes.json", "recipes", parseRecipe, base.layer.recipes);
+    bool storyOk = false;
+    Ctx storyCtx{errors, "story.json"};
+    base.story = loadStory(storyCtx, dataDir, storyOk);
+    allFilesRead = allFilesRead && storyOk;
+    // Cross-references are checked only when every file was read, to avoid cascading noise.
+    Sources sources;
+    if (allFilesRead) {
+        Errors more = validate(dataDir, base, base.layer, {}, sources);
+        errors.insert(errors.end(), more.begin(), more.end());
+    }
     if (!errors.empty())
         return std::unexpected(std::move(errors));
-    return ContentBuilder::assemble(std::move(items), std::move(paths), std::move(skills),
-                                    std::move(enemies), std::move(missions), std::move(recipes),
-                                    std::move(story), std::move(scripts));
+
+    // 2. Mods: each subfolder with a mod.json, by priority then folder name. A mod that can't be
+    //    read is skipped at once; one that breaks the merged content is skipped and the rest are
+    //    merged again, until what remains is valid.
+    std::vector<Mod> active;
+    std::error_code ec;
+    if (modsDir && std::filesystem::is_directory(*modsDir, ec)) {
+        std::vector<std::filesystem::path> folders;
+        for (const auto& entry : std::filesystem::directory_iterator(*modsDir, ec))
+            if (entry.is_directory() && std::filesystem::exists(entry.path() / "mod.json"))
+                folders.push_back(entry.path());
+        std::ranges::sort(folders);
+        for (const std::filesystem::path& folder : folders) {
+            auto mod = readMod(folder);
+            if (mod)
+                active.push_back(std::move(*mod));
+            else if (modLog)
+                modLog->push_back(skipLine(folder.filename().string(), mod.error()));
+        }
+        std::ranges::stable_sort(active, {}, &Mod::priority);
+    }
+    Layer merged = base.layer;
+    for (;;) {
+        Origins origins;
+        merged = merge(base.layer, active, origins, nullptr);
+        ScriptFiles scriptFiles;
+        for (const Mod& m : active)
+            scriptFiles.insert(m.scriptFiles.begin(), m.scriptFiles.end());
+        sources.clear();
+        Errors found = validate(dataDir, base, merged, scriptFiles, sources);
+        if (found.empty())
+            break;
+        // Blame the mod whose entry each error is about; the base alone was valid.
+        std::map<std::string, Errors, std::less<>> blamed;
+        for (ContentError& e : found) {
+            const auto origin = origins.find(std::format("{}|{}", e.file, e.entry));
+            const std::string mod = origin != origins.end() ? origin->second
+                                                            : active.back().ref.name;
+            e.file = std::format("mods/{}/{}", mod, e.file);
+            blamed[mod].push_back(std::move(e));
+        }
+        for (const auto& [mod, modErrors] : blamed) {
+            if (modLog)
+                modLog->push_back(skipLine(mod, modErrors));
+            std::erase_if(active, [&](const Mod& m) { return m.ref.name == mod; });
+        }
+    }
+
+    // 3. Report what was applied, then assemble.
+    std::vector<ModRef> mods;
+    if (modLog) {
+        Origins unused;
+        (void)merge(base.layer, active, unused, modLog); // just for the override lines
+    }
+    for (const Mod& m : active) {
+        if (modLog)
+            modLog->push_back(std::format("mod '{}' {} loaded", m.ref.name, m.ref.version));
+        mods.push_back(m.ref);
+    }
+    return ContentBuilder::assemble(std::move(merged.items), std::move(base.paths),
+                                    std::move(merged.skills), std::move(merged.enemies),
+                                    std::move(merged.missions), std::move(merged.recipes),
+                                    std::move(base.story), std::move(sources), std::move(mods));
 }
 
 } // namespace heroes::game

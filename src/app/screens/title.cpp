@@ -5,6 +5,7 @@
 #include "app/screens/new_game.hpp"
 #include "game/save.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <system_error>
@@ -27,9 +28,31 @@ TitleScreen::TitleScreen(Session& session)
       menu_({{"New Game"}, {"Continue", saveExists(session.saveFile)}, {"Quit"}}) {}
 
 Transition TitleScreen::continueGame() {
+    const auto mods = game::readSaveMods(session_.saveFile);
+    if (!mods) {
+        message_.emplace(describe(mods.error()));
+        return Stay{};
+    }
+    std::string missing;
+    for (const game::ModRef& mod : *mods)
+        if (std::ranges::find(session_.content.mods(), mod) == session_.content.mods().end())
+            missing += std::format("{}{} {}", missing.empty() ? "" : ", ", mod.name, mod.version);
+    if (missing.empty())
+        return load("");
+    missingMods_ = missing;
+    confirm_.emplace(
+        std::format("This save used mods that are missing: {}. Continue anyway?", missing));
+    return Stay{};
+}
+
+// Loads the save. With missing mods, a load that fails on their content names them.
+Transition TitleScreen::load(const std::string& missingMods) {
     auto loaded = game::loadGame(session_.saveFile, session_.content);
     if (!loaded) {
-        message_.emplace(describe(loaded.error()));
+        message_.emplace(loaded.error() == game::SaveError::Corrupt && !missingMods.empty()
+                             ? std::format("The save can't be loaded without these mods: {}.",
+                                           missingMods)
+                             : std::string(describe(loaded.error())));
         return Stay{};
     }
     session_.state = std::move(*loaded);
@@ -45,6 +68,16 @@ Transition TitleScreen::update(std::span<const engine::KeyEvent> keys, double) {
             if (message_->handle(key))
                 message_.reset();
             continue;
+        }
+        if (confirm_) {
+            const auto answer = confirm_->handle(key);
+            if (!answer)
+                continue;
+            confirm_.reset();
+            if (*answer)
+                if (Transition next = load(missingMods_); !std::holds_alternative<Stay>(next))
+                    return next;
+            continue; // No: the save stays untouched and the Title stays
         }
         switch (menu_.handle(key).value_or(-1)) {
         case kNewGame:
@@ -74,6 +107,8 @@ void TitleScreen::draw(engine::Framebuffer& frame) const {
     drawCentered(frame, 22, "↑↓ select · Enter confirm", palette::kDim);
     if (message_)
         message_->draw(frame);
+    if (confirm_)
+        confirm_->draw(frame);
 }
 
 } // namespace heroes::app

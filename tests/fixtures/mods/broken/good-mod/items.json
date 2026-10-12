@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "lucky_coin",
+      "name": "Lucky Coin",
+      "description": "Shiny.",
+      "kind": "material",
+      "price": 10,
+      "auctionValue": 0,
+      "dropRate": 0
+    }
+  ]
+}

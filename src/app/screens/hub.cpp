@@ -42,7 +42,7 @@ std::vector<Menu::Item> HubScreen::menuItems() const {
 }
 
 void HubScreen::save() {
-    if (auto saved = game::saveGame(*session_.state, session_.saveFile)) {
+    if (auto saved = game::saveGame(*session_.state, session_.saveFile, session_.content.mods())) {
         session_.dirty = false;
         session_.saveOwned = true;
         session_.lastMessage = "Game saved.";

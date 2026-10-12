@@ -7,8 +7,10 @@
 #include "platform/terminal.hpp"
 
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -19,14 +21,23 @@ int main(int argc, char** argv) {
     const auto options = app::parseOptions(args);
     if (!options) {
         std::cerr << "heroes: error: " << options.error()
-                  << "\nusage: heroes [--seed N] [--data-dir PATH] [--layout auto|compact] [--art glyph|blocks]\n";
+                  << "\nusage: heroes [--seed N] [--data-dir PATH] [--layout auto|compact] "
+                     "[--art glyph|blocks]\n";
         return 2;
     }
 
     // Content errors are reported before the terminal changes, so they stay readable.
     const auto dataDir =
         app::resolveDataDir(*options, platform::getEnv("HEROES_DATA_DIR"), HEROES_SOURCE_DIR);
-    auto content = game::loadContent(dataDir);
+    // Mods: HEROES_MODS_DIR, else mods/ beside the data folder. Their log lines (skips,
+    // overrides, loaded) go to stderr before the terminal changes.
+    const auto modsEnv = platform::getEnv("HEROES_MODS_DIR");
+    const std::filesystem::path modsDir =
+        modsEnv ? std::filesystem::path(*modsEnv) : dataDir / ".." / "mods";
+    std::vector<std::string> modLog;
+    auto content = game::loadContent(dataDir, modsDir, &modLog);
+    for (const std::string& line : modLog)
+        std::cerr << line << '\n';
     if (!content) {
         for (const game::ContentError& error : content.error())
             std::cerr << game::formatError(error) << '\n';

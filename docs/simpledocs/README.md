@@ -14,3 +14,4 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [simulator.md](simulator.md) | `heroes-sim` |
 | [app.md](app.md) | command line, screen stack, widgets, screens implemented so far |
 | [scripting.md](scripting.md) | Lua sandbox: ScriptHost, allowlist, budget, memory cap |
+| [mods.md](mods.md) | mods folder, manifests, merging, skipped mods, saves recording mods |

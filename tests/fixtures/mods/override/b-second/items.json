@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "iron_sword",
+      "name": "Sword 222",
+      "description": "Override.",
+      "kind": "weapon",
+      "bonus": {
+        "atk": 222,
+        "def": 0,
+        "life": 0
+      },
+      "price": 1000,
+      "auctionValue": 0,
+      "dropRate": 30,
+      "upgradeMaterial": "fire_dust"
+    }
+  ]
+}

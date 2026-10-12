@@ -99,6 +99,12 @@ struct StoryDef {
     std::vector<std::string> opening, pathIntro;
 };
 
+// An active mod, as saves record it.
+struct ModRef {
+    std::string name, version;
+    bool operator==(const ModRef&) const = default;
+};
+
 // Immutable, validated game data. Built only by loadContent().
 class Content {
   public:
@@ -131,6 +137,8 @@ class Content {
 
     // The source of every script referenced by skills and enemies, by its path ("scripts/x.lua").
     const std::map<std::string, std::string, std::less<>>& scripts() const { return scripts_; }
+    // The mods merged into this content, in load order.
+    const std::vector<ModRef>& mods() const { return mods_; }
 
   private:
     template <class T> struct Table {
@@ -158,6 +166,7 @@ class Content {
     Table<RecipeDef> recipes_;
     StoryDef story_;
     std::map<std::string, std::string, std::less<>> scripts_;
+    std::vector<ModRef> mods_;
 };
 
 } // namespace heroes::game

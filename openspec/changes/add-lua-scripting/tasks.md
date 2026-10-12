@@ -23,10 +23,10 @@ The reference is `reference/lua-interfaces.md` (abbreviated "ref" below).
 
 ## 4. Mods
 
-- [ ] 4.1 Implement mod discovery, manifest validation, path containment, priority merge, stderr override and loaded lines, and whole-mod skip with re-merge per ref §6; verify `tests/mods_test.cpp` with fixture mod folders: add-enemy, two-mod override (priority wins, both logged), broken mod skipped while others load, and a `../` script path rejected
-- [ ] 4.2 Add active mods to saves with a version bump and the missing-mod ConfirmBox; verify tests: an old-version save loads with no mods; a save naming a missing mod reports it and leaves the file byte-identical
-- [ ] 4.3 Add `mods/example-cyclops/` per ref §7; verify manually: the Cyclops Cave mission appears at level 15 (edit the save to reach it), the boulder line appears on turns 3 and 6, and Boulder Toss can be learned and cast
-- [ ] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Implement mod discovery, manifest validation, path containment, priority merge, stderr override and loaded lines, and whole-mod skip with re-merge per ref §6; verify `tests/mods_test.cpp` with fixture mod folders: add-enemy, two-mod override (priority wins, both logged), broken mod skipped while others load, and a `../` script path rejected
+- [x] 4.2 Add active mods to saves with a version bump and the missing-mod ConfirmBox; verify tests: an old-version save loads with no mods; a save naming a missing mod reports it and leaves the file byte-identical
+- [x] 4.3 Add `mods/example-cyclops/` per ref §7; verify manually: the Cyclops Cave mission appears at level 15 (edit the save to reach it), the boulder line appears on turns 3 and 6, and Boulder Toss can be learned and cast
+- [x] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Final Verification
 

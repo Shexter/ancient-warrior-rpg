@@ -1,0 +1,14 @@
+{
+  "skills": [
+    {
+      "id": "boulder_toss",
+      "name": "Boulder Toss",
+      "description": "Hurls a rock for one and a half times your ATK.",
+      "mpCost": 30,
+      "learnLevel": 10,
+      "goldCost": 8000,
+      "keyItem": "topaz",
+      "script": "scripts/boulder_toss.lua"
+    }
+  ]
+}

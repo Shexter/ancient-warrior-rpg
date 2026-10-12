@@ -1,0 +1,16 @@
+{
+  "skills": [
+    {
+      "id": "bad_skill",
+      "name": "Bad",
+      "description": "x",
+      "mpCost": 1,
+      "learnLevel": 1,
+      "goldCost": 0,
+      "keyItem": "nope_item",
+      "effect": {
+        "healToFull": true
+      }
+    }
+  ]
+}

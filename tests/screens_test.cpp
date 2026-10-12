@@ -156,3 +156,41 @@ TEST(Sprites, MissingSpriteIsReportedByName) {
     EXPECT_NE(bank.error().find("monster.sprite"), std::string::npos);
     EXPECT_EQ(shippedSprites().size(), 6u);
 }
+
+TEST(Title, SaveWithMissingModsAsksBeforeLoading) {
+    Harness h("missing_mods");
+    ASSERT_TRUE(game::saveGame(freshGame(), h.session.saveFile,
+                               std::vector<game::ModRef>{{"cyclops-pack", "1.0.0"}})
+                    .has_value());
+    const std::string before = readFile(h.session.saveFile);
+    h.startAtTitle();
+    ASSERT_TRUE(h.press({ch('2')}));
+    EXPECT_TRUE(frameContains(h.frame(), "This save used mods that are missing: cyclops-pack"));
+    ASSERT_TRUE(h.press({ch('n')})); // No: nothing loaded, file untouched, still the Title
+    EXPECT_FALSE(h.session.state.has_value());
+    EXPECT_EQ(readFile(h.session.saveFile), before);
+    EXPECT_EQ(h.app->depth(), 1u);
+
+    ASSERT_TRUE(h.press({ch('2'), ch('y')})); // Yes: everything it uses exists, so it loads
+    EXPECT_TRUE(h.session.state.has_value());
+    EXPECT_TRUE(frameContains(h.frame(), "Welcome back, Aria."));
+}
+
+TEST(Title, ASaveThatNeedsTheMissingModNamesIt) {
+    Harness h("needs_mod");
+    game::GameState state = freshGame();
+    state.hero.completedMissions.insert("the_gorgon");
+    ASSERT_TRUE(game::saveGame(state, h.session.saveFile,
+                               std::vector<game::ModRef>{{"cyclops-pack", "1.0.0"}})
+                    .has_value());
+    // Hand the save a mission only the missing mod defines.
+    std::string body = readFile(h.session.saveFile);
+    body.replace(body.find("\"the_gorgon\""), 12, "\"cyclops_cave\"");
+    std::ofstream(h.session.saveFile, std::ios::binary) << body;
+    h.startAtTitle();
+    ASSERT_TRUE(h.press({ch('2'), ch('y')}));
+    EXPECT_TRUE(frameContains(h.frame(), "The save can't be loaded without these mods:"));
+    EXPECT_TRUE(frameContains(h.frame(), "cyclops-pack 1.0.0."));
+    EXPECT_FALSE(h.session.state.has_value());
+    EXPECT_EQ(readFile(h.session.saveFile), body);
+}

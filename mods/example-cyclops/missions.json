@@ -1,0 +1,16 @@
+{
+  "missions": [
+    {
+      "id": "cyclops_cave",
+      "name": "The Cyclops Cave",
+      "location": "CYCLOPS CAVE",
+      "enemy": "cyclops",
+      "minLevel": 15,
+      "repeatable": true,
+      "story": [
+        "A one-eyed giant blocks the mountain pass...",
+        "...and it has not eaten in days."
+      ]
+    }
+  ]
+}
