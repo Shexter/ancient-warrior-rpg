@@ -28,6 +28,8 @@ See proposal.md. The per-frame canvas choice from `add-large-art-layout` already
 
 **5. `--layout portrait`** forces it at any size, so it can be tested on a desktop.
 
+**6. Taps are the primary input on phones (user's Termux screenshots, 2026-10-12).** With the keyboard hidden the terminal is about 48×48; with it open, only about 48×15, too small for any layout. So phone play happens with the keyboard hidden, and every screen must be fully playable by tapping alone, including Back and confirm/cancel in dialogs (tappable `[Yes]` / `[No]` / `[OK]`). Tap support is therefore chunk 1, not an extra.
+
 ## Risks / Trade-offs
 
 - [Phone keyboards lack arrows and Esc] → Every menu is reachable by number, and `0` is Back in portrait. Termux's extra-keys row also provides arrows and Esc.
