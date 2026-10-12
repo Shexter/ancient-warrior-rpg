@@ -62,6 +62,8 @@ void drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
     drawText(frame, x + w - 2 - static_cast<int>(footer.size()), y + h - 2, footer, palette::kDim);
 }
 
+} // namespace
+
 std::string upper(std::string_view s) {
     std::string out(s);
     for (char& c : out)
@@ -69,7 +71,13 @@ std::string upper(std::string_view s) {
     return out;
 }
 
-} // namespace
+std::string adventureBlocker(const game::Hero& hero) {
+    if (hero.hp <= 0)
+        return "Fallen: visit the Guildmaster";
+    if (!game::canAdventure(hero))
+        return "Equip a weapon and armor";
+    return {};
+}
 
 int drawText(Framebuffer& frame, int x, int y, std::string_view utf8, Rgb fg, int maxWidth) {
     int drawn = 0;

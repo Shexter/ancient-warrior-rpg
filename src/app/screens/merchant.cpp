@@ -10,7 +10,6 @@ namespace {
 using engine::Key;
 
 constexpr double kBidSeconds = 0.6; // one auction bid per 600 ms (ui.md)
-constexpr double kSlack = 1e-9;     // fixed steps sum to just under the interval
 
 } // namespace
 
@@ -113,7 +112,7 @@ void MerchantScreen::onTick(double dtSeconds) {
     if (!auction_)
         return;
     auction_->clock += dtSeconds;
-    while (auction_->clock + kSlack >= kBidSeconds) {
+    while (auction_->clock + kTimerSlack >= kBidSeconds) {
         auction_->clock -= kBidSeconds;
         if (auction_->shown == auction_->bids.size()) {
             finishAuction();

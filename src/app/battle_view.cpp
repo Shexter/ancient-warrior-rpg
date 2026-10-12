@@ -3,7 +3,6 @@
 #include "app/widgets.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <format>
 
@@ -16,7 +15,6 @@ using game::Side;
 using game::StatusId;
 namespace ev = game::ev;
 
-constexpr double kSlack = 1e-9;       // fixed steps sum to just under each duration
 constexpr double kFloatSeconds = 1.0; // a damage number floats 300 ms + 700 ms (ui.md)
 constexpr double kFlashSeconds = 0.075;
 constexpr double kShakeSeconds = 0.05;
@@ -25,13 +23,6 @@ constexpr std::size_t kLogRows = 4;
 constexpr int kHeroX = 6, kHeroY = 4;   // ui.md battle layout
 constexpr int kEnemyX = 44, kEnemyY = 2;
 constexpr int kBannerRow = 9;
-
-std::string upper(std::string_view s) {
-    std::string out(s);
-    for (char& c : out)
-        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    return out;
-}
 
 std::string tag(StatusId id, int turns) {
     switch (id) {
@@ -84,18 +75,18 @@ void BattleView::log(std::string line) {
 void BattleView::tick(double dtSeconds) {
     for (Floater& f : floaters_)
         f.age += dtSeconds;
-    std::erase_if(floaters_, [](const Floater& f) { return f.age + kSlack >= kFloatSeconds; });
+    std::erase_if(floaters_, [](const Floater& f) { return f.age + kTimerSlack >= kFloatSeconds; });
 
     while (current_) {
         const double left = current_->duration - current_->elapsed;
-        if (dtSeconds + kSlack < left) {
+        if (dtSeconds + kTimerSlack < left) {
             current_->elapsed += dtSeconds;
             return;
         }
         dtSeconds = std::max(0.0, dtSeconds - left);
         finishCurrent();
         startNext();
-        if (dtSeconds <= kSlack)
+        if (dtSeconds <= kTimerSlack)
             return;
     }
 }
@@ -236,7 +227,7 @@ void BattleView::finishCurrent() {
 int BattleView::shake() const {
     if (!current_ || !std::holds_alternative<ev::SkillCast>(current_->event))
         return 0;
-    return static_cast<int>((current_->elapsed + kSlack) / kShakeSeconds) % 2 == 0 ? 1 : -1;
+    return static_cast<int>((current_->elapsed + kTimerSlack) / kShakeSeconds) % 2 == 0 ? 1 : -1;
 }
 
 void BattleView::drawFighter(Framebuffer& frame, Side side, const engine::Sprite* sprite) const {

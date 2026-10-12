@@ -23,11 +23,7 @@ HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItems()) {
 
 std::vector<Menu::Item> HubScreen::menuItems() const {
     const game::Hero& hero = session_.state->hero;
-    std::string adventureNote;
-    if (hero.hp <= 0)
-        adventureNote = "Fallen: visit the Guildmaster";
-    else if (!game::canAdventure(hero))
-        adventureNote = "Equip a weapon and armor";
+    const std::string adventureNote = adventureBlocker(hero);
 
     const auto missions = session_.content.missions();
     const auto lowest = std::ranges::min_element(missions, {}, &game::MissionDef::minLevel);

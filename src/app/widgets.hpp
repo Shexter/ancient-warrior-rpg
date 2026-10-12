@@ -31,6 +31,17 @@ inline constexpr engine::Rgb kHeal{166, 227, 161};
 inline constexpr engine::Rgb kGold{250, 179, 135};
 } // namespace palette
 
+// Fixed 1/60 s steps sum to just under a whole interval in floating point; timers compare with
+// this slack so an event lands on the step it is due.
+inline constexpr double kTimerSlack = 1e-9;
+
+// ASCII upper case, for names in titles and logs ("ARIA").
+std::string upper(std::string_view s);
+
+// Why the hero can't train or take missions ("Fallen: visit the Guildmaster", "Equip a weapon
+// and armor"), or empty if they can.
+std::string adventureBlocker(const game::Hero& hero);
+
 // Draws UTF-8 text (one cell per code point; only single-width glyphs are used), keeping the
 // background. Stops after `maxWidth` cells. Returns the number of cells drawn.
 int drawText(engine::Framebuffer& frame, int x, int y, std::string_view utf8, engine::Rgb fg,

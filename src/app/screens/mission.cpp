@@ -72,8 +72,8 @@ MissionSelectScreen::MissionSelectScreen(Session& session) : session_(session), 
             why = "Cleared";
         else if (hero.level < mission.minLevel)
             why = std::format("Requires Lv {}", mission.minLevel);
-        else if (!game::canAdventure(hero))
-            why = hero.hp <= 0 ? "Fallen: visit the Guildmaster" : "Equip a weapon and armor";
+        else
+            why = adventureBlocker(hero);
         rows.emplace_back(mission.name, why.empty(), why);
     }
     rows.emplace_back("Coming Soon", false);

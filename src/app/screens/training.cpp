@@ -14,16 +14,6 @@ using engine::Key;
 
 constexpr double kEventSeconds = 0.1; // 10 events per second (ui.md)
 constexpr double kPauseSeconds = 1.0; // the finished round's summary stays up this long
-// Six 1/60 s steps sum to just under 0.1 in floating point; without slack an event lands a
-// step late.
-constexpr double kSlack = 1e-9;
-
-std::string upper(std::string s) {
-    for (char& c : s)
-        if (c >= 'a' && c <= 'z')
-            c = static_cast<char>(c - 'a' + 'A');
-    return s;
-}
 
 // "Topaz x2, Gold Leaf" in first-seen order.
 std::string countedList(const std::vector<std::string>& names) {
@@ -165,14 +155,14 @@ Transition TrainingPlaybackScreen::update(std::span<const engine::KeyEvent> keys
 
     clock_ += dtSeconds;
     const auto& events = rounds_[round_].events;
-    while (!roundDone_ && clock_ + kSlack >= kEventSeconds && event_ < events.size()) {
+    while (!roundDone_ && clock_ + kTimerSlack >= kEventSeconds && event_ < events.size()) {
         apply(events[event_++]);
         clock_ -= kEventSeconds;
     }
     if (!roundDone_ && event_ == events.size()) {
         roundDone_ = true;
         clock_ = 0;
-    } else if (roundDone_ && clock_ + kSlack >= kPauseSeconds) {
+    } else if (roundDone_ && clock_ + kTimerSlack >= kPauseSeconds) {
         nextRound();
     }
     return Stay{};
