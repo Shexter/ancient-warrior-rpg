@@ -11,7 +11,11 @@ namespace {
 using engine::Key;
 using game::CharismaStat;
 
-enum Choice { kRestoration, kCharisma, kLearnSkill, kChangeName, kBack };
+enum Choice { kRestoration, kBlessings, kCharisma, kLearnSkill, kChangeName, kBack };
+
+constexpr std::array kStats{CharismaStat::MaxHp, CharismaStat::MaxMp, CharismaStat::Atk,
+                           CharismaStat::Def};
+constexpr std::array<std::string_view, 4> kStatNames{"Max HP", "Max Fervor", "ATK", "DEF"};
 
 int statValue(const game::Hero& hero, CharismaStat stat) {
     switch (stat) {
@@ -49,7 +53,10 @@ GuildmasterScreen::GuildmasterScreen(Session& session)
 
 void GuildmasterScreen::refresh() {
     const bool charismaOpen = hero().level >= game::kCharismaMinLevel;
+    const int points = hero().blessings;
     menu_.setItems({{"Restoration"},
+                    {points > 0 ? std::format("Blessings ({})", points) : "Blessings", points > 0,
+                     points > 0 ? "" : "Level up to earn more"},
                     {"Build Charisma", charismaOpen,
                      charismaOpen ? "" : std::format("Requires Lv {}", game::kCharismaMinLevel)},
                     {"Learn Skill"},
@@ -75,16 +82,14 @@ Transition GuildmasterScreen::onKey(const engine::KeyEvent& key) {
     case kRestoration:
         restoration();
         break;
+    case kBlessings:
+        blessings();
+        break;
     case kCharisma:
         modal_.choose("Raise which stat?", {{"Max HP"}, {"Max Fervor"}, {"ATK"}, {"DEF"}},
                       [this](int index) {
-                          static constexpr std::array kStats{CharismaStat::MaxHp,
-                                                             CharismaStat::MaxMp,
-                                                             CharismaStat::Atk, CharismaStat::Def};
-                          static constexpr std::array<std::string_view, 4> kNames{
-                              "Max HP", "Max Fervor", "ATK", "DEF"};
                           const auto i = static_cast<std::size_t>(index);
-                          charisma(kStats[i], std::string(kNames[i]));
+                          charisma(kStats[i], std::string(kStatNames[i]));
                       });
         break;
     case kLearnSkill:
@@ -129,6 +134,23 @@ void GuildmasterScreen::restoration() {
                                        content().item(id).name, hero().hp, hero().maxHp, hero().mp,
                                        hero().maxMp));
     });
+}
+
+void GuildmasterScreen::blessings() {
+    std::vector<Menu::Item> rows;
+    for (std::size_t i = 0; i < kStats.size(); ++i)
+        rows.emplace_back(std::format("{} +{}", kStatNames[i], game::blessingGain(kStats[i])));
+    modal_.choose(std::format("Spend a blessing ({} left)", hero().blessings), std::move(rows),
+                  [this](int index) {
+                      const auto i = static_cast<std::size_t>(index);
+                      if (!succeeded(game::blessing(state(), kStats[i])))
+                          return;
+                      refresh();
+                      modal_.message(std::format("Your {} rises to {}. {} blessing{} left.",
+                                                 kStatNames[i], statValue(hero(), kStats[i]),
+                                                 hero().blessings,
+                                                 hero().blessings == 1 ? "" : "s"));
+                  });
 }
 
 void GuildmasterScreen::charisma(CharismaStat stat, std::string statName) {

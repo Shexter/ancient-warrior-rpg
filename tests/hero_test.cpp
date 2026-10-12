@@ -76,6 +76,16 @@ TEST(Hero, LevelingDoesNotRaiseStats) {
     grantExp(hero, shippedContent(), 10000);
     EXPECT_EQ(hero.atk, before.atk);
     EXPECT_EQ(hero.maxHp, before.maxHp);
+    EXPECT_EQ(hero.blessings, 13); // one point per level gained, 1 -> 14
+}
+
+TEST(Hero, BlessingPointsAccumulateAcrossGains) {
+    Hero hero = newHero("fighter");
+    grantExp(hero, shippedContent(), 99); // not a level
+    EXPECT_EQ(hero.blessings, 0);
+    grantExp(hero, shippedContent(), 1); // level 2
+    grantExp(hero, shippedContent(), 200); // level 3
+    EXPECT_EQ(hero.blessings, 2);
 }
 
 TEST(Hero, NameValidation) {

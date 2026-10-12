@@ -53,6 +53,8 @@ struct CharismaQuote {
     std::int64_t points, goldCost, gain;
 };
 CharismaQuote charismaQuote(const Hero& hero, const Content& content, std::int64_t expSpent);
+// What one blessing point adds: +30 max HP, +10 max MP, +6 ATK or +3 DEF.
+int blessingGain(CharismaStat stat);
 
 // Roll helpers, exposed so tests can drive them with an explicit Rng.
 AuctionResult rollAuction(Rng& rng, std::int64_t auctionValue);
@@ -75,6 +77,8 @@ std::expected<void, TownError> useConsumable(GameState&, const Content&, std::st
 // Spends `expSpent` EXP in full; only whole units of 50 earn points.
 std::expected<void, TownError> buyCharisma(GameState&, const Content&, CharismaStat,
                                            std::int64_t expSpent);
+// Spends one blessing point on `stat`; current HP/MP rise with their maximum.
+std::expected<void, TownError> blessing(GameState&, CharismaStat);
 std::expected<void, TownError> learnSkill(GameState&, const Content&, std::string_view id);
 std::expected<void, TownError> rename(GameState&, std::string_view raw);
 

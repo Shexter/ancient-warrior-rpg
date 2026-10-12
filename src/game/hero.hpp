@@ -37,6 +37,7 @@ struct Hero {
     std::set<std::string> learnedSkills;
     std::set<std::string> completedMissions;
     int forgeLevel = 9;
+    int blessings = 0; // unspent points, one per level gained
 
     bool operator==(const Hero&) const = default;
 };
@@ -44,7 +45,8 @@ struct Hero {
 // Trims spaces; accepts 1-8 characters in 0x20-0x7E.
 std::expected<std::string, TownError> validateHeroName(std::string_view raw);
 
-// Adds to spendable exp and advances the level. Returns levels gained.
+// Adds to spendable exp and advances the level, granting one blessing point per level.
+// Returns levels gained.
 int grantExp(Hero& hero, const Content& content, std::int64_t amount);
 
 // Sum of item.bonus x upgradeLevel over weapon and armor.

@@ -352,7 +352,10 @@ void ResultScreen::draw(Framebuffer& frame) const {
         drawText(frame, 20, y, "Gold", palette::kText);
         drawText(frame, 26, y++, std::format("+{}", result_.goldGained), palette::kGold);
         if (result_.levelsGained > 0)
-            drawText(frame, 20, y++, std::format("Level up! +{}", result_.levelsGained),
+            drawText(frame, 20, y++,
+                     std::format("Level up! +{} · {} blessing{} at the Prior",
+                                 result_.levelsGained, result_.levelsGained,
+                                 result_.levelsGained == 1 ? "" : "s"),
                      palette::kAccent);
         if (!result_.itemsGained.empty())
             drawText(frame, 20, y++,

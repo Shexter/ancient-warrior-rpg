@@ -254,7 +254,11 @@ void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
     drawText(frame, 18, 8, std::format("+{}", hero.gold - before_.gold), palette::kGold);
     drawText(frame, 4, 9, std::format("EXP           {}{}", exp >= 0 ? "+" : "", exp),
              palette::kText);
-    drawText(frame, 4, 10, std::format("Levels gained {}", hero.level - before_.level),
+    const int levels = hero.level - before_.level;
+    drawText(frame, 4, 10,
+             levels > 0 ? std::format("Levels gained {} · {} blessing{} at the Prior", levels,
+                                      levels, levels == 1 ? "" : "s")
+                        : "Levels gained 0",
              palette::kText);
     drawText(frame, 4, 11, std::format("Drops         {}", countedList(drops)), palette::kText, 74);
     if (!lost.empty())

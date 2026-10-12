@@ -185,6 +185,7 @@ class GuildmasterScreen final : public TownScreen {
     void drawBody(engine::Framebuffer& frame) const override;
     std::string_view hint() const override;
     void restoration();
+    void blessings();
     void charisma(game::CharismaStat stat, std::string statName);
 
     bool learning_ = false; // the Learn Skill list is showing

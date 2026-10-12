@@ -17,6 +17,7 @@
 ## Guildmaster / bank (allowed when dead)
 - `revive` (returns `bool`; spec said `expected`): hp 0 → `min(100, maxHp)` for `min(100, gold)` gold, so a broke hero is never stuck.
 - `useConsumable`, `learnSkill` (level ≥ max(5, skill level); consumes the key item and gold), `rename` (50,000 gold).
+- `blessing(state, stat)`: spends one blessing point for +30 max HP, +10 max MP, +6 ATK or +3 DEF (`blessingGain(stat)`); a max HP/MP blessing raises current HP/MP by the same amount. Refused with nothing changed without a point (`NoBlessings`) or if the stat would pass 1,000,000 (`InvalidQuantity`). Works on a fallen hero too.
 - `buyCharisma`: level ≥ 10; **spends all the EXP entered**, but points = EXP/50, cost 100 gold per point, gain = points·10·multiplier/level. Refused with nothing spent if points < 1, gain < 1, or the stat would pass 1,000,000. `charismaQuote(hero, content, exp)` returns the points, gold cost and gain without changing anything, for previews. Does not raise current HP/MP.
 - Bank: 10,000 gold once, 10 slots, `deposit`/`withdraw` move items atomically.
 

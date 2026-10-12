@@ -255,7 +255,7 @@ TEST(Vocabulary, NoScreenShowsAnMpLabel) {
     hub.startAtHub(state);
     EXPECT_TRUE(frameContains(hub.frame(), "FV "));
     EXPECT_FALSE(showsMp(hub.frame())) << "Hub";
-    ASSERT_TRUE(hub.press({ch('3'), ch('3'), ch('2')})); // Town, Prior, Build Charisma
+    ASSERT_TRUE(hub.press({ch('3'), ch('3'), ch('3')})); // Town, Prior, Build Charisma
     EXPECT_TRUE(frameContains(hub.frame(), "Max Fervor"));
     EXPECT_FALSE(showsMp(hub.frame())) << "Prior";
 
@@ -285,6 +285,7 @@ TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
     game::GameState state = levelTwenty();
     state.hero.level = 15;
     state.hero.atk = 100000; // ends the fight in the hero's favor
+    state.hero.expToNext = 1; // the 5000 EXP reward is sure to level up
     game::GameState expected = state;
     {
         auto battle = game::startMission(expected, game::shippedContent(), "avaritia", &game::shippedScripts()).value();
@@ -302,6 +303,10 @@ TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
     EXPECT_EQ(*h.session.state, expected);
     EXPECT_TRUE(frameContains(h.frame(), "VICTORY"));
     EXPECT_TRUE(frameContains(h.frame(), "Items: Gold Dust, Dark Pearl"));
+    const int levels = expected.hero.level - state.hero.level;
+    ASSERT_GT(levels, 0);
+    EXPECT_TRUE(frameContains(h.frame(), std::format("Level up! +{} · {} blessing{} at the Prior",
+                                                     levels, levels, levels == 1 ? "" : "s")));
     EXPECT_EQ(h.session.state->hero.bag.count("gold_dust"), 1);
     EXPECT_EQ(h.session.state->hero.bag.count("black_pearl"), 1);
     EXPECT_TRUE(h.session.state->hero.completedMissions.contains("avaritia"));

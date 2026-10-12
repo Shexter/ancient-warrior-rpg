@@ -15,6 +15,13 @@ constexpr std::int64_t kCharismaGoldPerPoint = 100;
 
 std::unexpected<TownError> fail(TownError e) { return std::unexpected(e); }
 
+int& statOf(Hero& hero, CharismaStat stat) {
+    return stat == CharismaStat::MaxHp   ? hero.maxHp
+           : stat == CharismaStat::MaxMp ? hero.maxMp
+           : stat == CharismaStat::Atk   ? hero.atk
+                                         : hero.def;
+}
+
 std::optional<Equipped>& slotOf(Hero& hero, EquipSlot slot) {
     return slot == EquipSlot::Weapon ? hero.weapon : hero.armor;
 }
@@ -256,10 +263,7 @@ std::expected<void, TownError> buyCharisma(GameState& state, const Content& cont
         return fail(TownError::NotEnoughGold);
     if (quote.gain < 1)
         return fail(TownError::InvalidQuantity);
-    int& target = stat == CharismaStat::MaxHp   ? hero.maxHp
-                  : stat == CharismaStat::MaxMp ? hero.maxMp
-                  : stat == CharismaStat::Atk   ? hero.atk
-                                                : hero.def;
+    int& target = statOf(hero, stat);
     // Stats stay within the cap that saves and battle math rely on.
     if (quote.gain > kMaxStat - target)
         return fail(TownError::InvalidQuantity);
@@ -267,6 +271,38 @@ std::expected<void, TownError> buyCharisma(GameState& state, const Content& cont
     hero.exp -= expSpent;
     hero.gold -= quote.goldCost;
     target += static_cast<int>(quote.gain);
+    return {};
+}
+
+int blessingGain(CharismaStat stat) {
+    switch (stat) {
+    case CharismaStat::MaxHp:
+        return 30;
+    case CharismaStat::MaxMp:
+        return 10;
+    case CharismaStat::Atk:
+        return 6;
+    case CharismaStat::Def:
+        return 3;
+    }
+    return 0;
+}
+
+std::expected<void, TownError> blessing(GameState& state, CharismaStat stat) {
+    Hero& hero = state.hero;
+    if (hero.blessings < 1)
+        return fail(TownError::NoBlessings);
+    const int gain = blessingGain(stat);
+    int& target = statOf(hero, stat);
+    if (gain > kMaxStat - target)
+        return fail(TownError::InvalidQuantity);
+
+    --hero.blessings;
+    target += gain;
+    if (stat == CharismaStat::MaxHp)
+        hero.hp += gain;
+    else if (stat == CharismaStat::MaxMp)
+        hero.mp += gain;
     return {};
 }
 

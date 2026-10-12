@@ -231,7 +231,7 @@ TEST(Guildmaster, CharismaPreviewsTheGainAndThenBuysIt) {
                     .has_value());
 
     enterNpc(h, state, '3');
-    ASSERT_TRUE(h.press({ch('2'), ch('1')})); // Build Charisma, Max HP
+    ASSERT_TRUE(h.press({ch('3'), ch('1')})); // Build Charisma, Max HP
     ASSERT_TRUE(h.type("500"));
     EXPECT_TRUE(frameContains(
         h.frame(), std::format("→ +{} Max HP for {} gold", quote.gain, quote.goldCost)));
@@ -243,7 +243,7 @@ TEST(Guildmaster, CharismaIsDisabledBelowLevel10) {
     Harness h("guild_charisma_locked");
     enterNpc(h, freshGame(), '3');
     EXPECT_TRUE(frameContains(h.frame(), "Requires Lv 10"));
-    ASSERT_TRUE(h.press({ch('2')}));
+    ASSERT_TRUE(h.press({ch('3')}));
     EXPECT_FALSE(frameContains(h.frame(), "Raise which stat?"));
 }
 
@@ -252,7 +252,7 @@ TEST(Guildmaster, LearnSkillColorsEachRequirement) {
     game::GameState state = withItem("topaz", 1);
     state.hero.level = 5;
     enterNpc(h, state, '3');
-    ASSERT_TRUE(h.press({ch('3')}));
+    ASSERT_TRUE(h.press({ch('4')}));
     const Framebuffer frame = h.frame();
     // Requirement columns follow the longest skill name ("Let There Be Light", 18): level at
     // 6 + 18 + 2 = 26, key item at 26 + 8 + 14 = 48.
@@ -284,7 +284,7 @@ TEST(Guildmaster, ChangeNameChargesTheFee) {
     game::GameState state = freshGame();
     state.hero.gold = 60000;
     enterNpc(h, state, '3');
-    ASSERT_TRUE(h.press({ch('4')}));
+    ASSERT_TRUE(h.press({ch('5')}));
     EXPECT_TRUE(frameContains(h.frame(), "The fee is 50000 gold."));
     ASSERT_TRUE(h.type("Roland"));
     ASSERT_TRUE(h.press({kEnter}));
@@ -313,6 +313,35 @@ TEST(Reskin, LongestNamesStayInsideTheirBoxes) {
     game::GameState state = withItem("pure_ice", 1);
     state.hero.level = 20;
     enterNpc(h, state, '3');
-    ASSERT_TRUE(h.press({ch('3')})); // Learn Skill
+    ASSERT_TRUE(h.press({ch('4')})); // Learn Skill
     EXPECT_NE(rowText(h.frame(), 11).find("Fragment of the Cross"), std::string::npos);
+}
+
+TEST(Guildmaster, BlessingsShowTheGainAndThePointsLeft) {
+    Harness h("guild_blessings");
+    game::GameState state = freshGame();
+    state.hero.blessings = 2;
+    game::GameState expected = state;
+    ASSERT_TRUE(game::blessing(expected, game::CharismaStat::Atk).has_value());
+
+    enterNpc(h, state, '3');
+    EXPECT_TRUE(frameContains(h.frame(), "Blessings (2)"));
+    ASSERT_TRUE(h.press({ch('2')}));
+    EXPECT_TRUE(frameContains(h.frame(), "Spend a blessing (2 left)"));
+    EXPECT_TRUE(frameContains(h.frame(), "Max HP +30"));
+    EXPECT_TRUE(frameContains(h.frame(), "DEF +3"));
+    ASSERT_TRUE(h.press({ch('3')})); // ATK +6
+    EXPECT_EQ(*h.session.state, expected);
+    EXPECT_TRUE(frameContains(h.frame(), std::format("Your ATK rises to {}. 1 blessing left.",
+                                                     expected.hero.atk)));
+    ASSERT_TRUE(h.press({kEnter}));
+    EXPECT_TRUE(frameContains(h.frame(), "Blessings (1)"));
+}
+
+TEST(Guildmaster, BlessingsAreDisabledWithoutPoints) {
+    Harness h("guild_blessings_none");
+    enterNpc(h, freshGame(), '3');
+    EXPECT_TRUE(frameContains(h.frame(), "Level up to earn more"));
+    ASSERT_TRUE(h.press({ch('2')}));
+    EXPECT_FALSE(frameContains(h.frame(), "Spend a blessing"));
 }

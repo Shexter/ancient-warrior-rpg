@@ -50,6 +50,7 @@ GameState richState() {
     h.weapon = Equipped{"fire_claymore", 4};
     h.armor = Equipped{"diamond_plate", 2};
     h.forgeLevel = 6;
+    h.blessings = 4;
     EXPECT_TRUE(h.bag.add("topaz", 3));
     EXPECT_TRUE(h.bag.add("health_potion", 5));
     EXPECT_TRUE(h.bag.add("fire_dust", 2));
@@ -169,7 +170,9 @@ TEST_P(BadSave, IsRejectedAndFileUntouched) {
 INSTANTIATE_TEST_SUITE_P(
     Cases, BadSave,
     testing::Values(
-        BadCase{"version3", MUT(j["version"] = 3), SaveError::NewerVersion}, // newer than this game
+        BadCase{"version4", MUT(j["version"] = 4), SaveError::NewerVersion}, // newer than this game
+        BadCase{"missing_blessings", MUT(j["hero"].erase("blessings")), SaveError::Corrupt},
+        BadCase{"negative_blessings", MUT(j["hero"]["blessings"] = -1), SaveError::Corrupt},
         BadCase{"modsNotList", MUT(j["mods"] = "cyclops"), SaveError::Corrupt},
         BadCase{"modWithoutVersion", MUT(j["mods"] = Json::array({{{"name", "x"}}})),
                 SaveError::Corrupt},
@@ -258,5 +261,24 @@ TEST(SaveMods, AVersion1SaveHasNoMods) {
     const fs::path old =
         fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "pre_reskin_save.json";
     EXPECT_TRUE(readSaveMods(old).value().empty());
-    EXPECT_TRUE(loadGame(old, shippedContent()).has_value());
+    const auto loaded = loadGame(old, shippedContent());
+    ASSERT_TRUE(loaded.has_value());
+    EXPECT_EQ(loaded->hero.blessings, 2); // level 3, saved before blessings existed
+}
+
+TEST(SaveBlessings, APreBlessingSaveGetsLevelMinusOnePoints) {
+    const fs::path file = scratchDir("pre_blessing") / "save.json";
+    GameState state = freshState();
+    state.hero.level = 15;
+    ASSERT_TRUE(saveGame(state, file).has_value());
+    Json doc = Json::parse(slurp(file));
+    doc["version"] = 2;
+    doc["hero"].erase("blessings");
+    spit(file, doc.dump(2));
+    const std::string before = slurp(file);
+
+    const auto loaded = loadGame(file, shippedContent());
+    ASSERT_TRUE(loaded.has_value());
+    EXPECT_EQ(loaded->hero.blessings, 14);
+    EXPECT_EQ(slurp(file), before); // unchanged until the player saves
 }

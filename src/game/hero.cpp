@@ -55,6 +55,7 @@ int grantExp(Hero& hero, const Content& content, std::int64_t amount) {
             remaining -= hero.expToNext;
             ++hero.level;
             ++levelsGained;
+            ++hero.blessings;
             hero.expToNext = static_cast<std::int64_t>(hero.level) * 100 * multiplier;
         } else {
             hero.expToNext -= remaining;

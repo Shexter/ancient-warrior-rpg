@@ -10,10 +10,10 @@
 
 ## 2. Blessings
 
-- [ ] 2.1 Add blessing points to the hero (one per level gained in `grantExp`), the all-or-nothing `blessing(state, stat)` action, save version 3 (`level − 1` points for v1/v2 saves), and `heroes-sim --blessings N` (spread evenly, remainders to HP first); verify hero, town and save tests for the multi-level, spend, no-points, cap and pre-blessing-save scenarios
-- [ ] 2.2 Prior "Blessings" menu (stat choice with the gain shown, points left) and level-up messages that mention new points (battle result and training totals); verify screen tests
-- [ ] 2.3 Update SimpleDocs (`hero-and-battle.md`, `town-and-training.md`, `save.md`, `app.md`); verify against the screens
-- [ ] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Add blessing points to the hero (one per level gained in `grantExp`), the all-or-nothing `blessing(state, stat)` action, save version 3 (`level − 1` points for v1/v2 saves), and `heroes-sim --blessings N` (spread evenly, remainders to HP first); verify hero, town and save tests for the multi-level, spend, no-points, cap and pre-blessing-save scenarios
+- [x] 2.2 Prior "Blessings" menu (stat choice with the gain shown, points left) and level-up messages that mention new points (battle result and training totals); verify screen tests
+- [x] 2.3 Update SimpleDocs (`hero-and-battle.md`, `town-and-training.md`, `save.md`, `app.md`); verify against the screens
+- [x] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Push-your-luck training
 

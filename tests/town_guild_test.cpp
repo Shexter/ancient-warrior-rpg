@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <tuple>
+
 using namespace heroes::game;
 
 namespace {
@@ -308,4 +310,50 @@ TEST(Mission, FleeChangesNothingButHpAndMp) {
     EXPECT_EQ(result->outcome, Outcome::Fled);
     EXPECT_EQ(state, expected);
     EXPECT_TRUE(startMission(state, content(), "the_gorgon", &shippedScripts()).has_value());
+}
+
+TEST(Guild, SpendingABlessing) {
+    GameState state = freshState();
+    state.hero.blessings = 2;
+    state.hero.maxHp = 350;
+    state.hero.hp = 200;
+    ASSERT_TRUE(blessing(state, CharismaStat::MaxHp).has_value());
+    EXPECT_EQ(state.hero.maxHp, 380);
+    EXPECT_EQ(state.hero.hp, 230);
+    EXPECT_EQ(state.hero.blessings, 1);
+}
+
+TEST(Guild, BlessingGainsPerStat) {
+    for (auto [stat, member, gain] :
+         {std::tuple{CharismaStat::MaxHp, &Hero::maxHp, 30},
+          std::tuple{CharismaStat::MaxMp, &Hero::maxMp, 10},
+          std::tuple{CharismaStat::Atk, &Hero::atk, 6}, std::tuple{CharismaStat::Def, &Hero::def, 3}}) {
+        GameState state = freshState();
+        state.hero.blessings = 1;
+        const Hero before = state.hero;
+        ASSERT_TRUE(blessing(state, stat).has_value());
+        EXPECT_EQ(state.hero.*member, before.*member + gain);
+        EXPECT_EQ(blessingGain(stat), gain);
+    }
+    GameState state = freshState();
+    state.hero.blessings = 1;
+    state.hero.mp = 5;
+    ASSERT_TRUE(blessing(state, CharismaStat::MaxMp).has_value());
+    EXPECT_EQ(state.hero.mp, 15); // current Fervor rises too
+}
+
+TEST(Guild, NoBlessingPointsIsRefused) {
+    GameState state = freshState();
+    const GameState before = state;
+    EXPECT_EQ(blessing(state, CharismaStat::Atk).error(), TownError::NoBlessings);
+    EXPECT_EQ(state, before);
+}
+
+TEST(Guild, BlessingCannotPushAStatPastTheCap) {
+    GameState state = freshState();
+    state.hero.blessings = 1;
+    state.hero.atk = kMaxStat - 5;
+    const GameState before = state;
+    EXPECT_EQ(blessing(state, CharismaStat::Atk).error(), TownError::InvalidQuantity);
+    EXPECT_EQ(state, before);
 }

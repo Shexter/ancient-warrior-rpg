@@ -19,8 +19,9 @@ namespace {
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
 
-// 2 added "mods" (add-lua-scripting). Version 1 saves still load, with no mods.
-constexpr int kVersion = 2;
+// 2 added "mods" (add-lua-scripting), 3 added "blessings" (fun-pass). Older saves still load:
+// no mods before 2, and `level - 1` blessing points before 3.
+constexpr int kVersion = 3;
 constexpr int kOldestVersion = 1;
 constexpr std::uintmax_t kMaxSaveBytes = 1 << 20; // a real save is a few KB
 
@@ -160,7 +161,8 @@ Json toJson(const GameState& state, std::span<const ModRef> mods) {
               {"bank", h.bank ? inventoryToJson(*h.bank) : Json(nullptr)},
               {"learnedSkills", h.learnedSkills},
               {"completedMissions", h.completedMissions},
-              {"forgeLevel", h.forgeLevel}};
+              {"forgeLevel", h.forgeLevel},
+              {"blessings", h.blessings}};
     const Rng::State rng = state.rng.state();
     Json modList = Json::array();
     for (const ModRef& mod : mods)
@@ -203,6 +205,9 @@ GameState fromJson(const Json& root, const Content& content) {
     hero.def = smallInt(h, "def", 0, kMaxStat);
     hero.life = smallInt(h, "life", 0, kMaxStat);
     hero.forgeLevel = smallInt(h, "forgeLevel", 1, 10);
+    hero.blessings = root.at("version").get<std::int64_t>() < 3
+                         ? hero.level - 1
+                         : smallInt(h, "blessings", 0, kMaxStat);
     hero.weapon = equippedFromJson(h, "weapon", ItemKind::Weapon, content);
     hero.armor = equippedFromJson(h, "armor", ItemKind::Armor, content);
     hero.bag = inventoryFromJson(field(h, "bag"), content);

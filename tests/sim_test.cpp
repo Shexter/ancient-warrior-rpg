@@ -124,6 +124,9 @@ TEST(SimErrors, BadInputsRunNoBattles) {
     c = base;
     c.bonusHp = heroes::game::kMaxStat + 1;
     expectError(c, "--bonus-hp");
+    c = base;
+    c.blessings = -1;
+    expectError(c, "--blessings");
 }
 
 TEST(SimArgs, ParsesTheFullCommandLine) {
@@ -136,6 +139,7 @@ TEST(SimArgs, ParsesTheFullCommandLine) {
                                                 "--weapon",    "fire_claymore:4",
                                                 "--skills",    "angel_wings,supernova",
                                                 "--bonus-atk", "20",
+                                                "--blessings", "14",
                                                 "--bench"};
     auto options = parseArgs(args, "somewhere", 8);
     ASSERT_TRUE(options.has_value()) << options.error();
@@ -147,6 +151,7 @@ TEST(SimArgs, ParsesTheFullCommandLine) {
     EXPECT_EQ(options->config.weaponLevel, 4);
     EXPECT_EQ(options->config.skills, (std::vector<std::string>{"angel_wings", "supernova"}));
     EXPECT_EQ(options->config.bonusAtk, 20);
+    EXPECT_EQ(options->config.blessings, 14);
     EXPECT_TRUE(options->bench);
     EXPECT_EQ(options->config.dataDir, "somewhere");
 }
@@ -239,4 +244,17 @@ TEST(Sim, ItemsComeIntoEveryBattle) {
     SimConfig notConsumable = startingFighter(1, 1);
     notConsumable.items = {{"iron_sword", 1}};
     EXPECT_EQ(runSimulation(notConsumable).error(), "unknown consumable 'iron_sword'");
+}
+
+TEST(Sim, BlessingsSpreadEvenlyWithRemaindersToHpFirst) {
+    const auto plain = runSimulation(startingFighter(1, 1));
+    SimConfig config = startingFighter(1, 1);
+    config.blessings = 14; // 4 HP, 4 Fervor, 3 ATK, 3 DEF
+    const auto blessed = runSimulation(config);
+    ASSERT_TRUE(plain.has_value());
+    ASSERT_TRUE(blessed.has_value());
+    EXPECT_EQ(blessed->hp, plain->hp + 4 * 30);
+    EXPECT_EQ(blessed->mp, plain->mp + 4 * 10);
+    EXPECT_EQ(blessed->atk, plain->atk + 3 * 6);
+    EXPECT_EQ(blessed->def, plain->def + 3 * 3);
 }

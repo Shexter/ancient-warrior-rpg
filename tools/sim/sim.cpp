@@ -6,8 +6,10 @@
 #include "game/battle.hpp"
 #include "game/content_loader.hpp"
 #include "game/game_state.hpp"
+#include "game/town.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstdlib>
 #include <format>
@@ -58,6 +60,9 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
                                       {"--bonus-def", config.bonusDef}})
         if (value < 0 || value > kMaxStat)
             return std::unexpected(std::format("{} must be 0-{}, got {}", name, kMaxStat, value));
+    if (config.blessings < 0 || config.blessings > kMaxStat)
+        return std::unexpected(
+            std::format("--blessings must be 0-{}, got {}", kMaxStat, config.blessings));
 
     auto loaded = loadContent(config.dataDir);
     if (!loaded) {
@@ -105,6 +110,14 @@ std::expected<Setup, std::string> buildSetup(const SimConfig& config) {
     hero.mp += config.bonusMp;
     hero.atk += config.bonusAtk;
     hero.def += config.bonusDef;
+    hero.blessings = config.blessings;
+    static constexpr std::array kOrder{CharismaStat::MaxHp, CharismaStat::MaxMp, CharismaStat::Atk,
+                                       CharismaStat::Def};
+    GameState blessed{std::move(hero), Rng::stream(config.seed, 0), config.seed};
+    for (int i = 0; i < config.blessings; ++i)
+        if (!blessing(blessed, kOrder[static_cast<std::size_t>(i) % kOrder.size()]))
+            return std::unexpected("--blessings pushes a stat past the cap");
+    hero = std::move(blessed.hero);
 
     Combatant combatant = heroCombatant(hero, content);
     Report report;
@@ -323,6 +336,8 @@ std::expected<CliOptions, std::string> parseArgs(std::span<const std::string_vie
             result = number(c.bonusAtk);
         else if (flag == "--bonus-def")
             result = number(c.bonusDef);
+        else if (flag == "--blessings")
+            result = number(c.blessings);
         else if (flag == "--data-dir")
             c.dataDir = value;
         else

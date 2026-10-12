@@ -28,6 +28,7 @@ struct SimConfig {
     std::vector<std::string> skills;
     std::vector<std::pair<std::string, int>> items; // consumables carried in: id, count
     int bonusHp = 0, bonusMp = 0, bonusAtk = 0, bonusDef = 0;
+    int blessings = 0; // spread evenly over HP, MP, ATK, DEF; remainders go to HP first
 };
 
 struct Tally {

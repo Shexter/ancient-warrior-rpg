@@ -29,6 +29,7 @@ enum class TownError {
     UnknownItem,
     MissionLocked,
     MissionCompleted,
+    NoBlessings,
 };
 
 // Player-facing sentence for every value.
@@ -82,6 +83,8 @@ inline std::string_view describe(TownError e) {
         return "You are not ready for that mission.";
     case TownError::MissionCompleted:
         return "You have already completed that mission.";
+    case TownError::NoBlessings:
+        return "You have no blessing points to spend.";
     }
     return "Something went wrong.";
 }

@@ -92,6 +92,10 @@ TEST(TrainingScreen, TotalsMatchTheStatusPanelAndReturnToTheHub) {
     EXPECT_TRUE(frameContains(totals, std::format("Gold {}", e.after.hero.gold))); // panel
     EXPECT_TRUE(frameContains(totals, std::format("EXP           +{}", e.after.hero.exp)));
     EXPECT_TRUE(frameContains(totals, std::format("EXP {}", e.after.hero.exp))); // panel
+    const int levels = e.after.hero.level - 1;
+    ASSERT_GT(levels, 1);
+    EXPECT_TRUE(frameContains(
+        totals, std::format("Levels gained {} · {} blessings at the Prior", levels, levels)));
 
     ASSERT_TRUE(h.press({kEnter}));
     EXPECT_EQ(h.app->depth(), 1u);
