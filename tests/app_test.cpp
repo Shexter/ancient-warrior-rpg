@@ -95,7 +95,7 @@ TEST(TitleScreen, RendersBannerMenuAndHint) {
     TitleScreen title(f.session);
     Framebuffer frame(80, 24);
     title.draw(frame);
-    EXPECT_NE(rowText(frame, 6).find("Ancient Warrior RPG"), std::string::npos);
+    EXPECT_NE(rowText(frame, 6).find("Ordo Lucis"), std::string::npos);
     EXPECT_EQ(rowText(frame, 4).find("┌"), rowText(frame, 4).find_first_not_of(' '));
     EXPECT_NE(rowText(frame, 14).find("▶ New Game"), std::string::npos);
     EXPECT_NE(rowText(frame, 15).find("Continue"), std::string::npos);

@@ -39,8 +39,8 @@ TEST(NewGame, CreatesTheHeroWithTheSeedAndReachesTheHub) {
     ASSERT_TRUE(h.type("  Aria "));
     ASSERT_TRUE(h.press({kEnter, kEnter, kEnter})); // name, then reveal and finish the story
     EXPECT_TRUE(frameContains(h.frame(), "WARRIOR PATHS"));
-    EXPECT_TRUE(frameContains(h.frame(), "Blessed with the")); // wrapped at 20 columns
-    EXPECT_TRUE(frameContains(h.frame(), "Strongest Fist."));
+    EXPECT_TRUE(frameContains(h.frame(), "A knight of the")); // wrapped at 20 columns
+    EXPECT_TRUE(frameContains(h.frame(), "the Strongest Fist."));
     ASSERT_TRUE(h.press({ch('2')})); // Hunter
 
     ASSERT_TRUE(h.session.state.has_value());

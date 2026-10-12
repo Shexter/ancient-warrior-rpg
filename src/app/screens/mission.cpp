@@ -3,6 +3,7 @@
 #include "game/errors.hpp"
 #include "game/hero.hpp"
 
+#include <algorithm>
 #include <format>
 #include <memory>
 #include <utility>
@@ -164,11 +165,14 @@ BattleScreen::BattleScreen(Session& session, std::string missionId, game::Battle
 
 std::vector<Menu::Item> BattleScreen::skillItems() const {
     const game::Hero& hero = session_.state->hero;
+    int nameWidth = 0;
+    for (const game::SkillDef& skill : session_.content.skills())
+        nameWidth = std::max(nameWidth, textWidth(skill.name));
     std::vector<Menu::Item> rows;
     for (const game::SkillDef& skill : session_.content.skills()) {
         const bool usable =
             hero.learnedSkills.contains(skill.id) && battle_.hero().mp >= skill.mpCost;
-        rows.emplace_back(std::format("{:<14}({})", skill.name, skill.mpCost), usable,
+        rows.emplace_back(std::format("{:<{}}({})", skill.name, nameWidth + 1, skill.mpCost), usable,
                           skill.description);
     }
     return rows;
@@ -254,7 +258,7 @@ void BattleScreen::draw(Framebuffer& frame) const {
                  palette::kDim);
     if (skills_) {
         drawPanel(frame, 16, 14, 64, 7);
-        skills_->draw(frame, 18, 15);
+        skills_->draw(frame, 18, 15, true, 61); // inside the panel's right border
     }
     if (const int offset = view_.shake())
         shiftFrame(frame, offset);

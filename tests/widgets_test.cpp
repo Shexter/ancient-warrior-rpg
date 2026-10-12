@@ -181,14 +181,14 @@ TEST(StatusPanel, ShowsStatsWithEquipmentBarsAndGear) {
     drawStatusPanel(frame, hero, game::shippedContent());
 
     const std::string row1 = rowText(frame, 1);
-    EXPECT_NE(row1.find("ARIA  Fighter Lv 1   HP "), std::string::npos) << row1;
+    EXPECT_NE(row1.find("ARIA  Knight Lv 1   HP "), std::string::npos) << row1;
     EXPECT_NE(row1.find("███████████████░░░░░ 250/350"), std::string::npos) << row1;
     EXPECT_NE(row1.find("MP █████░░░ 30/50"), std::string::npos) << row1;
     const std::string row2 = rowText(frame, 2);
     // 50 base + 50 x 2 from the +2 Iron Sword; no armor.
     EXPECT_NE(row2.find("ATK 150  DEF 5  LIFE 0   EXP 0  Next 100   Gold 20000"), std::string::npos)
         << row2;
-    EXPECT_NE(rowText(frame, 3).find("Weapon Iron Sword+2   Armor —"), std::string::npos);
+    EXPECT_NE(rowText(frame, 3).find("Weapon Sword+2   Armor —"), std::string::npos);
     EXPECT_EQ(rowText(frame, 0).substr(0, 9), "┌──");
     EXPECT_EQ(rowText(frame, 4).substr(0, 3), "└");
 }
@@ -197,7 +197,7 @@ TEST(StatusPanel, LevelOneGearHasNoPlusAndHpColorsFollowThresholds) {
     game::GameState state = game::freshState();
     Framebuffer frame(80, 24);
     drawStatusPanel(frame, state.hero, game::shippedContent());
-    EXPECT_NE(rowText(frame, 3).find("Weapon Iron Sword   Armor Steel Shield"), std::string::npos);
+    EXPECT_NE(rowText(frame, 3).find("Weapon Sword   Armor Iron Shield"), std::string::npos);
     EXPECT_EQ(hpColor(51, 100), palette::kHpHigh);
     EXPECT_EQ(hpColor(50, 100), palette::kHpMid);
     EXPECT_EQ(hpColor(21, 100), palette::kHpMid);

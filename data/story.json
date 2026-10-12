@@ -1,18 +1,18 @@
 {
-  "title": "Ancient Warrior RPG",
+  "title": "Ordo Lucis",
   "opening": [
-    "One of the first seven to become a hero, and one of the few who had been chosen by the sacred light",
-    "They called him the bravest of all man, ever since he partook in the Great Quest",
-    "He hunted monsters even if it did not bring him any benefits",
-    "He annihilated the dangerous dungeons that everyone else avoided",
-    "and he also judged heroes and guilds who defied the law",
-    "only he was different...",
-    "Therefore, he will be the one to save the world....."
+    "For a thousand years the bells of Civitas Lucis have rung at dawn.",
+    "The Order of Light kept the gates, and the gates held.",
+    "Then the bells stopped answering.",
+    "The sins of the world took shape, and they came for the city.",
+    "Most knights were sent to the walls. A few were sent to the road.",
+    "You are the newest of the Order, and the least proven.",
+    "Light does not ask who is ready. It asks who will go."
   ],
   "pathIntro": [
-    "Among all the hero...",
-    "a Fighter is blessed with the Strongest Fist",
-    "a Hunter with the Body Strong as rock",
-    "while a Rogue will have a Balance Mind..."
+    "The Order calls three kinds of souls to its work...",
+    "the Miles, who stands where others fall",
+    "the Venator, who hunts what hides",
+    "and the Peregrinus, who walks where there is no road."
   ]
 }

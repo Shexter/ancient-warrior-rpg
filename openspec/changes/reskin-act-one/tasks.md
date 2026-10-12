@@ -2,12 +2,12 @@
 
 ## 1. Act I names in data
 
-- [ ] 1.1 Update `data/paths.json`, `items.json`, `skills.json` and `story.json` (title, opening, pathIntro) to `reference/act-one-names.md`, changing only `name`, `description`, `flavor`, `title` and story lines; verify `git diff data/` shows no ID, number or key changes (a script compares every non-text field before and after)
-- [ ] 1.2 Rename the Medusa mission to `Bonus: "The Gorgon"` in `missions.json` with nothing else changed; verify the Medusa golden-vector tests pass with `tests/battle_golden_data.hpp` unchanged
-- [ ] 1.3 Widen the skill overlay name column and move the Learn Skill requirement columns past the longest skill name (design Decision 6); verify with screen tests that "Let There Be Light" and "Fragment of the Cross" rows don't overlap their neighbours
-- [ ] 1.4 Update screen tests that assert the old display text; add a test that a save written with the old data (`health_potion` in the bag, `iron_sword` equipped) loads and shows "Holy Water" and "Sword"; verify all presets, GCC and the MinGW syntax check pass
-- [ ] 1.5 Update SimpleDocs (`content.md`, `app.md`) for the new names; verify no SimpleDocs page still describes the old names as current
-- [ ] 1.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Update `data/paths.json`, `items.json`, `skills.json` and `story.json` (title, opening, pathIntro) to `reference/act-one-names.md`, changing only `name`, `description`, `flavor`, `title` and story lines; verify `git diff data/` shows no ID, number or key changes (a script compares every non-text field before and after)
+- [x] 1.2 Rename the Medusa mission to `Bonus: "The Gorgon"` in `missions.json` with nothing else changed; verify the Medusa golden-vector tests pass with `tests/battle_golden_data.hpp` unchanged
+- [x] 1.3 Widen the skill overlay name column and move the Learn Skill requirement columns past the longest skill name (design Decision 6); verify with screen tests that "Let There Be Light" and "Fragment of the Cross" rows don't overlap their neighbours
+- [x] 1.4 Update screen tests that assert the old display text; add a test that a save written with the old data (`health_potion` in the bag, `iron_sword` equipped) loads and shows "Holy Water" and "Sword"; verify all presets, GCC and the MinGW syntax check pass
+- [x] 1.5 Update SimpleDocs (`content.md`, `app.md`) for the new names; verify no SimpleDocs page still describes the old names as current
+- [x] 1.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Player-facing vocabulary
 

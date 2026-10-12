@@ -159,18 +159,23 @@ void GuildmasterScreen::drawBody(engine::Framebuffer& frame) const {
     skills_.draw(frame, 4, 7);
     const game::Hero& h = hero();
     const auto skills = content().skills();
+    // Requirement columns start after the longest skill name (menu labels begin at col 6).
+    int nameWidth = 0;
+    for (const game::SkillDef& skill : skills)
+        nameWidth = std::max(nameWidth, textWidth(skill.name));
+    const int levelX = 6 + nameWidth + 2, goldX = levelX + 8, keyX = goldX + 14;
     for (std::size_t i = 0; i < skills.size(); ++i) {
         const game::SkillDef& skill = skills[i];
         const int y = 7 + static_cast<int>(i);
         if (h.learnedSkills.contains(skill.id)) {
-            drawText(frame, 22, y, "Learned", palette::kDim);
+            drawText(frame, levelX, y, "Learned", palette::kDim);
             continue;
         }
         const int level = std::max(game::kLearnMinLevel, skill.learnLevel);
-        drawText(frame, 22, y, std::format("Lv {}", level), metColor(h.level >= level));
-        drawText(frame, 30, y, std::format("{} gold", skill.goldCost),
+        drawText(frame, levelX, y, std::format("Lv {}", level), metColor(h.level >= level));
+        drawText(frame, goldX, y, std::format("{} gold", skill.goldCost),
                  metColor(h.gold >= skill.goldCost));
-        drawText(frame, 44, y, content().item(skill.keyItem).name,
+        drawText(frame, keyX, y, content().item(skill.keyItem).name,
                  metColor(h.bag.count(skill.keyItem) > 0));
     }
     if (!skills.empty())

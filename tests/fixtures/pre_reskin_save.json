@@ -1,0 +1,53 @@
+{
+  "hero": {
+    "armor": {
+      "itemId": "steel_shield",
+      "upgradeLevel": 1
+    },
+    "atk": 50,
+    "bag": [
+      [
+        "topaz",
+        1
+      ],
+      [
+        "health_potion",
+        2
+      ],
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "bank": null,
+    "completedMissions": [],
+    "def": 5,
+    "exp": 500,
+    "expToNext": 100,
+    "forgeLevel": 9,
+    "gold": 20770,
+    "hp": 315,
+    "learnedSkills": [],
+    "level": 3,
+    "life": 0,
+    "maxHp": 350,
+    "maxMp": 50,
+    "mp": 50,
+    "name": "Roland",
+    "pathId": "fighter",
+    "weapon": {
+      "itemId": "iron_sword",
+      "upgradeLevel": 1
+    }
+  },
+  "rng": {
+    "inc": "0x089879afe878cc39",
+    "state": "0xfc6a72cb2fe28f6f"
+  },
+  "seed": "0x0000000000000007",
+  "version": 1
+}

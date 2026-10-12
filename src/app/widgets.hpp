@@ -76,8 +76,10 @@ class Menu {
 
     // The chosen index, or nullopt if the key only moved the selection (or did nothing).
     std::optional<int> handle(const engine::KeyEvent& key);
-    // An unfocused menu (the other list of a two-list screen) hides its selection.
-    void draw(engine::Framebuffer& frame, int x, int y, bool focused = true) const;
+    // An unfocused menu (the other list of a two-list screen) hides its selection. Rows are
+    // clipped to `maxWidth` cells from `x`.
+    void draw(engine::Framebuffer& frame, int x, int y, bool focused = true,
+              int maxWidth = INT_MAX) const;
     int selected() const { return selected_; }
     int size() const { return static_cast<int>(items_.size()); }
     // Replaces the items (e.g. after the game state changed), keeping the selection where it is

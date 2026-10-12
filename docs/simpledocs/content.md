@@ -1,6 +1,6 @@
 # Content (`data/*.json`, `src/game/content*.{hpp,cpp}`)
 
-Seven files: `paths`, `items`, `skills`, `enemies`, `missions`, `recipes`, `story`. Keys are camelCase; enums are snake_case strings. `data/` reproduces `reference/content-tables.md`.
+Seven files: `paths`, `items`, `skills`, `enemies`, `missions`, `recipes`, `story`. Keys are camelCase; enums are snake_case strings. `data/` reproduces the numbers in `build-core-engine`'s `reference/content-tables.md` (now under `openspec/changes/archive/`). Since the Act I re-skin its names, descriptions, flavor, title and story are the ones in `reskin-act-one/reference/act-one-names.md` (for example `iron_sword` is shown as "Sword" and `health_potion` as "Holy Water"). IDs never change, so saves from before the re-skin load and simply show the new names.
 
 `loadContent(dataDir)` returns `std::expected<Content, std::vector<ContentError>>`.
 - It reads every file and **collects all errors** before failing: malformed JSON (with line/column), unknown or missing keys, duplicate or badly formed ids, out-of-range numbers, unknown references, a recipe listing the same ingredient twice, kind mismatches, missing `fighter`/`hunter`/`rogue`.

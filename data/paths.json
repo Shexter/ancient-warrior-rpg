@@ -2,8 +2,8 @@
   "paths": [
     {
       "id": "fighter",
-      "name": "Fighter",
-      "flavor": "blessed with the Strongest Fist",
+      "name": "Knight",
+      "flavor": "a knight of the Order, blessed with the Strongest Fist",
       "multiplier": 1,
       "maxHp": 350,
       "maxMp": 50,
@@ -14,7 +14,7 @@
     {
       "id": "hunter",
       "name": "Hunter",
-      "flavor": "a Body Strong as rock",
+      "flavor": "a ranger who tracks the demon-touched, a body strong as rock",
       "multiplier": 2,
       "maxHp": 200,
       "maxMp": 100,
@@ -24,8 +24,8 @@
     },
     {
       "id": "rogue",
-      "name": "Rogue",
-      "flavor": "a Balance Mind",
+      "name": "Pilgrim",
+      "flavor": "a wandering scholar-confessor, a balanced mind",
       "multiplier": 3,
       "maxHp": 100,
       "maxMp": 200,

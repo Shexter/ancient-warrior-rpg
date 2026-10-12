@@ -2,7 +2,7 @@
   "missions": [
     {
       "id": "the_gorgon",
-      "name": "Mission ONE: \"The Gorgon\"",
+      "name": "Bonus: \"The Gorgon\"",
       "location": "MEDUSA LAIR",
       "enemy": "medusa",
       "minLevel": 20,

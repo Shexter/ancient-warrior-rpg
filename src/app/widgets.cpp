@@ -202,10 +202,14 @@ std::optional<int> Menu::handle(const KeyEvent& key) {
     return std::nullopt;
 }
 
-void Menu::draw(Framebuffer& frame, int x, int y, bool focused) const {
+void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) const {
     std::size_t labelWidth = 0;
     for (const Item& item : items_)
         labelWidth = std::max(labelWidth, item.label.size());
+    // Cells left before the clip edge (x + maxWidth), measured from column `from`.
+    const auto room = [x, maxWidth](int from) {
+        return maxWidth == INT_MAX ? INT_MAX : x + maxWidth - from;
+    };
     int cursor = x;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
@@ -215,10 +219,11 @@ void Menu::draw(Framebuffer& frame, int x, int y, bool focused) const {
                                         : palette::kText;
         const int row = layout_ == Layout::Vertical ? y + static_cast<int>(i) : y;
         const int col = layout_ == Layout::Vertical ? x : cursor;
-        drawText(frame, col, row, chosen ? "▶ " : "  ", palette::kAccent);
-        drawText(frame, col + 2, row, item.label, color);
-        if (!item.note.empty())
-            drawText(frame, col + 4 + static_cast<int>(labelWidth), row, item.note, palette::kDim);
+        drawText(frame, col, row, chosen ? "▶ " : "  ", palette::kAccent, room(col));
+        drawText(frame, col + 2, row, item.label, color, room(col + 2));
+        const int noteX = col + 4 + static_cast<int>(labelWidth);
+        if (!item.note.empty() && room(noteX) > 0)
+            drawText(frame, noteX, row, item.note, palette::kDim, room(noteX));
         cursor += 2 + static_cast<int>(item.label.size()) + 4;
     }
 }

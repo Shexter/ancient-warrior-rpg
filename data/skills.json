@@ -2,8 +2,8 @@
   "skills": [
     {
       "id": "angel_wings",
-      "name": "Angel WINGS",
-      "description": "Greater Healing",
+      "name": "Guardian Angel",
+      "description": "Angelus Custos. Heals to full.",
       "mpCost": 10,
       "learnLevel": 5,
       "goldCost": 1000,
@@ -14,8 +14,8 @@
     },
     {
       "id": "meteor_fist",
-      "name": "Meteor FIST",
-      "description": "Greater Damage",
+      "name": "Righteous Strike",
+      "description": "Ictus Iustus. A double-strength blow.",
       "mpCost": 25,
       "learnLevel": 5,
       "goldCost": 5000,
@@ -26,8 +26,8 @@
     },
     {
       "id": "golden_bell",
-      "name": "Golden BELL",
-      "description": "Greater Armor",
+      "name": "Shield of Faith",
+      "description": "Scutum Fidei. Turns damage back on the attacker.",
       "mpCost": 25,
       "learnLevel": 10,
       "goldCost": 10000,
@@ -45,8 +45,8 @@
     },
     {
       "id": "frozen_throne",
-      "name": "FROZEN Throne",
-      "description": "Deep Freeze and Lower Defense",
+      "name": "Exorcism",
+      "description": "Exorcizo Te. Binds the enemy and weakens its guard.",
       "mpCost": 40,
       "learnLevel": 15,
       "goldCost": 20000,
@@ -68,8 +68,8 @@
     },
     {
       "id": "supernova",
-      "name": "SUPERNOVA",
-      "description": "Ultimate Destruction and Armor Destroyer",
+      "name": "Let There Be Light",
+      "description": "Fiat Lux. Halves the enemy, then strikes through armor.",
       "mpCost": 50,
       "learnLevel": 20,
       "goldCost": 50000,

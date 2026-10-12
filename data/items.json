@@ -2,8 +2,8 @@
   "items": [
     {
       "id": "iron_sword",
-      "name": "Iron Sword",
-      "description": "Sharp and Light Sword",
+      "name": "Sword",
+      "description": "Gladius. A plain blade of the Order.",
       "kind": "weapon",
       "bonus": {
         "atk": 50,
@@ -17,8 +17,8 @@
     },
     {
       "id": "fire_claymore",
-      "name": "Fire Claymore",
-      "description": "Fiery Great Weapon",
+      "name": "Flaming Sword",
+      "description": "Gladius Flammeus. Like the blade that guards Eden's gate.",
       "kind": "weapon",
       "bonus": {
         "atk": 1000,
@@ -32,8 +32,8 @@
     },
     {
       "id": "thors_hammer",
-      "name": "Thor's Hammer",
-      "description": "Hammer of Thunder god",
+      "name": "Mace of St. Michael",
+      "description": "Clava Sancti Michaelis. The archangel's weapon against the dragon.",
       "kind": "weapon",
       "bonus": {
         "atk": 700,
@@ -47,8 +47,8 @@
     },
     {
       "id": "steel_shield",
-      "name": "Steel Shield",
-      "description": "Thick Shield",
+      "name": "Iron Shield",
+      "description": "Scutum Ferreum. Dented, but it holds.",
       "kind": "armor",
       "bonus": {
         "atk": 0,
@@ -62,8 +62,8 @@
     },
     {
       "id": "diamond_plate",
-      "name": "Diamond Plate",
-      "description": "Shiny and Pure Plate",
+      "name": "Adamant Cuirass",
+      "description": "Lorica Adamantina. Plate that does not yield.",
       "kind": "armor",
       "bonus": {
         "atk": 0,
@@ -77,8 +77,8 @@
     },
     {
       "id": "peace_maker",
-      "name": "Peace Maker",
-      "description": "Incredible Destructive Artifact",
+      "name": "Armor of Light",
+      "description": "Arma Lucis. \"Let us put on the armor of light.\"",
       "kind": "armor",
       "bonus": {
         "atk": 1000,
@@ -92,8 +92,8 @@
     },
     {
       "id": "topaz",
-      "name": "Topaz",
-      "description": "Hard Solid Gemstone",
+      "name": "Rosary",
+      "description": "Rosarium. A prayer made physical.",
       "kind": "skill_key",
       "price": 0,
       "auctionValue": 500,
@@ -101,8 +101,8 @@
     },
     {
       "id": "gold_leaf",
-      "name": "Gold Leaf",
-      "description": "Leaf from OtherWorld",
+      "name": "Martyr's Relic",
+      "description": "Reliquia Martyris. Kept by those who remember.",
       "kind": "skill_key",
       "price": 0,
       "auctionValue": 1500,
@@ -110,8 +110,8 @@
     },
     {
       "id": "frozen_tears",
-      "name": "Frozen Tears",
-      "description": "Tears of Snow Queen",
+      "name": "Tears of Penance",
+      "description": "Lacrimae Paenitentiae. Sorrow turned to strength.",
       "kind": "skill_key",
       "price": 0,
       "auctionValue": 1500,
@@ -119,8 +119,8 @@
     },
     {
       "id": "broken_staff",
-      "name": "Broken Staff",
-      "description": "Piece of Magical Wood",
+      "name": "Broken Crozier",
+      "description": "Baculus Fractus. A shepherd's staff, snapped in a fight.",
       "kind": "skill_key",
       "price": 0,
       "auctionValue": 3000,
@@ -128,8 +128,8 @@
     },
     {
       "id": "pure_ice",
-      "name": "Pure Ice",
-      "description": "Frozen white Rock",
+      "name": "Fragment of the Cross",
+      "description": "Fragmentum Crucis. Handle with reverence.",
       "kind": "skill_key",
       "price": 0,
       "auctionValue": 3000,
@@ -137,8 +137,8 @@
     },
     {
       "id": "fire_dust",
-      "name": "Fire Dust",
-      "description": "Flaming Dust",
+      "name": "Altar Ember",
+      "description": "Favilla. Still warm from the altar. Hardens a blade.",
       "kind": "material",
       "price": 0,
       "auctionValue": 1000,
@@ -146,8 +146,8 @@
     },
     {
       "id": "turtle_shell",
-      "name": "Turtle Shell",
-      "description": "Ancient sea creature",
+      "name": "Consecrated Plate",
+      "description": "Lamina Sacra. Blessed iron for armor.",
       "kind": "material",
       "price": 0,
       "auctionValue": 2000,
@@ -156,7 +156,7 @@
     {
       "id": "gold_dust",
       "name": "Gold Dust",
-      "description": "Sprinkle of Magic",
+      "description": "Pulvis Aureus. Gilding from old icons.",
       "kind": "material",
       "price": 0,
       "auctionValue": 1000,
@@ -164,8 +164,8 @@
     },
     {
       "id": "black_pearl",
-      "name": "Black Pearl",
-      "description": "Dark Sphere of the Deep",
+      "name": "Dark Pearl",
+      "description": "Margarita Obscura. Beautiful, and a temptation.",
       "kind": "material",
       "price": 0,
       "auctionValue": 2000,
@@ -174,7 +174,7 @@
     {
       "id": "broken_compass",
       "name": "Broken Compass",
-      "description": "Magical Compass",
+      "description": "Acus Fracta. A pilgrim's lost guide.",
       "kind": "material",
       "price": 0,
       "auctionValue": 2500,
@@ -183,7 +183,7 @@
     {
       "id": "phoenix_feather",
       "name": "Phoenix Feather",
-      "description": "Ancient Fiery Bird",
+      "description": "Penna Phoenicis. A sign of resurrection.",
       "kind": "material",
       "price": 0,
       "auctionValue": 3000,
@@ -191,8 +191,8 @@
     },
     {
       "id": "health_potion",
-      "name": "Health Potion",
-      "description": "Restore Health",
+      "name": "Holy Water",
+      "description": "Aqua Benedicta. Restores HP.",
       "kind": "consumable",
       "price": 1000,
       "auctionValue": 0,
@@ -203,8 +203,8 @@
     },
     {
       "id": "mana_potion",
-      "name": "Mana Potion",
-      "description": "Restore Mana",
+      "name": "Holy Oil",
+      "description": "Oleum Sanctum. Restores Fervor.",
       "kind": "consumable",
       "price": 1000,
       "auctionValue": 0,
@@ -215,8 +215,8 @@
     },
     {
       "id": "eternal_youth",
-      "name": "Eternal Youth",
-      "description": "Rebirth your Soul",
+      "name": "Viaticum",
+      "description": "Viaticum. Food for the journey. Restores HP and Fervor fully.",
       "kind": "consumable",
       "price": 0,
       "auctionValue": 0,

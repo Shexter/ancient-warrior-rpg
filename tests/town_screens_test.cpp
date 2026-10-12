@@ -56,11 +56,11 @@ TEST(Merchant, BuysAHealthPotion) {
     ASSERT_TRUE(h.press({ch('2')}));
     EXPECT_TRUE(frameContains(h.frame(), "Total 2000 gold"));
     ASSERT_TRUE(h.press({kEnter}));
-    EXPECT_TRUE(frameContains(h.frame(), "You bought 2 Health Potion for 2000 gold."));
+    EXPECT_TRUE(frameContains(h.frame(), "You bought 2 Holy Water for 2000 gold."));
     EXPECT_EQ(*h.session.state, expected);
     EXPECT_TRUE(h.session.dirty);
     ASSERT_TRUE(h.press({kEnter}));
-    EXPECT_TRUE(frameContains(h.frame(), "Health Potion x2"));
+    EXPECT_TRUE(frameContains(h.frame(), "Holy Water x2"));
 }
 
 TEST(Merchant, RefusedPurchaseExplainsAndChangesNothing) {
@@ -129,7 +129,7 @@ TEST(Bank, OpensAnAccountThenDepositsAndWithdraws) {
     ASSERT_TRUE(h.press({kTab, ch('1'), ch('3'), kEnter})); // deposit 3 Topaz
     EXPECT_EQ(h.session.state->hero.bank->count("topaz"), 3);
     EXPECT_EQ(h.session.state->hero.bag.count("topaz"), 0);
-    EXPECT_TRUE(frameContains(h.frame(), "Topaz x3"));
+    EXPECT_TRUE(frameContains(h.frame(), "Rosary x3"));
 
     ASSERT_TRUE(h.press({kTab, ch('1'), ch('3'), kEnter})); // and back
     EXPECT_EQ(h.session.state->hero.bank->count("topaz"), 0);
@@ -150,8 +150,8 @@ TEST(Blacksmith, UnaffordableUpgradeShowsRedCostLines) {
     enterNpc(h, freshGame(), '2');
     ASSERT_TRUE(h.press({ch('2'), ch('1')})); // Upgrade, Weapon
     const Framebuffer frame = h.frame();
-    EXPECT_TRUE(frameContains(frame, "Iron Sword  Lv 1 → Lv 2"));
-    EXPECT_NE(rowText(frame, 10).find("Fire Dust x1   (you have 0)"), std::string::npos);
+    EXPECT_TRUE(frameContains(frame, "Sword  Lv 1 → Lv 2"));
+    EXPECT_NE(rowText(frame, 10).find("Altar Ember x1   (you have 0)"), std::string::npos);
     EXPECT_EQ(frame.at(6, 10).fg, palette::kDmg);  // no Fire Dust
     EXPECT_EQ(frame.at(6, 11).fg, palette::kDmg);  // 0 EXP of 1000
     EXPECT_EQ(frame.at(6, 12).fg, palette::kHeal); // 20000 gold of 10000
@@ -168,7 +168,7 @@ TEST(Blacksmith, AffordableUpgradeRaisesTheLevel) {
     state.hero.exp = 1000;
     enterNpc(h, state, '2');
     ASSERT_TRUE(h.press({ch('2'), ch('1'), kEnter, ch('y')}));
-    EXPECT_TRUE(frameContains(h.frame(), "Your Iron Sword is now Lv 2."));
+    EXPECT_TRUE(frameContains(h.frame(), "Your Sword is now Lv 2."));
     EXPECT_EQ(h.session.state->hero.weapon->upgradeLevel, 2);
     EXPECT_EQ(h.session.state->hero.gold, 10000);
 }
@@ -181,7 +181,7 @@ TEST(Blacksmith, SwappingAnUpgradedWeaponWarnsFirst) {
     ASSERT_TRUE(h.press({ch('1'), ch('1'), ch('1')})); // Change, Weapon, Fire Claymore
     EXPECT_TRUE(frameContains(h.frame(), "Your upgraded weapon will return to Lv 1."));
     ASSERT_TRUE(h.press({ch('y')}));
-    EXPECT_TRUE(frameContains(h.frame(), "You equip the Fire Claymore."));
+    EXPECT_TRUE(frameContains(h.frame(), "You equip the Flaming Sword."));
     EXPECT_EQ(h.session.state->hero.weapon, (game::Equipped{"fire_claymore", 1}));
     EXPECT_EQ(h.session.state->hero.bag.count("iron_sword"), 1);
 }
@@ -204,7 +204,7 @@ TEST(Blacksmith, ForgeShowsIngredientsAndMatchesTheGameResult) {
     ASSERT_TRUE(h.press({ch('y')}));
     EXPECT_EQ(*h.session.state, expected);
     EXPECT_TRUE(frameContains(h.frame(), forged->success
-                                             ? "Forging SUCCESS!!! You now possess Fire Claymore"
+                                             ? "Forging SUCCESS!!! You now possess Flaming Sword"
                                              : "Forging FAILED, the materials are lost..."));
 }
 
@@ -254,13 +254,16 @@ TEST(Guildmaster, LearnSkillColorsEachRequirement) {
     enterNpc(h, state, '3');
     ASSERT_TRUE(h.press({ch('3')}));
     const Framebuffer frame = h.frame();
-    EXPECT_EQ(frame.at(22, 7).fg, palette::kHeal); // Angel WINGS: Lv 5 met
-    EXPECT_EQ(frame.at(44, 7).fg, palette::kHeal); // has a Topaz
-    EXPECT_EQ(frame.at(44, 8).fg, palette::kDmg);  // Meteor FIST: no Gold Leaf
-    EXPECT_EQ(frame.at(22, 9).fg, palette::kDmg);  // Golden BELL: needs Lv 10
+    // Requirement columns follow the longest skill name ("Let There Be Light", 18): level at
+    // 6 + 18 + 2 = 26, key item at 26 + 8 + 14 = 48.
+    EXPECT_EQ(frame.at(26, 7).fg, palette::kHeal); // Guardian Angel: Lv 5 met
+    EXPECT_EQ(frame.at(48, 7).fg, palette::kHeal); // has a Rosary
+    EXPECT_EQ(frame.at(48, 8).fg, palette::kDmg);  // Righteous Strike: no Martyr's Relic
+    EXPECT_EQ(frame.at(26, 9).fg, palette::kDmg);  // Shield of Faith: needs Lv 10
+    EXPECT_NE(rowText(frame, 11).find("Let There Be Light  Lv 20"), std::string::npos);
 
     ASSERT_TRUE(h.press({ch('1')}));
-    EXPECT_TRUE(frameContains(h.frame(), "You learned Angel WINGS!"));
+    EXPECT_TRUE(frameContains(h.frame(), "You learned Guardian Angel!"));
     EXPECT_TRUE(h.session.state->hero.learnedSkills.contains("angel_wings"));
     ASSERT_TRUE(h.press({kEnter}));
     EXPECT_NE(rowText(h.frame(), 7).find("Learned"), std::string::npos);
@@ -288,4 +291,28 @@ TEST(Guildmaster, ChangeNameChargesTheFee) {
     EXPECT_TRUE(frameContains(h.frame(), "From now on you are Roland."));
     EXPECT_EQ(h.session.state->hero.name, "Roland");
     EXPECT_EQ(h.session.state->hero.gold, 10000);
+}
+
+TEST(Reskin, SaveFromBeforeTheReskinShowsTheNewNames) {
+    // Written by the game before the Act I re-skin (IDs only; names come from the data).
+    const auto loaded = game::loadGame(fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" /
+                                           "pre_reskin_save.json",
+                                       game::shippedContent());
+    ASSERT_TRUE(loaded.has_value());
+    Harness h("reskin_save");
+    enterNpc(h, *loaded, '1');
+    ASSERT_TRUE(h.press({kTab}));
+    const Framebuffer frame = h.frame();
+    EXPECT_TRUE(frameContains(frame, "Weapon Sword"));
+    EXPECT_TRUE(frameContains(frame, "Holy Water x2"));
+    EXPECT_TRUE(frameContains(frame, "Rosary"));
+}
+
+TEST(Reskin, LongestNamesStayInsideTheirBoxes) {
+    Harness h("reskin_widths");
+    game::GameState state = withItem("pure_ice", 1);
+    state.hero.level = 20;
+    enterNpc(h, state, '3');
+    ASSERT_TRUE(h.press({ch('3')})); // Learn Skill
+    EXPECT_NE(rowText(h.frame(), 11).find("Fragment of the Cross"), std::string::npos);
 }
