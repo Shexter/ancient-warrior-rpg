@@ -66,7 +66,7 @@ target_compile_definitions(heroes PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DI
 add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/content_test.cpp
     tests/content_validation_test.cpp tests/inventory_test.cpp
     tests/hero_test.cpp tests/battle_test.cpp tests/battle_golden_test.cpp
-    tests/battle_status_test.cpp tests/sim_test.cpp tests/training_test.cpp tests/estimate_test.cpp tests/terminal_test.cpp
+    tests/battle_status_test.cpp tests/sim_test.cpp tests/training_test.cpp tests/estimate_test.cpp tests/terminal_test.cpp tests/portrait_test.cpp
     tests/town_merchant_test.cpp tests/town_blacksmith_test.cpp tests/town_guild_test.cpp
     tests/save_test.cpp tests/paths_test.cpp tests/framebuffer_test.cpp
     tests/renderer_test.cpp tests/input_test.cpp tests/loop_test.cpp tests/sprite_test.cpp
@@ -91,4 +91,4 @@ set_tests_properties(heroes_reports_bad_content PROPERTIES
     PASS_REGULAR_EXPRESSION "items.json: item 'iron_sword': key 'price' must be between")
 add_test(NAME heroes_rejects_bad_layout COMMAND heroes --layout big)
 set_tests_properties(heroes_rejects_bad_layout PROPERTIES
-    PASS_REGULAR_EXPRESSION "--layout expects auto or compact, got 'big'.*usage: heroes .*--layout auto\\|compact")
+    PASS_REGULAR_EXPRESSION "--layout expects auto, compact or portrait, got 'big'.*usage: heroes .*--layout auto\\|compact\\|portrait")

@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     const auto options = app::parseOptions(args);
     if (!options) {
         std::cerr << "heroes: error: " << options.error()
-                  << "\nusage: heroes [--seed N] [--data-dir PATH] [--layout auto|compact] "
+                  << "\nusage: heroes [--seed N] [--data-dir PATH] [--layout auto|compact|portrait] "
                      "[--art glyph|blocks]\n";
         return 2;
     }

@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <format>
+#include <string>
 #include <thread>
+#include <vector>
 
 namespace heroes::engine {
 
@@ -22,20 +24,42 @@ int FixedStepper::advance(double dtSeconds) {
 void drawResizeNotice(Framebuffer& frame, int termWidth, int termHeight) {
     frame.clear(Rgb{0, 0, 0});
     // 'x' stands in for the multiplication sign, which is not ASCII.
-    const std::string ascii =
-        std::format("Please resize the terminal to at least {}x{} (now {}x{})", kCanvasWidth,
-                    kCanvasHeight, termWidth, termHeight);
+    const std::string ascii = std::format(
+        "Please resize the terminal to at least {}x{}, or {}x{} on a phone (now {}x{})",
+        kCanvasWidth, kCanvasHeight, kPortraitCanvas.width, kPortraitCanvas.height, termWidth,
+        termHeight);
     std::u32string message(ascii.begin(), ascii.end());
     for (std::size_t i = 0; i < message.size(); ++i)
         if (ascii[i] == 'x' && i > 0 && ascii[i - 1] >= '0' && ascii[i - 1] <= '9')
             message[i] = U'×';
-    const int x = (frame.width() - static_cast<int>(message.size())) / 2;
-    const int y = frame.height() / 2;
-    for (std::size_t i = 0; i < message.size(); ++i) {
-        Cell cell;
-        cell.glyph = message[i];
-        cell.fg = Rgb{255, 255, 255};
-        frame.set(std::max(0, x) + static_cast<int>(i), y, cell);
+
+    // Greedy word wrap to the width; a word longer than a line is cut by the frame's clipping.
+    const std::size_t width = static_cast<std::size_t>(std::max(1, frame.width()));
+    std::vector<std::u32string> lines{U""};
+    std::size_t start = 0;
+    while (start < message.size()) {
+        std::size_t end = message.find(U' ', start);
+        if (end == std::u32string::npos)
+            end = message.size();
+        const std::u32string word = message.substr(start, end - start);
+        if (!lines.back().empty() && lines.back().size() + 1 + word.size() > width)
+            lines.emplace_back();
+        if (!lines.back().empty())
+            lines.back() += U' ';
+        lines.back() += word;
+        start = end + 1;
+    }
+
+    const int top = (frame.height() - static_cast<int>(lines.size())) / 2;
+    for (std::size_t row = 0; row < lines.size(); ++row) {
+        const std::u32string& line = lines[row];
+        const int x = std::max(0, (frame.width() - static_cast<int>(line.size())) / 2);
+        for (std::size_t i = 0; i < line.size(); ++i) {
+            Cell cell;
+            cell.glyph = line[i];
+            cell.fg = Rgb{255, 255, 255};
+            frame.set(x + static_cast<int>(i), std::max(0, top) + static_cast<int>(row), cell);
+        }
     }
 }
 
@@ -51,7 +75,14 @@ bool Loop::frame(double dtSeconds) {
     out_.clear();
     if (screen_.width() != cols || screen_.height() != rows)
         screen_ = Framebuffer(cols, rows);
-    if (cols < kCanvasWidth || rows < kCanvasHeight) {
+    const auto fits = [&](Size s) { return s.width <= cols && s.height <= rows; };
+    const auto choose = [&] {
+        Size want = canvasSize_ ? canvasSize_({cols, rows}) : kCompactCanvas;
+        const bool known = want == kPortraitCanvas ||
+                           (want.width >= kCanvasWidth && want.height >= kCanvasHeight);
+        return known && fits(want) ? want : kCompactCanvas;
+    };
+    if (!fits(choose())) {
         stepper_.reset();
         pending_.clear();
         drawResizeNotice(screen_, cols, rows);
@@ -73,10 +104,16 @@ bool Loop::frame(double dtSeconds) {
                 return false;
             pending_.clear();
         }
-        Size want = canvasSize_ ? canvasSize_({cols, rows}) : kCompactCanvas;
-        if (want.width < kCanvasWidth || want.height < kCanvasHeight || want.width > cols ||
-            want.height > rows)
-            want = kCompactCanvas;
+        const Size want = choose(); // the updates may have changed screens
+        if (!fits(want)) {
+            stepper_.reset();
+            pending_.clear();
+            drawResizeNotice(screen_, cols, rows);
+            renderer_.present(screen_, out_);
+            if (!out_.empty())
+                io_.write(out_);
+            return true;
+        }
         if (canvas_.width() != want.width || canvas_.height() != want.height)
             canvas_ = Framebuffer(want.width, want.height);
         draw_(canvas_);

@@ -9,4 +9,5 @@
 - **Terminal (Windows):** same contract using console modes, UTF-8 output code page and a console control handler. Written and compile-checked, but not yet run on Windows.
 - The chunk 8-9 demo (and `--demo-stats`) was replaced by the real app in task 10.1; see app.md.
 
+- **Canvas and minimum size:** each frame the loop asks for a canvas before and after the updates. It accepts the phone canvas `kPortraitCanvas` (48×44) or anything 80×24 and up; anything else, or a canvas larger than the terminal, falls back to 80×24. If that doesn't fit either, it shows the resize prompt ("…at least 80×24, or 48×44 on a phone (now W×H)"), word-wrapped to the terminal's width and centered, and drops keys typed meanwhile.
 - **Clicks in the loop:** a click's terminal cell is turned into a canvas cell using where the canvas was last drawn (it is centered in larger terminals); clicks on the margin are dropped.

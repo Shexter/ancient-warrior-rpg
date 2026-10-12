@@ -13,10 +13,13 @@ class HubScreen final : public Screen {
     explicit HubScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
-    // 120x40 when the terminal fits it and the hero has large art.
+    // The phone layout when it applies, else 120x40 when the terminal fits it and the hero has
+    // large art.
     engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
+    void drawPortrait(engine::Framebuffer& frame) const;
+
     enum class Asking { ReplaceSave, QuitUnsaved };
 
     std::vector<Menu::Item> menuItems() const;

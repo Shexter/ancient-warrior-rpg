@@ -29,7 +29,9 @@ struct LargeSprites {
     std::map<std::string, engine::GlyphSprite, std::less<>> glyphs; // the same art as glyphs
 };
 
-enum class Layout { Auto, Compact }; // --layout: auto uses large layouts when they fit
+// --layout: auto picks large layouts when they fit and the phone layout when the terminal is
+// narrower than 80; compact always uses 80x24; portrait always uses the phone layout.
+enum class Layout { Auto, Compact, Portrait };
 enum class ArtStyle { Glyph, Blocks }; // --art: which large sprites the large layouts draw
 
 // Shared by every screen. Only screens change `state`, and only through game:: functions.

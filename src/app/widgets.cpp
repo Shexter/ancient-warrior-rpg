@@ -47,12 +47,15 @@ void put(Framebuffer& frame, int x, int y, char32_t glyph, Rgb fg) {
 
 // Centered dialog box: text lines, then `footer` right-aligned in dim on the last inner row.
 // Returns where the footer was drawn.
-std::pair<int, int> drawDialog(Framebuffer& frame, const std::vector<std::string>& lines,
+std::pair<int, int> drawDialog(Framebuffer& frame, std::string_view text,
                                std::string_view footer) {
+    // Wrapped here, to the frame it's drawn on, so it fits the phone layout too.
+    const std::vector<std::string> lines =
+        wordWrap(text, std::min(kDialogMaxWidth, frame.width() - 4) - 4);
     int inner = static_cast<int>(footer.size());
     for (const std::string& line : lines)
         inner = std::max(inner, static_cast<int>(line.size()));
-    const int w = std::min(kDialogMaxWidth, inner + 4);
+    const int w = std::min({kDialogMaxWidth, inner + 4, frame.width() - 4});
     const int h = static_cast<int>(lines.size()) + 4;
     const int x = (frame.width() - w) / 2;
     const int y = (frame.height() - h) / 2;
@@ -245,6 +248,66 @@ void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) co
     }
 }
 
+// ---- Phone (portrait) layout ------------------------------------------------------------
+
+namespace {
+
+// The pad's buttons: 14x3 boxes in a plus shape, and the ✕ in the top-right corner.
+struct Control {
+    int x, y, w, h;
+    std::string_view label;
+    Key key;
+};
+constexpr int kPadMid = portrait::kPadTop + 4;
+constexpr Control kControls[] = {
+    {17, portrait::kPadTop + 1, 14, 3, "▲", Key::Up},
+    {2, kPadMid, 14, 3, "◀", Key::Left},
+    {17, kPadMid, 14, 3, "●", Key::Enter},
+    {32, kPadMid, 14, 3, "▶", Key::Right},
+    {17, kPadMid + 3, 14, 3, "▼", Key::Down},
+    {44, 0, 4, 2, "✕", Key::Escape}, // a generous target around the glyph at (46, 0)
+};
+
+} // namespace
+
+void drawHeader(Framebuffer& frame, std::string_view title, std::span<const HeaderStat> stats) {
+    drawText(frame, 1, 0, title, palette::kAccent, 42);
+    const int column = stats.empty() ? 0 : 46 / static_cast<int>(stats.size());
+    for (std::size_t i = 0; i < stats.size(); ++i) {
+        const int x = 1 + static_cast<int>(i) * column;
+        drawText(frame, x, 2, stats[i].label, palette::kDim, column - 1);
+        drawText(frame, x, 3, stats[i].value, stats[i].color, column - 1);
+    }
+    for (int x = 1; x < frame.width() - 1; ++x)
+        put(frame, x, 5, U'─', palette::kBorder);
+}
+
+void drawButtonMenu(Framebuffer& frame, const Menu& menu) {
+    drawPanel(frame, 1, portrait::kMenuTop, frame.width() - 2, portrait::kMenuRows + 2);
+    menu.draw(frame, 3, portrait::kMenuTop + 1, true, frame.width() - 6);
+}
+
+void drawControls(Framebuffer& frame) {
+    for (const Control& c : kControls) {
+        if (c.key == Key::Escape) {
+            drawText(frame, 46, 0, c.label, palette::kDmg);
+            continue;
+        }
+        drawPanel(frame, c.x, c.y, c.w, c.h);
+        drawText(frame, c.x + c.w / 2, c.y + 1, c.label,
+                 c.key == Key::Enter ? palette::kAccent : palette::kText);
+    }
+}
+
+std::optional<KeyEvent> controlKey(const KeyEvent& click) {
+    if (click.key != Key::Click)
+        return std::nullopt;
+    for (const Control& c : kControls)
+        if (click.x >= c.x && click.x < c.x + c.w && click.y >= c.y && click.y < c.y + c.h)
+            return KeyEvent{c.key};
+    return std::nullopt;
+}
+
 // ---- Text and number input ---------------------------------------------------------------
 
 InputResult TextInput::handle(const KeyEvent& key) {
@@ -308,15 +371,15 @@ void NumberInput::draw(Framebuffer& frame, int x, int y) const {
 
 // ---- Dialogs -----------------------------------------------------------------------------
 
-MessageBox::MessageBox(std::string_view text) : lines_(wordWrap(text, kDialogMaxWidth - 4)) {}
+MessageBox::MessageBox(std::string_view text) : text_(text) {}
 
 bool MessageBox::handle(const KeyEvent& key) {
     return key.key == Key::Enter || key.key == Key::Escape || key.key == Key::Click;
 }
 
-void MessageBox::draw(Framebuffer& frame) const { (void)drawDialog(frame, lines_, "[Enter]"); }
+void MessageBox::draw(Framebuffer& frame) const { (void)drawDialog(frame, text_, "[Enter]"); }
 
-ConfirmBox::ConfirmBox(std::string_view text) : lines_(wordWrap(text, kDialogMaxWidth - 4)) {}
+ConfirmBox::ConfirmBox(std::string_view text) : text_(text) {}
 
 std::optional<bool> ConfirmBox::handle(const KeyEvent& key) {
     if (key.key == Key::Escape)
@@ -337,7 +400,7 @@ std::optional<bool> ConfirmBox::handle(const KeyEvent& key) {
 }
 
 void ConfirmBox::draw(Framebuffer& frame) const {
-    std::tie(footerX_, footerY_) = drawDialog(frame, lines_, "[Y]es / [N]o");
+    std::tie(footerX_, footerY_) = drawDialog(frame, text_, "[Y]es / [N]o");
 }
 
 // ---- Typewriter --------------------------------------------------------------------------

@@ -109,7 +109,7 @@ TEST(Loop, QuitStopsTheLoop) {
 
 TEST(Loop, TooSmallShowsNoticeAndSkipsUpdate) {
     FakeIo io;
-    io.cols = 60;
+    io.cols = 100; // wide enough for the prompt on one line, too short for any canvas
     io.rows = 20;
     Renderer renderer(ColorMode::TrueColor);
     int updates = 0, draws = 0;
@@ -125,7 +125,8 @@ TEST(Loop, TooSmallShowsNoticeAndSkipsUpdate) {
     EXPECT_EQ(updates, 0);
     EXPECT_EQ(draws, 0);
     EXPECT_NE(io.written.find("Please resize the terminal to at least 80\xC3\x97"
-                              "24 (now 60\xC3\x97"
+                              "24, or 48\xC3\x97"
+                              "44 on a phone (now 100\xC3\x97"
                               "20)"),
               std::string::npos);
 
@@ -267,4 +268,52 @@ TEST(Loop, ClicksAreMovedIntoCanvasCellsAndMarginClicksDropped) {
     loop.frame(kStepSeconds);
     EXPECT_EQ(seen, (std::vector<KeyEvent>{
                         {Key::Click, 0, 0, 0}, {Key::Click, 0, 79, 23}, {Key::Enter}}));
+}
+
+namespace {
+
+// Which canvas a loop with this canvas choice draws into for a terminal size (0x0 = the
+// resize prompt instead).
+Size drawnCanvas(int cols, int rows, Size wanted) {
+    FakeIo io;
+    io.cols = cols;
+    io.rows = rows;
+    Renderer renderer(ColorMode::TrueColor);
+    Size drawn{0, 0};
+    Loop loop(
+        io, renderer, [](std::span<const KeyEvent>, double) { return true; },
+        [&](Framebuffer& fb) { drawn = {fb.width(), fb.height()}; }, {},
+        [&](Size) { return wanted; });
+    loop.frame(kStepSeconds);
+    return drawn;
+}
+
+} // namespace
+
+TEST(Loop, ThePhoneCanvasPlaysWhereTheCompactOneDoesNotFit) {
+    EXPECT_EQ(drawnCanvas(48, 45, kPortraitCanvas), kPortraitCanvas);
+    EXPECT_EQ(drawnCanvas(48, 45, kCompactCanvas), (Size{0, 0})); // that screen has no phone layout
+    EXPECT_EQ(drawnCanvas(48, 20, kPortraitCanvas), (Size{0, 0}));
+    EXPECT_EQ(drawnCanvas(60, 20, kPortraitCanvas), (Size{0, 0}));
+    EXPECT_EQ(drawnCanvas(100, 50, kPortraitCanvas), kPortraitCanvas); // forced, centered
+    EXPECT_EQ(drawnCanvas(100, 30, kPortraitCanvas), kCompactCanvas); // too short for it
+    EXPECT_EQ(drawnCanvas(100, 30, kCompactCanvas), kCompactCanvas);
+    EXPECT_EQ(drawnCanvas(100, 30, Size{50, 10}), kCompactCanvas); // unknown sizes fall back
+}
+
+TEST(Loop, TheResizeNoticeWrapsToNarrowTerminals) {
+    Framebuffer fb(48, 45);
+    drawResizeNotice(fb, 48, 45);
+    std::u32string all;
+    for (int y = 0; y < 45; ++y) {
+        std::u32string row;
+        for (int x = 0; x < 48; ++x)
+            row += fb.at(x, y).glyph;
+        const auto first = row.find_first_not_of(U' ');
+        if (first == std::u32string::npos)
+            continue;
+        EXPECT_NE(row.front(), U'?');
+        all += row.substr(first, row.find_last_not_of(U' ') - first + 1) + U' ';
+    }
+    EXPECT_EQ(all, U"Please resize the terminal to at least 80×24, or 48×44 on a phone (now 48×45) ");
 }

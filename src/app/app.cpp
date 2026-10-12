@@ -1,5 +1,6 @@
 #include "app/app.hpp"
 
+#include "app/art.hpp"
 #include "app/widgets.hpp"
 
 #include <charconv>
@@ -21,10 +22,15 @@ std::expected<Options, std::string> parseOptions(std::span<const std::string_vie
             continue;
         }
         if (flag == "--layout") {
-            if (value != "auto" && value != "compact")
+            if (value == "auto")
+                options.layout = Layout::Auto;
+            else if (value == "compact")
+                options.layout = Layout::Compact;
+            else if (value == "portrait")
+                options.layout = Layout::Portrait;
+            else
                 return std::unexpected(
-                    std::format("--layout expects auto or compact, got '{}'", value));
-            options.layout = value == "auto" ? Layout::Auto : Layout::Compact;
+                    std::format("--layout expects auto, compact or portrait, got '{}'", value));
             continue;
         }
         if (flag == "--art") {
@@ -126,7 +132,13 @@ App::App(engine::LoopIo& io, engine::Renderer& renderer, std::unique_ptr<Screen>
 bool App::update(std::span<const engine::KeyEvent> keys, double dtSeconds) {
     if (stack_.empty())
         return false;
-    Transition next = stack_.back()->update(keys, dtSeconds);
+    // On the phone layout, taps on the ✕ and the pad arrive as the keys they stand for.
+    std::vector<engine::KeyEvent> mapped(keys.begin(), keys.end());
+    if (portrait_)
+        for (engine::KeyEvent& key : mapped)
+            if (const auto control = controlKey(key))
+                key = *control;
+    Transition next = stack_.back()->update(mapped, dtSeconds);
     if (std::holds_alternative<Quit>(next))
         return false;
     if (std::holds_alternative<Pop>(next)) {
@@ -141,8 +153,11 @@ bool App::update(std::span<const engine::KeyEvent> keys, double dtSeconds) {
 }
 
 void App::draw(engine::Framebuffer& frame) const {
+    portrait_ = isPortrait(frame);
     if (!stack_.empty())
         stack_.back()->draw(frame);
+    if (portrait_)
+        drawControls(frame);
 }
 
 engine::Size App::canvasSize(engine::Size terminal) const {

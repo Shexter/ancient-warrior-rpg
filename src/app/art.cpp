@@ -40,4 +40,11 @@ engine::Size artCanvas(const Session& session, engine::Size terminal,
     return kLargeCanvas;
 }
 
+engine::Size portraitOr(const Session& session, engine::Size terminal, engine::Size other) {
+    if (session.layout == Layout::Portrait ||
+        (session.layout == Layout::Auto && terminal.width < engine::kCompactCanvas.width))
+        return engine::kPortraitCanvas;
+    return other;
+}
+
 } // namespace heroes::app

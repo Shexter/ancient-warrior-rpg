@@ -24,7 +24,7 @@ struct Options {
     ArtStyle art = ArtStyle::Glyph;
 };
 
-// `heroes [--seed N] [--data-dir PATH] [--layout auto|compact] [--art glyph|blocks]`
+// `heroes [--seed N] [--data-dir PATH] [--layout auto|compact|portrait] [--art glyph|blocks]`
 // (arguments after argv[0]).
 std::expected<Options, std::string> parseOptions(std::span<const std::string_view> args);
 
@@ -63,6 +63,7 @@ class App {
     engine::LoopIo& io_;
     engine::Renderer& renderer_;
     std::vector<std::unique_ptr<Screen>> stack_;
+    mutable bool portrait_ = false; // the last frame drawn was the phone layout
 };
 
 } // namespace heroes::app

@@ -8,6 +8,7 @@
 #include <climits>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -54,6 +55,34 @@ void drawCentered(engine::Framebuffer& frame, int y, std::string_view utf8, engi
 std::vector<std::string> wordWrap(std::string_view text, int width);
 // A bordered box with a panel-colored interior.
 void drawPanel(engine::Framebuffer& frame, int x, int y, int w, int h);
+
+class Menu;
+
+// ---- Phone (portrait) layout, 48x44 ---------------------------------------------------------
+// Rows: header 0-5, scene 6-21, menu band 22-31, control pad 32-43. Screens draw the first three
+// bands; the App draws the ✕ and the pad over every portrait frame and turns taps on them into
+// keys, so screens need no pad logic.
+namespace portrait {
+inline constexpr int kSceneTop = 6;
+inline constexpr int kMenuTop = 22;
+inline constexpr int kMenuRows = 8; // menu items that fit in the band's box
+inline constexpr int kPadTop = 32;
+} // namespace portrait
+
+// One header stat: a dim label over its value, like SCORE / HIGH on an arcade screen.
+struct HeaderStat {
+    std::string label, value;
+    engine::Rgb color = palette::kText;
+};
+// Title on row 0, up to four stats on rows 2-3 in even columns, a rule on row 5.
+void drawHeader(engine::Framebuffer& frame, std::string_view title,
+                std::span<const HeaderStat> stats);
+// The screen's menu in a box filling the menu band (at most kMenuRows items show).
+void drawButtonMenu(engine::Framebuffer& frame, const Menu& menu);
+// The ✕ (Back) on the header row and the ▲ ◀ ● ▶ ▼ pad. Drawn by the App.
+void drawControls(engine::Framebuffer& frame);
+// The key a tap on the ✕ or a pad button stands for (Esc, an arrow, or Enter), if it hit one.
+std::optional<engine::KeyEvent> controlKey(const engine::KeyEvent& click);
 // `width` cells of █ (filled, rounded up so any value above 0 shows) and ░.
 void drawBar(engine::Framebuffer& frame, int x, int y, int width, int value, int max,
              engine::Rgb color);
@@ -147,7 +176,7 @@ class MessageBox {
     void draw(engine::Framebuffer& frame) const;
 
   private:
-    std::vector<std::string> lines_;
+    std::string text_;
 };
 
 // A MessageBox answered with Y or N; Esc means No.
@@ -159,7 +188,7 @@ class ConfirmBox {
     void draw(engine::Framebuffer& frame) const;
 
   private:
-    std::vector<std::string> lines_;
+    std::string text_;
     mutable int footerX_ = -1, footerY_ = -1; // where "[Y]es / [N]o" was last drawn
 };
 

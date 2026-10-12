@@ -162,7 +162,7 @@ TEST(Options, LayoutAndArtDefaultsAndValues) {
 
 TEST(Options, RejectsBadLayoutAndArt) {
     const std::string_view badLayout[] = {"--layout", "big"};
-    EXPECT_EQ(parseOptions(badLayout).error(), "--layout expects auto or compact, got 'big'");
+    EXPECT_EQ(parseOptions(badLayout).error(), "--layout expects auto, compact or portrait, got 'big'");
     const std::string_view badArt[] = {"--art", "ascii"};
     EXPECT_EQ(parseOptions(badArt).error(), "--art expects glyph or blocks, got 'ascii'");
     const std::string_view missing[] = {"--art"};
@@ -255,4 +255,9 @@ TEST(LargeSprites, BrokenFileIsReportedByNameAndLine) {
     ASSERT_FALSE(large.has_value());
     EXPECT_NE(large.error().find("hero_fighter.glyphs"), std::string::npos) << large.error();
     EXPECT_NE(large.error().find("line 5"), std::string::npos) << large.error();
+}
+
+TEST(Options, PortraitLayout) {
+    const std::string_view args[] = {"--layout", "portrait"};
+    EXPECT_EQ(parseOptions(args)->layout, Layout::Portrait);
 }

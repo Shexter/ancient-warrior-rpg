@@ -5,6 +5,7 @@
 #include "app/screens/mission.hpp"
 #include "app/screens/town.hpp"
 #include "app/screens/training.hpp"
+#include "game/battle.hpp"
 #include "game/hero.hpp"
 #include "game/save.hpp"
 
@@ -113,12 +114,41 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
 }
 
 engine::Size HubScreen::canvasSize(engine::Size terminal) const {
-    return artCanvas(session_, terminal,
-                     {std::format("hero_{}.sprite", session_.state->hero.pathId)});
+    return portraitOr(session_, terminal,
+                      artCanvas(session_, terminal,
+                                {std::format("hero_{}.sprite", session_.state->hero.pathId)}));
+}
+
+void HubScreen::drawPortrait(engine::Framebuffer& frame) const {
+    const game::Hero& hero = session_.state->hero;
+    const game::Combatant c = game::heroCombatant(hero, session_.content);
+    const HeaderStat stats[] = {
+        {"LEVEL", std::to_string(hero.level)},
+        {"HP", std::format("{}/{}", hero.hp, c.maxHp), hpColor(hero.hp, c.maxHp)},
+        {"FERVOR", std::format("{}/{}", hero.mp, c.maxMp), palette::kMp},
+        {"GOLD", std::to_string(hero.gold), palette::kGold},
+    };
+    drawHeader(frame,
+               std::format("{} · {}", upper(hero.name), session_.content.path(hero.pathId).name),
+               stats);
+    drawBar(frame, 1, 4, 46, hero.hp, c.maxHp, hpColor(hero.hp, c.maxHp));
+    const Art art = compactArt(session_, std::format("hero_{}.sprite", hero.pathId));
+    art.draw(frame, (frame.width() - art.width()) / 2, portrait::kSceneTop + 1);
+    drawText(frame, 1, portrait::kMenuTop - 1, session_.lastMessage, palette::kText,
+             frame.width() - 2);
+    drawButtonMenu(frame, menu_);
 }
 
 void HubScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    if (isPortrait(frame)) {
+        drawPortrait(frame);
+        if (message_)
+            message_->draw(frame);
+        if (confirm_)
+            confirm_->draw(frame);
+        return;
+    }
     const game::Hero& hero = session_.state->hero;
     drawStatusPanel(frame, hero, session_.content);
     const std::string heroFile = std::format("hero_{}.sprite", hero.pathId);

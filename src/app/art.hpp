@@ -33,6 +33,17 @@ Art largeArt(const Session& session, std::string_view file);
 engine::Size artCanvas(const Session& session, engine::Size terminal,
                        std::initializer_list<std::string_view> files);
 
+// The phone canvas for a screen that has a portrait layout: when --layout portrait is given, or
+// in auto when the terminal is narrower than 80 columns (and --layout isn't compact).
+// Otherwise `other`, the screen's usual choice.
+engine::Size portraitOr(const Session& session, engine::Size terminal, engine::Size other);
+
+// Whether a frame is the phone canvas.
+inline bool isPortrait(const engine::Framebuffer& frame) {
+    return frame.width() == engine::kPortraitCanvas.width &&
+           frame.height() == engine::kPortraitCanvas.height;
+}
+
 // Whether a frame is the large canvas (screens pick their layout by the frame they are given).
 inline bool isLarge(const engine::Framebuffer& frame) {
     return frame.width() >= kLargeCanvas.width && frame.height() >= kLargeCanvas.height;

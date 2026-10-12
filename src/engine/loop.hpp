@@ -23,6 +23,8 @@ struct Size {
     bool operator==(const Size&) const = default;
 };
 inline constexpr Size kCompactCanvas{kCanvasWidth, kCanvasHeight};
+// The phone (portrait) canvas: header, scene, menu and a tap pad, top to bottom.
+inline constexpr Size kPortraitCanvas{48, 44};
 
 // What the loop needs from a terminal. platform::Terminal implements it; tests use a fake.
 class LoopIo {
@@ -44,7 +46,8 @@ class FixedStepper {
     double accumulator_ = 0;
 };
 
-// Fills `frame` (sized to the real terminal) with the centered resize prompt.
+// Fills `frame` (sized to the real terminal) with the resize prompt, word-wrapped to its width
+// and centered.
 void drawResizeNotice(Framebuffer& frame, int termWidth, int termHeight);
 
 class Loop {
@@ -53,8 +56,9 @@ class Loop {
     using UpdateFn = std::function<bool(std::span<const KeyEvent>, double dtSeconds)>;
     // Draws the full canvas (sized by CanvasSizeFn, 80x24 by default).
     using DrawFn = std::function<void(Framebuffer&)>;
-    // The canvas wanted for a terminal of the given size, asked once per frame after the
-    // updates. A size below 80x24 or larger than the terminal falls back to 80x24.
+    // The canvas wanted for a terminal of the given size, asked before and after each frame's
+    // updates. Anything but the portrait canvas or 80x24 and up, or a size larger than the
+    // terminal, falls back to 80x24; if that doesn't fit either, the resize prompt shows.
     using CanvasSizeFn = std::function<Size(Size terminal)>;
 
     // In a terminal larger than the canvas the canvas is centered and the margin filled with
