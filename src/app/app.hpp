@@ -20,9 +20,12 @@ namespace heroes::app {
 struct Options {
     std::optional<std::uint64_t> seed;
     std::optional<std::filesystem::path> dataDir;
+    Layout layout = Layout::Auto;
+    ArtStyle art = ArtStyle::Glyph;
 };
 
-// `heroes [--seed N] [--data-dir PATH]` (arguments after argv[0]).
+// `heroes [--seed N] [--data-dir PATH] [--layout auto|compact] [--art glyph|blocks]`
+// (arguments after argv[0]).
 std::expected<Options, std::string> parseOptions(std::span<const std::string_view> args);
 
 // --data-dir, then the HEROES_DATA_DIR value, then `<sourceDir>/data`.
@@ -48,6 +51,7 @@ class App {
     // One step for the top screen, applying its transition. False once the app should exit.
     bool update(std::span<const engine::KeyEvent> keys, double dtSeconds);
     void draw(engine::Framebuffer& frame) const;
+    engine::Size canvasSize(engine::Size terminal) const; // the top screen's choice
     std::size_t depth() const { return stack_.size(); }
 
   private:

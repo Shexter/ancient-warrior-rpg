@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     const auto options = app::parseOptions(args);
     if (!options) {
         std::cerr << "heroes: error: " << options.error()
-                  << "\nusage: heroes [--seed N] [--data-dir PATH]\n";
+                  << "\nusage: heroes [--seed N] [--data-dir PATH] [--layout auto|compact] [--art glyph|blocks]\n";
         return 2;
     }
 
@@ -47,6 +47,8 @@ int main(int argc, char** argv) {
         platform::Terminal terminal;
         engine::Renderer renderer(platform::detectColorMode());
         app::Session session{*content, *sprites, *saveFile, options->seed};
+        session.layout = options->layout;
+        session.art = options->art;
         app::App game(terminal, renderer, std::make_unique<app::TitleScreen>(session));
         return game.run();
     } catch (const std::exception& e) {

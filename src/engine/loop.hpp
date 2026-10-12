@@ -18,6 +18,12 @@ inline constexpr int kCanvasHeight = 24;
 inline constexpr double kStepSeconds = 1.0 / 60.0;
 inline constexpr int kMaxStepsPerFrame = 5;
 
+struct Size {
+    int width = 0, height = 0;
+    bool operator==(const Size&) const = default;
+};
+inline constexpr Size kCompactCanvas{kCanvasWidth, kCanvasHeight};
+
 // What the loop needs from a terminal. platform::Terminal implements it; tests use a fake.
 class LoopIo {
   public:
@@ -45,12 +51,16 @@ class Loop {
   public:
     // Returns false to quit. Keys reach the first step after they arrive, once.
     using UpdateFn = std::function<bool(std::span<const KeyEvent>, double dtSeconds)>;
-    // Draws the full 80x24 canvas.
+    // Draws the full canvas (sized by CanvasSizeFn, 80x24 by default).
     using DrawFn = std::function<void(Framebuffer&)>;
+    // The canvas wanted for a terminal of the given size, asked once per frame after the
+    // updates. A size below 80x24 or larger than the terminal falls back to 80x24.
+    using CanvasSizeFn = std::function<Size(Size terminal)>;
 
-    // In a terminal larger than 80x24 the canvas is centered and the margin filled with
+    // In a terminal larger than the canvas the canvas is centered and the margin filled with
     // `background`.
-    Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background = {});
+    Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background = {},
+         CanvasSizeFn canvasSize = {});
 
     // One iteration without sleeping. Returns false when the update asked to quit.
     bool frame(double dtSeconds);
@@ -63,8 +73,9 @@ class Loop {
     UpdateFn update_;
     DrawFn draw_;
     Rgb background_;
+    CanvasSizeFn canvasSize_;
     FixedStepper stepper_;
-    Framebuffer canvas_{kCanvasWidth, kCanvasHeight};
+    Framebuffer canvas_{kCanvasWidth, kCanvasHeight}; // reallocated only when its size changes
     Framebuffer screen_{0, 0}; // terminal-sized; reallocated only when the size changes
     std::vector<KeyEvent> pending_;
     std::string out_;

@@ -11,13 +11,27 @@ std::expected<Options, std::string> parseOptions(std::span<const std::string_vie
     Options options;
     for (std::size_t i = 0; i < args.size(); ++i) {
         const std::string_view flag = args[i];
-        if (flag != "--seed" && flag != "--data-dir")
+        if (flag != "--seed" && flag != "--data-dir" && flag != "--layout" && flag != "--art")
             return std::unexpected(std::format("unknown option '{}'", flag));
         if (i + 1 >= args.size())
             return std::unexpected(std::format("{} needs a value", flag));
         const std::string_view value = args[++i];
         if (flag == "--data-dir") {
             options.dataDir = std::filesystem::path(value);
+            continue;
+        }
+        if (flag == "--layout") {
+            if (value != "auto" && value != "compact")
+                return std::unexpected(
+                    std::format("--layout expects auto or compact, got '{}'", value));
+            options.layout = value == "auto" ? Layout::Auto : Layout::Compact;
+            continue;
+        }
+        if (flag == "--art") {
+            if (value != "glyph" && value != "blocks")
+                return std::unexpected(
+                    std::format("--art expects glyph or blocks, got '{}'", value));
+            options.art = value == "glyph" ? ArtStyle::Glyph : ArtStyle::Blocks;
             continue;
         }
         std::uint64_t seed = 0;
@@ -99,11 +113,16 @@ void App::draw(engine::Framebuffer& frame) const {
         stack_.back()->draw(frame);
 }
 
+engine::Size App::canvasSize(engine::Size terminal) const {
+    return stack_.empty() ? engine::kCompactCanvas : stack_.back()->canvasSize(terminal);
+}
+
 int App::run() {
     engine::Loop loop(
         io_, renderer_,
         [this](std::span<const engine::KeyEvent> keys, double dt) { return update(keys, dt); },
-        [this](engine::Framebuffer& frame) { draw(frame); }, palette::kBg);
+        [this](engine::Framebuffer& frame) { draw(frame); }, palette::kBg,
+        [this](engine::Size terminal) { return canvasSize(terminal); });
     return loop.run();
 }
 

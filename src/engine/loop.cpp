@@ -39,9 +39,10 @@ void drawResizeNotice(Framebuffer& frame, int termWidth, int termHeight) {
     }
 }
 
-Loop::Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background)
+Loop::Loop(LoopIo& io, Renderer& renderer, UpdateFn update, DrawFn draw, Rgb background,
+           CanvasSizeFn canvasSize)
     : io_(io), renderer_(renderer), update_(std::move(update)), draw_(std::move(draw)),
-      background_(background) {}
+      background_(background), canvasSize_(std::move(canvasSize)) {}
 
 bool Loop::frame(double dtSeconds) {
     const auto [cols, rows] = io_.size();
@@ -62,12 +63,18 @@ bool Loop::frame(double dtSeconds) {
                 return false;
             pending_.clear();
         }
+        Size want = canvasSize_ ? canvasSize_({cols, rows}) : kCompactCanvas;
+        if (want.width < kCanvasWidth || want.height < kCanvasHeight || want.width > cols ||
+            want.height > rows)
+            want = kCompactCanvas;
+        if (canvas_.width() != want.width || canvas_.height() != want.height)
+            canvas_ = Framebuffer(want.width, want.height);
         draw_(canvas_);
         screen_.clear(background_);
-        const int left = (cols - kCanvasWidth) / 2;
-        const int top = (rows - kCanvasHeight) / 2;
-        for (int y = 0; y < kCanvasHeight; ++y)
-            for (int x = 0; x < kCanvasWidth; ++x)
+        const int left = (cols - want.width) / 2;
+        const int top = (rows - want.height) / 2;
+        for (int y = 0; y < want.height; ++y)
+            for (int x = 0; x < want.width; ++x)
                 screen_.at(left + x, top + y) = canvas_.at(x, y);
     }
     renderer_.present(screen_, out_);

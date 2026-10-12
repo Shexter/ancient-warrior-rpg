@@ -2,11 +2,11 @@
 
 ## 1. Canvas size chosen per screen
 
-- [ ] 1.1 Change `engine::Loop` to ask for the canvas size each frame and reallocate the canvas only when it changes; keep the 80×24 minimum and the resize notice; verify loop tests for 80×24, 120×40 centered in 150×45, and a size change between frames
-- [ ] 1.2 Add `Screen::canvasSize(terminal, options)` (default 80×24) and route it through `App`; verify every existing screen test passes unchanged and a test screen asking for 120×40 is centered in a 150×45 fake terminal
-- [ ] 1.3 Add `--layout auto|compact` and `--art glyph|blocks` to `parseOptions` and `Session`; verify option tests for defaults, both values, and invalid values (error + usage, exit 2)
-- [ ] 1.4 Update SimpleDocs (`terminal.md`, `app.md`); verify they describe the per-screen canvas and the flags
-- [ ] 1.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Change `engine::Loop` to ask for the canvas size each frame and reallocate the canvas only when it changes; keep the 80×24 minimum and the resize notice; verify loop tests for 80×24, 120×40 centered in 150×45, and a size change between frames
+- [x] 1.2 Add `Screen::canvasSize(terminal, options)` (default 80×24) and route it through `App`; verify every existing screen test passes unchanged and a test screen asking for 120×40 is centered in a 150×45 fake terminal
+- [x] 1.3 Add `--layout auto|compact` and `--art glyph|blocks` to `parseOptions` and `Session`; verify option tests for defaults, both values, and invalid values (error + usage, exit 2)
+- [x] 1.4 Update SimpleDocs (`terminal.md`, `app.md`); verify they describe the per-screen canvas and the flags
+- [x] 1.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Glyph sprites
 

@@ -81,3 +81,6 @@ add_test(NAME heroes_reports_bad_content
     COMMAND heroes --data-dir ${PROJECT_SOURCE_DIR}/tests/fixtures/content_bad/negative_price)
 set_tests_properties(heroes_reports_bad_content PROPERTIES
     PASS_REGULAR_EXPRESSION "items.json: item 'iron_sword': key 'price' must be between")
+add_test(NAME heroes_rejects_bad_layout COMMAND heroes --layout big)
+set_tests_properties(heroes_rejects_bad_layout PROPERTIES
+    PASS_REGULAR_EXPRESSION "--layout expects auto or compact, got 'big'.*usage: heroes .*--layout auto\\|compact")

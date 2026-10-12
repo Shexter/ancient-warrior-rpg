@@ -148,6 +148,63 @@ TEST(Options, RejectsBadInput) {
     EXPECT_NE(parseOptions(unknown).error().find("--cheat"), std::string::npos);
 }
 
+TEST(Options, LayoutAndArtDefaultsAndValues) {
+    const Options defaults = parseOptions({}).value();
+    EXPECT_EQ(defaults.layout, Layout::Auto);
+    EXPECT_EQ(defaults.art, ArtStyle::Glyph);
+    const std::string_view compact[] = {"--layout", "compact", "--art", "blocks"};
+    const Options set = parseOptions(compact).value();
+    EXPECT_EQ(set.layout, Layout::Compact);
+    EXPECT_EQ(set.art, ArtStyle::Blocks);
+    const std::string_view autoGlyph[] = {"--layout", "auto", "--art", "glyph"};
+    EXPECT_EQ(parseOptions(autoGlyph).value().layout, Layout::Auto);
+}
+
+TEST(Options, RejectsBadLayoutAndArt) {
+    const std::string_view badLayout[] = {"--layout", "big"};
+    EXPECT_EQ(parseOptions(badLayout).error(), "--layout expects auto or compact, got 'big'");
+    const std::string_view badArt[] = {"--art", "ascii"};
+    EXPECT_EQ(parseOptions(badArt).error(), "--art expects glyph or blocks, got 'ascii'");
+    const std::string_view missing[] = {"--art"};
+    EXPECT_EQ(parseOptions(missing).error(), "--art needs a value");
+}
+
+TEST(App, TheTopScreenChoosesTheCanvasSize) {
+    // A screen that asks for 120x40 when the terminal allows it, records what it was drawn
+    // into, and quits on its first update.
+    class BigScreen final : public Screen {
+      public:
+        explicit BigScreen(engine::Size& drawn) : drawn_(drawn) {}
+        Transition update(std::span<const KeyEvent>, double) override { return Quit{}; }
+        void draw(Framebuffer& frame) const override { drawn_ = {frame.width(), frame.height()}; }
+        engine::Size canvasSize(engine::Size terminal) const override {
+            return terminal.width >= 120 && terminal.height >= 40 ? engine::Size{120, 40}
+                                                                  : engine::kCompactCanvas;
+        }
+
+      private:
+        engine::Size& drawn_;
+    };
+    class BigIo : public engine::LoopIo {
+      public:
+        std::pair<int, int> size() const override { return {150, 45}; }
+        std::vector<KeyEvent> readKeys() override { return {}; }
+        void write(std::string_view) override {}
+    };
+
+    BigIo io;
+    engine::Renderer renderer(engine::ColorMode::TrueColor);
+    engine::Size drawn{};
+    App app(io, renderer, std::make_unique<BigScreen>(drawn));
+    EXPECT_EQ(app.canvasSize({150, 45}), (engine::Size{120, 40}));
+    EXPECT_EQ(app.canvasSize({100, 30}), engine::kCompactCanvas);
+    EXPECT_EQ(app.run(), 0); // the first frame draws before any step runs, then it quits
+    EXPECT_EQ(drawn, (engine::Size{120, 40}));
+
+    App compact(io, renderer, std::make_unique<ScriptedScreen>('A'));
+    EXPECT_EQ(compact.canvasSize({150, 45}), engine::kCompactCanvas); // the default
+}
+
 TEST(Options, DataDirPrecedence) {
     Options flag;
     flag.dataDir = "/flag";

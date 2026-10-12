@@ -196,3 +196,54 @@ TEST(Loop, ResizeNoticeIsCenteredAndSurvivesTinyTerminals) {
     Framebuffer empty(0, 0);
     drawResizeNotice(empty, 0, 0);
 }
+
+TEST(Loop, CanvasSizeComesFromTheCallbackEachFrame) {
+    FakeIo io;
+    io.cols = 150;
+    io.rows = 45;
+    Renderer renderer(ColorMode::TrueColor);
+    Size want{120, 40};
+    Size drawn{};
+    Size askedWith{};
+    char32_t corner = U'X';
+    Loop loop(
+        io, renderer, [](std::span<const KeyEvent>, double) { return true; },
+        [&](Framebuffer& fb) {
+            drawn = {fb.width(), fb.height()};
+            fb.at(0, 0).glyph = corner;
+        },
+        Rgb{}, [&](Size terminal) {
+            askedWith = terminal;
+            return want;
+        });
+    loop.frame(kStepSeconds);
+    EXPECT_EQ(askedWith, (Size{150, 45}));
+    EXPECT_EQ(drawn, (Size{120, 40}));
+    // Centered: changing the canvas's (0, 0) rewrites terminal col 15, row 2 (1-based 3;16).
+    io.written.clear();
+    corner = U'Y';
+    loop.frame(kStepSeconds);
+    EXPECT_NE(io.written.find("\x1b[3;16H"), std::string::npos) << io.written;
+
+    want = {80, 24}; // the next frame asks for the compact canvas
+    loop.frame(kStepSeconds);
+    EXPECT_EQ(drawn, (Size{80, 24}));
+}
+
+TEST(Loop, CanvasSizesThatCannotFitFallBackTo80x24) {
+    FakeIo io;
+    io.cols = 100;
+    io.rows = 30;
+    Renderer renderer(ColorMode::TrueColor);
+    Size want{120, 40}; // larger than the terminal
+    Size drawn{};
+    Loop loop(
+        io, renderer, [](std::span<const KeyEvent>, double) { return true; },
+        [&](Framebuffer& fb) { drawn = {fb.width(), fb.height()}; }, Rgb{},
+        [&](Size) { return want; });
+    loop.frame(kStepSeconds);
+    EXPECT_EQ(drawn, kCompactCanvas);
+    want = {40, 10}; // below the minimum
+    loop.frame(kStepSeconds);
+    EXPECT_EQ(drawn, kCompactCanvas);
+}
