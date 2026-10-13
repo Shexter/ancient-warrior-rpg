@@ -12,7 +12,7 @@ The game SHALL require a terminal of at least 80×24 cells, or at least 48×44 c
 ## ADDED Requirements
 
 ### Requirement: Portrait layout
-When the terminal is narrower than 80 columns and at least 48×44, or `--layout portrait` is given, every screen SHALL draw a 48×44 layout centered in the terminal, top to bottom: a header (title, a ✕ Back button, key stats), the scene (sprites, bars, log), the screen's menu as full-width boxed numbered rows, and a control pad of boxed ▲ ◀ ● ▶ ▼ buttons that act as the arrow keys and Enter. All actions available in the other layouts SHALL be available in portrait.
+When the terminal is narrower than 80 columns and at least 48×44, or `--layout portrait` is given, every screen SHALL draw a 48×44 layout centered in the terminal, top to bottom: a header (title, a ✕ Back button, key stats), the scene (sprites, bars, log), the screen's menu as full-width boxed numbered rows, and a control pad of boxed ▲ ◀ ● ▶ ▼ buttons that act as the arrow keys and Enter, with a boxed ✕ Back button beside ▲ that acts as Esc. All actions available in the other layouts SHALL be available in portrait.
 
 #### Scenario: Phone-sized terminal
 - **WHEN** the game runs in a 48×47 terminal and the Hub is shown
@@ -29,6 +29,10 @@ When the terminal is narrower than 80 columns and at least 48×44, or `--layout 
 #### Scenario: Back button
 - **WHEN** the player taps ✕ in a town screen's header
 - **THEN** the screen goes back, as if Esc had been pressed
+
+#### Scenario: Back out of everything without a keyboard
+- **WHEN** the player opens any screen or dialog (a shop, a number or name pad, a choice, the Prior's skill list) and taps the pad's ✕ Back button repeatedly
+- **THEN** each tap goes back one step until the Hub, with no dialog left open
 
 ### Requirement: Tap to select
 When the terminal reports mouse or touch clicks, a click on a menu row SHALL select and confirm that row, exactly as its number key would. Keyboard control SHALL keep working unchanged, and mouse reporting SHALL be turned off when the game exits.

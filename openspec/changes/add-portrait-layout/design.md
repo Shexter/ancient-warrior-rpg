@@ -8,7 +8,7 @@ See proposal.md. The per-frame canvas choice from `add-large-art-layout` already
 
 **1. A fixed 48×44 portrait canvas, centered.** One size to design and test against, like 80×24 and 120×40. Wider or taller phones get margins. The user's screenshot of the resize prompt clipped at exactly 48 columns, with about 47 rows with the keyboard hidden. Rows: header 0–5, scene 6–21, menu 22–31, control pad 32–43. Still confirmed with `tput` in task 3.1.
 
-**1a. Arcade look (user's Pac-Man reference).** The existing dark background and thin light-blue box lines. The header uses a dim label over a large value ("LEVEL" over "7"), like SCORE / HIGH. Menu rows and pad buttons are boxes with the label centered, so they read as buttons. The pad is a plus shape: ▲ on top, ◀ ● ▶ in the middle (● = Enter), ▼ below, each box 14×3. The ✕ in the header is Back (Esc). The pad sends the same keys as the keyboard, so screens need no pad-specific logic.
+**1a. Arcade look (user's Pac-Man reference).** The existing dark background and thin light-blue box lines. The header uses a dim label over a large value ("LEVEL" over "7"), like SCORE / HIGH. Menu rows and pad buttons are boxes with the label centered, so they read as buttons. The pad is a plus shape: ▲ on top, ◀ ● ▶ in the middle (● = Enter), ▼ below, each box 14×3. The ✕ in the header is Back (Esc), and so is a boxed "✕ Back" beside ▲ (added after phone testing: the corner ✕ was too easy to miss, and a player had to open the keyboard for Esc). The pad sends the same keys as the keyboard, so screens need no pad-specific logic.
 
 **2. Shared portrait widgets do most of the work.**
 - `drawHeader`: title and ✕, then label-over-value stats.

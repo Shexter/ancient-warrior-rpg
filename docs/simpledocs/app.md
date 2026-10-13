@@ -48,7 +48,7 @@
 Every screen has one. It is used when `--layout portrait` is given or, in `auto`, the terminal is narrower than 80 columns (`portraitOr`); `--layout compact` never uses it. Everything can be done by tapping, with the phone's keyboard closed.
 
 - **Bands:** header rows 0–5 (`drawHeader`: title, up to four dim labels over values, a rule), scene rows 6–21, menu band rows 22–31 (`drawButtonMenu`: the screen's `Menu` in a box, up to 8 rows, tappable), control pad rows 32–43.
-- **✕ and pad:** the App draws them over every portrait frame (`drawControls`): ✕ at the top right, and 14×3 boxes ▲, ◀ ● ▶, ▼. Taps on them reach the screen as Esc, the arrows and Enter (`controlKey`), so screens have no pad code.
+- **✕ and pad:** the App draws them over every portrait frame (`drawControls`): ✕ at the top right, and 14×3 boxes ✕ Back and ▲, ◀ ● ▶, ▼. Taps on them reach the screen as Esc, the arrows and Enter (`controlKey`), so screens have no pad code.
 - **Hub:** header "ARIA · Knight" with LEVEL, HP (HP color), FERVOR and GOLD, a full-width HP bar, the hero's compact sprite centered, the last message on row 21, and the menu in the band.
 - **Dialogs** wrap to the frame they're drawn on (at most 60 columns, 4 less than the frame), so they fit the phone layout too.
 - **Typing without a keyboard:** number inputs (cave level, amounts, Charisma EXP) show a digit keypad (1–9, ⌫, 0, OK) in the menu band, and ▲▼ change the number by 1, ◀▶ by 10. Name inputs (new hero, Change Name) show a letter keypad (A–Z, 0–9, ␣, ⌫, OK). `keypadKey` turns a tap on a key into that key; the screens that own an input remember whether they were last drawn on the phone layout, so taps only count as keypad keys there.

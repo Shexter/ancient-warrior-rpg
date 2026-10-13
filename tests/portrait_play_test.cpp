@@ -159,3 +159,44 @@ TEST(PhonePlay, ABossBattle) {
     EXPECT_EQ(h.app->depth(), 1u);
     EXPECT_TRUE(h.session.state->hero.completedMissions.contains("avaritia"));
 }
+
+// The pad's Back button alone gets out of every screen and every dialog in it: nobody needs
+// the keyboard's Esc. Each path opens something, then taps Back until the Hub.
+TEST(PhonePlay, BackLeavesEveryScreen) {
+    const std::vector<std::vector<const char*>> paths = {
+        {"Town"},
+        {"Town", "Almonry"},
+        {"Town", "Almonry", "Holy Water"}, // the number pad
+        {"Town", "Forge"},
+        {"Town", "Forge", "Change Equipment"},
+        {"Town", "Forge", "Upgrade"},
+        {"Town", "Forge", "Forge"},
+        {"Town", "Prior"},
+        {"Town", "Prior", "Blessings"},
+        {"Town", "Prior", "Build Charisma"},
+        {"Town", "Prior", "Learn Skill"},
+        {"Town", "Prior", "Change Name"}, // the letter pad
+        {"Town", "Thesaurus"},            // asks to open an account
+        {"Training"},
+        {"Mission"},
+        {"Mission", "Avaritia"},
+    };
+    for (const auto& path : paths) {
+        Harness h("phone_back");
+        h.session.layout = Layout::Portrait;
+        game::GameState state = freshGame();
+        state.hero.level = 20;
+        state.hero.blessings = 1;
+        h.startAtHub(std::move(state));
+        Phone phone{h};
+        std::string where;
+        for (const char* step : path) {
+            where += std::string(" > ") + step;
+            ASSERT_TRUE(phone.tap(step)) << where;
+        }
+        for (int i = 0; i < 6 && h.app->depth() > 1; ++i)
+            ASSERT_TRUE(phone.tap("✕ Back")) << where;
+        EXPECT_EQ(h.app->depth(), 1u) << where;
+        EXPECT_TRUE(phone.shows("Training")) << where; // the Hub, with no dialog left over
+    }
+}

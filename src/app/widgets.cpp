@@ -267,6 +267,7 @@ struct Control {
 constexpr int kPadMid = portrait::kPadTop + 4;
 constexpr Control kControls[] = {
     {17, portrait::kPadTop + 1, 14, 3, "▲", Key::Up},
+    {2, portrait::kPadTop + 1, 14, 3, "✕ Back", Key::Escape}, // a big Back beside ▲
     {2, kPadMid, 14, 3, "◀", Key::Left},
     {17, kPadMid, 14, 3, "●", Key::Enter},
     {32, kPadMid, 14, 3, "▶", Key::Right},
@@ -374,13 +375,15 @@ void drawButtonMenu(Framebuffer& frame, const Menu& menu) {
 
 void drawControls(Framebuffer& frame) {
     for (const Control& c : kControls) {
-        if (c.key == Key::Escape) {
+        if (c.y == 0) {
             drawText(frame, 46, 0, c.label, palette::kDmg);
             continue;
         }
         drawPanel(frame, c.x, c.y, c.w, c.h);
-        drawText(frame, c.x + c.w / 2, c.y + 1, c.label,
-                 c.key == Key::Enter ? palette::kAccent : palette::kText);
+        drawText(frame, c.x + (c.w - textWidth(c.label)) / 2, c.y + 1, c.label,
+                 c.key == Key::Enter    ? palette::kAccent
+                 : c.key == Key::Escape ? palette::kDmg
+                                        : palette::kText);
     }
 }
 

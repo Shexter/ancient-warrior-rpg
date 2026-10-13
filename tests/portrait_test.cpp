@@ -43,7 +43,8 @@ TEST(Portrait, PadAndCloseButtonStandForKeys) {
     EXPECT_EQ(controlKey({Key::Click, 0, 45, 37}), KeyEvent{Key::Right});
     EXPECT_EQ(controlKey({Key::Click, 0, 24, 40}), KeyEvent{Key::Down});
     EXPECT_EQ(controlKey({Key::Click, 0, 46, 0}), KeyEvent{Key::Escape});
-    EXPECT_EQ(controlKey({Key::Click, 0, 3, 34}), std::nullopt); // beside the ▲
+    EXPECT_EQ(controlKey({Key::Click, 0, 3, 34}), KeyEvent{Key::Escape}); // Back, beside the ▲
+    EXPECT_EQ(controlKey({Key::Click, 0, 45, 34}), std::nullopt);         // the other corner
     EXPECT_EQ(controlKey({Key::Enter}), std::nullopt);
 }
 
