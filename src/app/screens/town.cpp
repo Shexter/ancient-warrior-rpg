@@ -1,4 +1,5 @@
 #include "app/screens/town.hpp"
+#include "app/art.hpp"
 
 #include <algorithm>
 #include <format>
@@ -13,17 +14,16 @@ using engine::Framebuffer;
 using engine::Key;
 using engine::KeyEvent;
 
-constexpr int kCanvasWidth = 80;
 constexpr int kDialogWidth = 60;
 
-// A centered panel `h` rows tall; returns its top row.
+// A panel `h` rows tall, centered on the 80x24 canvas; returns its top row.
 int centeredPanel(Framebuffer& frame, int h) {
     const int y = (24 - h) / 2;
-    drawPanel(frame, (kCanvasWidth - kDialogWidth) / 2, y, kDialogWidth, h);
+    drawPanel(frame, (80 - kDialogWidth) / 2, y, kDialogWidth, h);
     return y;
 }
 
-constexpr int kDialogText = (kCanvasWidth - kDialogWidth) / 2 + 2; // first text column
+constexpr int kDialogText = (80 - kDialogWidth) / 2 + 2; // first text column
 
 } // namespace
 
@@ -79,7 +79,7 @@ void Modal::handle(const KeyEvent& key) {
         if (then)
             then();
     } else if (auto* n = std::get_if<Number>(&state_)) {
-        const InputResult result = n->input.handle(key);
+        const InputResult result = n->input.handle(portrait_ ? keypadKey(Keypad::Digits, key) : key);
         if (result == InputResult::Editing)
             return;
         auto onValue = std::move(n->onValue);
@@ -88,7 +88,8 @@ void Modal::handle(const KeyEvent& key) {
         if (result == InputResult::Submitted)
             onValue(*value);
     } else if (auto* t = std::get_if<Text>(&state_)) {
-        const InputResult result = t->input.handle(key);
+        const InputResult result =
+            t->input.handle(portrait_ ? keypadKey(Keypad::Letters, key) : key);
         if (result == InputResult::Editing)
             return;
         auto onValue = std::move(t->onValue);
@@ -110,7 +111,38 @@ void Modal::handle(const KeyEvent& key) {
     }
 }
 
+// Phone layout: inputs and choices take the scene and the menu band, with a keypad for typing.
+void Modal::drawPortrait(Framebuffer& frame) const {
+    const int width = frame.width() - 2;
+    if (const auto* n = std::get_if<Number>(&state_)) {
+        drawPanel(frame, 1, 8, width, 9);
+        const auto lines = wordWrap(n->prompt, width - 4);
+        for (std::size_t i = 0; i < lines.size() && i < 2; ++i)
+            drawText(frame, 3, 9 + static_cast<int>(i), lines[i], palette::kText);
+        n->input.draw(frame, 3, 12);
+        if (const auto value = n->input.value(); value && n->preview)
+            drawText(frame, 3, 14, n->preview(*value), palette::kAccent, width - 4);
+        drawText(frame, 3, 15, "▲▼ ±1 · ◀▶ ±10", palette::kDim);
+        drawKeypad(frame, Keypad::Digits);
+    } else if (const auto* t = std::get_if<Text>(&state_)) {
+        drawPanel(frame, 1, 8, width, 9);
+        for (std::size_t i = 0; i < t->prompt.size() && i < 3; ++i)
+            drawText(frame, 3, 9 + static_cast<int>(i), t->prompt[i], palette::kText, width - 4);
+        t->input.draw(frame, 3, 13);
+        drawKeypad(frame, Keypad::Letters);
+    } else if (const auto* ch = std::get_if<Choice>(&state_)) {
+        drawText(frame, 2, portrait::kMenuTop - 1, ch->title, palette::kAccent, width - 2);
+        drawButtonMenu(frame, ch->menu);
+    }
+}
+
 void Modal::draw(Framebuffer& frame) const {
+    portrait_ = isPortrait(frame);
+    if (portrait_ && (std::holds_alternative<Number>(state_) ||
+                      std::holds_alternative<Text>(state_) || std::holds_alternative<Choice>(state_))) {
+        drawPortrait(frame);
+        return;
+    }
     if (const auto* m = std::get_if<Message>(&state_)) {
         m->box.draw(frame);
     } else if (const auto* c = std::get_if<Confirm>(&state_)) {
@@ -163,12 +195,21 @@ Transition TownScreen::update(std::span<const KeyEvent> keys, double dtSeconds) 
     return Stay{};
 }
 
+engine::Size TownScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void TownScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
-    drawStatusPanel(frame, hero(), content());
-    drawText(frame, 2, 5, title_, palette::kAccent);
+    if (isPortrait(frame)) {
+        // The body keeps rows 6-21 (and the menu band); the header replaces the status panel.
+        drawHeroHeader(frame, title_, hero());
+    } else {
+        drawStatusPanel(frame, hero(), content());
+        drawText(frame, 2, 5, title_, palette::kAccent);
+        drawCentered(frame, 22, hint(), palette::kDim);
+    }
     drawBody(frame);
-    drawCentered(frame, 22, hint(), palette::kDim);
     modal_.draw(frame);
 }
 
@@ -222,7 +263,12 @@ Transition TownMenuScreen::onKey(const KeyEvent& key) {
     }
 }
 
-void TownMenuScreen::drawBody(Framebuffer& frame) const { menu_.draw(frame, 4, 7); }
+void TownMenuScreen::drawBody(Framebuffer& frame) const {
+    if (isPortrait(frame))
+        drawButtonMenu(frame, menu_);
+    else
+        menu_.draw(frame, 4, 7);
+}
 
 // ---- Bank --------------------------------------------------------------------------------
 
@@ -246,7 +292,7 @@ void BankScreen::refresh() {
 Transition BankScreen::onKey(const KeyEvent& key) {
     if (key.key == Key::Escape)
         return Pop{};
-    if (key.key == Key::Tab) {
+    if (key.key == Key::Tab || key.key == Key::Left || key.key == Key::Right) {
         bagFocused_ = !bagFocused_;
         return Stay{};
     }
@@ -271,12 +317,18 @@ Transition BankScreen::onKey(const KeyEvent& key) {
 void BankScreen::drawBody(Framebuffer& frame) const {
     if (!hero().bank)
         return;
+    if (isPortrait(frame)) {
+        drawText(frame, 2, 7, bagFocused_ ? "◀ Your bag ▶" : "◀ Bank ▶", palette::kAccent);
+        drawText(frame, 2, 9, "◀ ▶ switch list · tap an item to move it", palette::kDim, 44);
+        drawButtonMenu(frame, bagFocused_ ? bag_ : bank_);
+        return;
+    }
     drawText(frame, 1, 6, "Bank", bagFocused_ ? palette::kText : palette::kAccent);
     bank_.draw(frame, 1, 7, !bagFocused_);
     drawText(frame, 41, 6, "Your bag", bagFocused_ ? palette::kAccent : palette::kText);
     bag_.draw(frame, 41, 7, bagFocused_);
 }
 
-std::string_view BankScreen::hint() const { return "Tab switch list · Enter move · Esc back"; }
+std::string_view BankScreen::hint() const { return "Tab/←→ switch list · Enter move · Esc back"; }
 
 } // namespace heroes::app

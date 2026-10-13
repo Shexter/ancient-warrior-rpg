@@ -13,6 +13,8 @@ class IntroScreen final : public Screen {
     explicit IntroScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Session& session_;
@@ -34,6 +36,8 @@ class CreateHeroScreen final : public Screen {
 
     Transition create(int pathIndex);
     void drawPathPreview(engine::Framebuffer& frame) const;
+    void drawPortrait(engine::Framebuffer& frame) const;
+    mutable bool portrait_ = false; // last drawn on the phone layout: taps hit the keypad
 
     Session& session_;
     Step step_ = Step::Name;

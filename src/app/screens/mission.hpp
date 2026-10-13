@@ -19,6 +19,8 @@ class MissionSelectScreen final : public Screen {
     explicit MissionSelectScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Session& session_;
@@ -31,6 +33,8 @@ class MissionIntroScreen final : public Screen {
     MissionIntroScreen(Session& session, std::string missionId);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Session& session_;
@@ -52,6 +56,7 @@ class BattleScreen final : public Screen {
     engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
+    void drawPortrait(engine::Framebuffer& frame) const;
     std::string heroFile() const;
     std::string enemyFile() const;
     // A boxed list over the battle: each row, when chosen, performs its action.
@@ -79,6 +84,8 @@ class ResultScreen final : public Screen {
     ResultScreen(Session& session, game::MissionResult result);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Session& session_;

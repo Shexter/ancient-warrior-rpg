@@ -16,6 +16,8 @@ class TitleScreen final : public Screen {
     explicit TitleScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Transition continueGame();

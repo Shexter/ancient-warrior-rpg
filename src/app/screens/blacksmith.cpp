@@ -1,4 +1,5 @@
 #include "app/screens/town.hpp"
+#include "app/art.hpp"
 
 #include <format>
 
@@ -152,7 +153,10 @@ void BlacksmithScreen::confirmForge(const game::RecipeDef& recipe) {
 void BlacksmithScreen::drawBody(engine::Framebuffer& frame) const {
     switch (mode_) {
     case Mode::Main:
-        menu_.draw(frame, 4, 7);
+        if (isPortrait(frame))
+            drawButtonMenu(frame, menu_);
+        else
+            menu_.draw(frame, 4, 7);
         break;
     case Mode::Upgrade:
         drawUpgrade(frame);
@@ -169,42 +173,49 @@ void BlacksmithScreen::drawUpgrade(engine::Framebuffer& frame) const {
         return;
     const int level = current->upgradeLevel;
     const game::ItemDef& item = content().item(current->itemId);
+    const int x = isPortrait(frame) ? 2 : 4, width = frame.width() - x - 1; // phone: 48 wide
     if (level >= game::kMaxUpgradeLevel) {
-        drawText(frame, 4, 7, std::format("{}  Lv {}", item.name, level), palette::kText);
-        drawText(frame, 4, 9, "Already at maximum upgrade.", palette::kDim);
+        drawText(frame, x, 7, std::format("{}  Lv {}", item.name, level), palette::kText, width);
+        drawText(frame, x, 9, "Already at maximum upgrade.", palette::kDim);
         return;
     }
-    drawText(frame, 4, 7, std::format("{}  Lv {} → Lv {}", item.name, level, level + 1),
+    drawText(frame, x, 7, std::format("{}  Lv {} → Lv {}", item.name, level, level + 1),
              palette::kText);
     const game::UpgradeCost cost = game::upgradeCost(level);
     const game::Hero& h = hero();
     const std::string& material = *item.upgradeMaterial;
     const int have = h.bag.count(material);
-    drawText(frame, 4, 9, "Cost", palette::kAccent);
-    drawText(frame, 6, 10,
+    drawText(frame, x, 9, "Cost", palette::kAccent);
+    drawText(frame, x + 2, 10,
              std::format("{} x{}   (you have {})", content().item(material).name,
                          cost.materialCount, have),
-             affordColor(have >= cost.materialCount));
-    drawText(frame, 6, 11, std::format("{} EXP   (you have {})", cost.exp, h.exp),
-             affordColor(h.exp >= cost.exp));
-    drawText(frame, 6, 12, std::format("{} gold   (you have {})", cost.gold, h.gold),
-             affordColor(h.gold >= cost.gold));
+             affordColor(have >= cost.materialCount), width - 2);
+    drawText(frame, x + 2, 11, std::format("{} EXP   (you have {})", cost.exp, h.exp),
+             affordColor(h.exp >= cost.exp), width - 2);
+    drawText(frame, x + 2, 12, std::format("{} gold   (you have {})", cost.gold, h.gold),
+             affordColor(h.gold >= cost.gold), width - 2);
 }
 
 void BlacksmithScreen::drawForge(engine::Framebuffer& frame) const {
-    recipes_.draw(frame, 4, 7);
+    // Phone: recipes in the menu band, the ingredients above them from column 2.
+    const bool phone = isPortrait(frame);
+    if (phone)
+        drawButtonMenu(frame, recipes_);
+    else
+        recipes_.draw(frame, 4, 7);
     if (content().recipes().empty())
         return;
     const game::RecipeDef& recipe =
         content().recipes()[static_cast<std::size_t>(recipes_.selected())];
-    drawText(frame, 34, 7, "Ingredients", palette::kAccent);
+    const int x = phone ? 2 : 34;
+    drawText(frame, x, 7, "Ingredients", palette::kAccent);
     int y = 8;
     for (const auto& [id, need] : recipe.ingredients) {
         const int have = hero().bag.count(id);
-        drawText(frame, 36, y++, std::format("{}  {}/{}", content().item(id).name, have, need),
+        drawText(frame, x + 2, y++, std::format("{}  {}/{}", content().item(id).name, have, need),
                  affordColor(have >= need));
     }
-    drawText(frame, 34, y + 1,
+    drawText(frame, x, y + 1,
              std::format("Success chance {}%", game::forgeChancePercent(hero().forgeLevel)),
              palette::kText);
 }

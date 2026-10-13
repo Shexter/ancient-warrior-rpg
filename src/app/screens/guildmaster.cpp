@@ -1,4 +1,5 @@
 #include "app/screens/town.hpp"
+#include "app/art.hpp"
 
 #include <algorithm>
 #include <array>
@@ -174,6 +175,10 @@ void GuildmasterScreen::charisma(CharismaStat stat, std::string statName) {
 }
 
 void GuildmasterScreen::drawBody(engine::Framebuffer& frame) const {
+    if (isPortrait(frame)) {
+        drawBodyPortrait(frame);
+        return;
+    }
     if (!learning_) {
         menu_.draw(frame, 4, 7);
         return;
@@ -204,6 +209,35 @@ void GuildmasterScreen::drawBody(engine::Framebuffer& frame) const {
         drawText(frame, 4, 14,
                  skills[static_cast<std::size_t>(skills_.selected())].description,
                  palette::kDim);
+}
+
+// Phone: the menu (or the skills) in the band; while learning, the highlighted skill's needs
+// above it, each green when met and red when not.
+void GuildmasterScreen::drawBodyPortrait(engine::Framebuffer& frame) const {
+    if (!learning_) {
+        drawButtonMenu(frame, menu_);
+        return;
+    }
+    drawButtonMenu(frame, skills_);
+    const auto skills = content().skills();
+    if (skills.empty())
+        return;
+    const game::SkillDef& skill = skills[static_cast<std::size_t>(skills_.selected())];
+    const game::Hero& h = hero();
+    drawText(frame, 2, 7, skill.name, palette::kAccent, 44);
+    if (h.learnedSkills.contains(skill.id)) {
+        drawText(frame, 2, 9, "Learned", palette::kDim);
+    } else {
+        const int level = std::max(game::kLearnMinLevel, skill.learnLevel);
+        drawText(frame, 2, 9, std::format("Lv {}", level), metColor(h.level >= level));
+        drawText(frame, 2, 10, std::format("{} gold", skill.goldCost),
+                 metColor(h.gold >= skill.goldCost));
+        drawText(frame, 2, 11, content().item(skill.keyItem).name,
+                 metColor(h.bag.count(skill.keyItem) > 0), 44);
+    }
+    const auto lines = wordWrap(skill.description, 44);
+    for (std::size_t i = 0; i < lines.size() && i < 6; ++i)
+        drawText(frame, 2, 13 + static_cast<int>(i), lines[i], palette::kDim);
 }
 
 std::string_view GuildmasterScreen::hint() const {

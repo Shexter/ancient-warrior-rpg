@@ -96,8 +96,24 @@ Transition MissionSelectScreen::update(std::span<const KeyEvent> keys, double) {
     return Stay{};
 }
 
+engine::Size MissionSelectScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void MissionSelectScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    if (isPortrait(frame)) {
+        drawHeroHeader(frame, "MISSIONS", session_.state->hero);
+        const auto missions = session_.content.missions();
+        if (menu_.selected() < static_cast<int>(missions.size())) {
+            const game::MissionDef& m = missions[static_cast<std::size_t>(menu_.selected())];
+            drawText(frame, 2, 8, m.name, palette::kAccent, frame.width() - 4);
+            drawText(frame, 2, 9, m.location, palette::kDim, frame.width() - 4);
+            drawText(frame, 2, 11, std::format("Level {} or higher", m.minLevel), palette::kText);
+        }
+        drawButtonMenu(frame, menu_);
+        return;
+    }
     drawStatusPanel(frame, session_.state->hero, session_.content);
     drawText(frame, 2, 5, "MISSIONS", palette::kAccent);
     menu_.draw(frame, 4, 7);
@@ -143,13 +159,24 @@ Transition MissionIntroScreen::update(std::span<const KeyEvent> keys, double dtS
     return Stay{};
 }
 
+engine::Size MissionIntroScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void MissionIntroScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
     const game::MissionDef& mission = session_.content.mission(missionId_);
-    drawCentered(frame, 3, mission.name, palette::kAccent);
-    drawCentered(frame, 5, mission.location, palette::kDim);
-    story_.draw(frame, 10, 8, palette::kText);
-    drawCentered(frame, 22, "Enter continue · Esc back", palette::kDim);
+    if (isPortrait(frame)) {
+        drawHeader(frame, mission.name, {});
+        drawText(frame, 1, 2, mission.location, palette::kDim, frame.width() - 4);
+        story_.draw(frame, 2, 7, palette::kText, frame.width() - 4);
+        drawCentered(frame, portrait::kPadTop - 2, "● continue · ✕ back", palette::kDim);
+    } else {
+        drawCentered(frame, 3, mission.name, palette::kAccent);
+        drawCentered(frame, 5, mission.location, palette::kDim);
+        story_.draw(frame, 10, 8, palette::kText);
+        drawCentered(frame, 22, "Enter continue · Esc back", palette::kDim);
+    }
     if (confirm_)
         confirm_->draw(frame);
     if (message_)
@@ -275,11 +302,37 @@ std::string BattleScreen::enemyFile() const {
 }
 
 engine::Size BattleScreen::canvasSize(engine::Size terminal) const {
-    return artCanvas(session_, terminal, {heroFile(), enemyFile()});
+    return portraitOr(session_, terminal, artCanvas(session_, terminal, {heroFile(), enemyFile()}));
+}
+
+void BattleScreen::drawPortrait(Framebuffer& frame) const {
+    const game::MissionDef& mission = session_.content.mission(missionId_);
+    const int turnNumber = view_.busy() || battle_.over() ? view_.turn() : battle_.turn() + 1;
+    drawText(frame, 1, 0, std::format("{} · Turn {}", mission.location, turnNumber),
+             palette::kAccent, 42);
+    view_.draw(frame, {}, compactArt(session_, enemyFile()), kPortraitBattle);
+    if (overlay_) {
+        drawText(frame, 2, portrait::kMenuTop - 1, overlay_->title, palette::kAccent,
+                 frame.width() - 4);
+        drawButtonMenu(frame, overlay_->menu);
+        return;
+    }
+    if (view_.busy()) {
+        drawPanel(frame, 1, portrait::kMenuTop, frame.width() - 2, portrait::kMenuRows + 2);
+        drawText(frame, 3, portrait::kMenuTop + 1, "● skips the animation", palette::kDim);
+        return;
+    }
+    drawButtonMenu(frame, actions_);
 }
 
 void BattleScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    if (isPortrait(frame)) {
+        drawPortrait(frame);
+        if (const int offset = view_.shake())
+            shiftFrame(frame, offset);
+        return;
+    }
     const bool large = isLarge(frame);
     const game::MissionDef& mission = session_.content.mission(missionId_);
     drawText(frame, 1, 0, mission.location, palette::kAccent, 60);
@@ -340,32 +393,42 @@ Transition ResultScreen::update(std::span<const KeyEvent> keys, double) {
     return Stay{};
 }
 
+engine::Size ResultScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void ResultScreen::draw(Framebuffer& frame) const {
     frame.clear(palette::kBg);
     const game::Content& content = session_.content;
-    drawStatusPanel(frame, session_.state->hero, content);
+    const bool phone = isPortrait(frame);
+    if (phone)
+        drawHeroHeader(frame, "RESULT", session_.state->hero);
+    else
+        drawStatusPanel(frame, session_.state->hero, content);
+    // Compact: lines from column 20, 58 wide. Phone: from column 1, the full width.
+    const int x = phone ? 1 : 20, width = phone ? frame.width() - 2 : 58;
     int y = 9;
     switch (result_.outcome) {
     case game::Outcome::Victory:
         drawCentered(frame, 7, "VICTORY", palette::kAccent);
-        drawText(frame, 20, y++, std::format("EXP   +{}", result_.expGained), palette::kText);
-        drawText(frame, 20, y, "Gold", palette::kText);
-        drawText(frame, 26, y++, std::format("+{}", result_.goldGained), palette::kGold);
+        drawText(frame, x, y++, std::format("EXP   +{}", result_.expGained), palette::kText);
+        drawText(frame, x, y, "Gold", palette::kText);
+        drawText(frame, x + 6, y++, std::format("+{}", result_.goldGained), palette::kGold);
         if (result_.levelsGained > 0)
-            drawText(frame, 20, y++,
+            drawText(frame, x, y++,
                      std::format("Level up! +{} · {} blessing{} at the Prior",
                                  result_.levelsGained, result_.levelsGained,
                                  result_.levelsGained == 1 ? "" : "s"),
-                     palette::kAccent);
+                     palette::kAccent, width);
         if (!result_.itemsGained.empty())
-            drawText(frame, 20, y++,
+            drawText(frame, x, y++,
                      std::format("Items: {}", itemNames(result_.itemsGained, content)),
-                     palette::kText, 58);
+                     palette::kText, width);
         if (!result_.itemsLostBagFull.empty())
-            drawText(frame, 20, y++,
+            drawText(frame, x, y++,
                      std::format("Bag full, lost: {}",
                                  itemNames(result_.itemsLostBagFull, content)),
-                     palette::kDmg, 58);
+                     palette::kDmg, width);
         break;
     case game::Outcome::Defeat:
         drawCentered(frame, 7, "DEFEAT", palette::kDmg);
@@ -380,7 +443,8 @@ void ResultScreen::draw(Framebuffer& frame) const {
         drawCentered(frame, y, "The battle was a stalemate.", palette::kText);
         break;
     }
-    drawCentered(frame, 22, "Enter return to the Hub", palette::kDim);
+    drawCentered(frame, phone ? portrait::kPadTop - 2 : 22,
+                 phone ? "● return to the Hub" : "Enter return to the Hub", palette::kDim);
 }
 
 } // namespace heroes::app

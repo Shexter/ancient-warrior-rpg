@@ -41,8 +41,18 @@ Transition IntroScreen::update(std::span<const engine::KeyEvent> keys, double dt
     return Stay{};
 }
 
+engine::Size IntroScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void IntroScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    if (isPortrait(frame)) {
+        story_.draw(frame, 2, 2, palette::kText, frame.width() - 4);
+        drawCentered(frame, portrait::kPadTop - 2,
+                     story_.revealed() ? "● continue" : "● reveal all", palette::kDim);
+        return;
+    }
     story_.draw(frame, 4, 3, palette::kText);
     drawCentered(frame, 22, story_.revealed() ? "Enter continue" : "Enter reveal all",
                  palette::kDim);
@@ -70,7 +80,7 @@ Transition CreateHeroScreen::update(std::span<const engine::KeyEvent> keys, doub
     for (const engine::KeyEvent& key : keys) {
         switch (step_) {
         case Step::Name:
-            switch (nameInput_.handle(key)) {
+            switch (nameInput_.handle(portrait_ ? keypadKey(Keypad::Letters, key) : key)) {
             case InputResult::Cancelled:
                 return Pop{};
             case InputResult::Submitted:
@@ -104,6 +114,8 @@ Transition CreateHeroScreen::update(std::span<const engine::KeyEvent> keys, doub
 }
 
 engine::Size CreateHeroScreen::canvasSize(engine::Size terminal) const {
+    if (portraitOr(session_, terminal, engine::kCompactCanvas) == engine::kPortraitCanvas)
+        return engine::kPortraitCanvas;
     // The highlighted path can change at any time, so every path needs its large art.
     if (step_ != Step::Path || artCanvas(session_, terminal, {}) != kLargeCanvas)
         return engine::kCompactCanvas;
@@ -143,8 +155,51 @@ void CreateHeroScreen::drawPathPreview(engine::Framebuffer& frame) const {
         compactArt(session_, file).draw(frame, 52, 6);
 }
 
+void CreateHeroScreen::drawPortrait(engine::Framebuffer& frame) const {
+    switch (step_) {
+    case Step::Name:
+        drawText(frame, 2, 8, "Enter Hero name (max 8 characters):", palette::kText);
+        nameInput_.draw(frame, 4, 10);
+        drawText(frame, 2, 12, nameError_, palette::kDmg, frame.width() - 4);
+        drawKeypad(frame, Keypad::Letters);
+        break;
+    case Step::Story:
+        story_.draw(frame, 2, 2, palette::kText, frame.width() - 4);
+        drawCentered(frame, portrait::kPadTop - 2,
+                     story_.revealed() ? "● continue" : "● reveal all", palette::kDim);
+        break;
+    case Step::Path: {
+        const game::PathDef& path =
+            session_.content.paths()[static_cast<std::size_t>(paths_.selected())];
+        drawHeader(frame, "WARRIOR PATHS", {});
+        compactArt(session_, std::format("hero_{}.sprite", path.id)).draw(frame, 1, 7);
+        drawText(frame, 27, 7, path.name, palette::kAccent);
+        std::string sentence = path.flavor;
+        if (!sentence.empty() && sentence[0] >= 'a' && sentence[0] <= 'z')
+            sentence[0] = static_cast<char>(sentence[0] - 'a' + 'A');
+        const auto flavor = wordWrap(sentence + ".", 20);
+        for (std::size_t i = 0; i < flavor.size(); ++i)
+            drawText(frame, 27, 9 + static_cast<int>(i), flavor[i], palette::kText);
+        const int y = 10 + static_cast<int>(flavor.size());
+        drawText(frame, 27, y, std::format("HP     {}", path.maxHp), palette::kText);
+        drawText(frame, 27, y + 1, std::format("Fervor {}", path.maxMp), palette::kText);
+        drawText(frame, 27, y + 2, std::format("ATK    {}", path.atk), palette::kText);
+        drawText(frame, 27, y + 3, std::format("DEF    {}", path.def), palette::kText);
+        drawText(frame, 27, y + 4, std::format("LIFE   {}", path.life), palette::kText);
+        drawText(frame, 27, y + 5, std::format("EXP/level x{}", path.multiplier), palette::kDim);
+        drawButtonMenu(frame, paths_);
+        break;
+    }
+    }
+}
+
 void CreateHeroScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    portrait_ = isPortrait(frame);
+    if (portrait_) {
+        drawPortrait(frame);
+        return;
+    }
     switch (step_) {
     case Step::Name:
         drawText(frame, 4, 8, "Enter Hero name (max 8 characters):", palette::kText);

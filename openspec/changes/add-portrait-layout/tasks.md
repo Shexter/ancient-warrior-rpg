@@ -15,10 +15,10 @@
 ## 3. Portrait screens
 
 - [x] 3.1 Confirm the canvas size against the user's phone with the keyboard hidden (`tput cols; tput lines`): 48×45 measured 2026-10-12, so 48×44 stays
-- [ ] 3.2 Portrait Title, Intro, Create Hero, Hub, Mission Select and Result; verify a 48×44 frame test for each (header, scene, boxed menu rows, pad)
-- [ ] 3.3 Portrait Battle (enemy sprite, bars, 3 log lines, actions as boxed rows, Skill and Item overlays in the menu band) and Training screens; verify frame tests and that a full battle can be played with taps only and number keys only
-- [ ] 3.4 Portrait town screens (Almonry and Thesaurus one list at a time, Forge, Prior incl. Blessings); verify frame tests and a buy, sell and deposit by taps only and number keys only
-- [ ] 3.5 Update SimpleDocs (`app.md`, `terminal.md`); verify against the screens
-- [ ] 3.6 Play on the user's phone (or a 48×47 pseudo-terminal) from Hub through Town and a battle by taps only with the keyboard hidden; record what was checked
-- [ ] 3.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.2 Portrait Title, Intro, Create Hero, Hub, Mission Select and Result; verify a 48×44 frame test for each (header, scene, boxed menu rows, pad)
+- [x] 3.3 Portrait Battle (enemy sprite, bars, 3 log lines, actions as boxed rows, Skill and Item overlays in the menu band) and Training screens; verify frame tests and that a full battle can be played with taps only and number keys only
+- [x] 3.4 Portrait town screens (Almonry and Thesaurus one list at a time, Forge, Prior incl. Blessings); verify frame tests and a buy, sell and deposit by taps only and number keys only
+- [x] 3.5 Update SimpleDocs (`app.md`, `terminal.md`); verify against the screens
+- [x] 3.6 Play on the user's phone (or a 48×47 pseudo-terminal) from Hub through Town and a battle by taps only with the keyboard hidden; record what was checked: `PhonePlay.*` taps through new game (letter keypad), every town screen (number keypad, pad), training and a boss battle at 48×44 with no key presses, checking each screen picks the phone canvas at 48×45; the release binary in a 48×45 pseudo-terminal shows the phone Title (no resize prompt) and a tap on New Game opens the story. Still to do: the user's own phone
+- [x] 3.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 

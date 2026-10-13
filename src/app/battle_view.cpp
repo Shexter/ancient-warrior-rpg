@@ -262,9 +262,9 @@ int BattleView::shake() const {
 void BattleView::drawFighter(Framebuffer& frame, Side side, Art art,
                              const BattleLayout& layout) const {
     const Fighter& self = fighter(side);
-    if (self.gone || !art)
-        return;
     int x = side == Side::Hero ? layout.heroX : layout.enemyX;
+    if (self.gone || !art || x >= frame.width())
+        return;
     const int y = side == Side::Hero ? layout.heroY : layout.enemyY;
     engine::SpriteTint tint;
     if (current_) {
@@ -302,30 +302,34 @@ void BattleView::drawStats(Framebuffer& frame, const BattleLayout& layout) const
     // Name and HP bar for each side on statsRow. Below: the hero's Fervor and the enemy's HP
     // numbers (ui.md's single HP row needs 83 columns), then status tags.
     const int row = layout.statsRow;
+    const int enemyRow = layout.enemyStatsRow < 0 ? row : layout.enemyStatsRow;
+    // On its own row the hero's stats may use the whole width; beside the enemy's, up to them.
+    const int heroRight = enemyRow == row ? layout.enemyStatsX - 1 : frame.width() - 1;
     drawText(frame, 1, row, hero_.name, palette::kAccent, 8);
     drawText(frame, 10, row, "HP", palette::kText);
     drawBar(frame, 13, row, 20, hero_.hp, hero_.maxHp, hpColor(hero_.hp, hero_.maxHp));
     // Up to the enemy's stats: 9 cells in the compact layout, more in the large one.
     drawText(frame, 34, row, std::format("{}/{}", hero_.hp, hero_.maxHp), palette::kText,
-             layout.enemyStatsX - 1 - 34);
+             heroRight - 34);
     drawText(frame, 10, row + 1, "FV", palette::kText); // Fervor
     drawBar(frame, 13, row + 1, 8, hero_.mp, hero_.maxMp, palette::kMp);
     drawText(frame, 22, row + 1, std::format("{}/{}", hero_.mp, hero_.maxMp), palette::kText, 7);
     int x = 30;
     for (const auto& [id, turns] : hero_.statuses)
         x += drawText(frame, x, row + 1, tag(id, turns), palette::kAccent,
-                      std::max(0, layout.enemyStatsX - 1 - x)) +
+                      std::max(0, heroRight - x)) +
              1;
 
     const int ex = layout.enemyStatsX;
-    drawText(frame, ex, row, enemy_.name, palette::kAccent, 10);
-    drawText(frame, ex + 11, row, "HP", palette::kText);
-    drawBar(frame, ex + 14, row, 20, enemy_.hp, enemy_.maxHp, hpColor(enemy_.hp, enemy_.maxHp));
-    x = ex + drawText(frame, ex, row + 1, std::format("{}/{}", enemy_.hp, enemy_.maxHp),
+    drawText(frame, ex, enemyRow, enemy_.name, palette::kAccent, 10);
+    drawText(frame, ex + 11, enemyRow, "HP", palette::kText);
+    drawBar(frame, ex + 14, enemyRow, 20, enemy_.hp, enemy_.maxHp,
+            hpColor(enemy_.hp, enemy_.maxHp));
+    x = ex + drawText(frame, ex, enemyRow + 1, std::format("{}/{}", enemy_.hp, enemy_.maxHp),
                       palette::kText, 15) +
         2;
     for (const auto& [id, turns] : enemy_.statuses)
-        x += drawText(frame, x, row + 1, tag(id, turns), palette::kAccent,
+        x += drawText(frame, x, enemyRow + 1, tag(id, turns), palette::kAccent,
                       std::max(0, frame.width() - 1 - x)) +
              1;
 }

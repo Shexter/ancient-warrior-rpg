@@ -1,4 +1,5 @@
 #include "app/screens/title.hpp"
+#include "app/art.hpp"
 
 #include "app/app.hpp"
 #include "app/screens/hub.hpp"
@@ -95,16 +96,26 @@ Transition TitleScreen::update(std::span<const engine::KeyEvent> keys, double) {
     return Stay{};
 }
 
+engine::Size TitleScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void TitleScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    const bool phone = isPortrait(frame);
     const std::string& title = session_.content.story().title;
-    const int bannerWidth = textWidth(title) + 16;
-    const int bannerX = (80 - bannerWidth) / 2;
-    frame.box(bannerX, 4, bannerWidth, 6, palette::kAccent);
-    frame.box(bannerX + 2, 5, bannerWidth - 4, 4, palette::kBorder);
-    drawCentered(frame, 6, title, palette::kAccent);
-    menu_.draw(frame, 34, 14);
-    drawCentered(frame, 22, "↑↓ select · Enter confirm", palette::kDim);
+    const int bannerWidth = std::min(textWidth(title) + 16, frame.width() - 2);
+    const int bannerX = (frame.width() - bannerWidth) / 2;
+    const int bannerY = phone ? 9 : 4;
+    frame.box(bannerX, bannerY, bannerWidth, 6, palette::kAccent);
+    frame.box(bannerX + 2, bannerY + 1, bannerWidth - 4, 4, palette::kBorder);
+    drawCentered(frame, bannerY + 2, title, palette::kAccent);
+    if (phone) {
+        drawButtonMenu(frame, menu_);
+    } else {
+        menu_.draw(frame, 34, 14);
+        drawCentered(frame, 22, "↑↓ select · Enter confirm", palette::kDim);
+    }
     if (message_)
         message_->draw(frame);
     if (confirm_)

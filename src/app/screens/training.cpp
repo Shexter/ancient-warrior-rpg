@@ -58,7 +58,8 @@ Transition TrainingSetupScreen::update(std::span<const engine::KeyEvent> keys, d
                 return Pop{};
             continue;
         }
-        const InputResult result = caveInput_.handle(key);
+        const InputResult result =
+            caveInput_.handle(portrait_ ? keypadKey(Keypad::Digits, key) : key);
         if (result == InputResult::Cancelled)
             return Pop{};
         if (result != InputResult::Submitted)
@@ -77,8 +78,28 @@ Transition TrainingSetupScreen::update(std::span<const engine::KeyEvent> keys, d
     return Stay{};
 }
 
+engine::Size TrainingSetupScreen::canvasSize(engine::Size terminal) const {
+    return portraitOr(session_, terminal, engine::kCompactCanvas);
+}
+
 void TrainingSetupScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
+    portrait_ = isPortrait(frame);
+    if (portrait_) {
+        drawHeroHeader(frame, "THE CATACOMBS", session_.state->hero);
+        // Two columns of fifteen: "Cave 12  ≈85%".
+        for (std::size_t i = 0; i < odds_.size(); ++i) {
+            const int x = 2 + static_cast<int>(i / 15) * 24, y = 6 + static_cast<int>(i % 15);
+            drawText(frame, x, y, std::format("Cave {:>2}", i + 1), palette::kText);
+            drawText(frame, x + 9, y, std::format("≈{}%", odds_[i]), oddsColor(odds_[i]));
+        }
+        drawText(frame, 1, 21, "Cave:", palette::kText);
+        caveInput_.draw(frame, 7, 21);
+        drawKeypad(frame, Keypad::Digits);
+        if (message_)
+            message_->draw(frame);
+        return;
+    }
     drawStatusPanel(frame, session_.state->hero, session_.content);
     drawText(frame, 2, 5, "THE CATACOMBS", palette::kAccent);
     drawText(frame, 40, 5, "Your odds of winning a round", palette::kDim);
@@ -217,10 +238,51 @@ std::string TrainingPlaybackScreen::summary() const {
 }
 
 engine::Size TrainingPlaybackScreen::canvasSize(engine::Size terminal) const {
+    if (portraitOr(session_, terminal, engine::kCompactCanvas) == engine::kPortraitCanvas)
+        return engine::kPortraitCanvas;
     if (totals_)
         return engine::kCompactCanvas;
     return artCanvas(session_, terminal,
                      {std::format("hero_{}.sprite", session_.state->hero.pathId), "monster.sprite"});
+}
+
+void TrainingPlaybackScreen::drawPlaybackPortrait(engine::Framebuffer& frame) const {
+    const game::TrainingRound& r = rounds_.back();
+    const game::Hero& hero = session_.state->hero;
+    const HeaderStat stats[] = {
+        {"STREAK", std::to_string(training_.streak())},
+        {"POT", std::to_string(training_.pot()), palette::kGold},
+        {"NEXT", roundDone_ && !training_.over() ? std::format("≈{}%", nextOdds_) : "…",
+         oddsColor(nextOdds_)},
+    };
+    drawHeader(frame, std::format("THE CATACOMBS · Level {}", r.caveLevel), stats);
+
+    // Hero (24 wide) left, monster (16 wide) right, bars below each.
+    const Art heroArt = compactArt(session_, std::format("hero_{}.sprite", hero.pathId));
+    heroArt.draw(frame, 1, 7);
+    compactArt(session_, "monster.sprite").draw(frame, 30, 9);
+    drawText(frame, 1, 19, upper(hero.name), palette::kAccent);
+    drawBar(frame, 1, 20, 20, heroHp_, hero.maxHp, hpColor(heroHp_, hero.maxHp));
+    drawText(frame, 1, 21, std::format("{}/{}", heroHp_, hero.maxHp), palette::kText);
+    drawText(frame, 28, 19, r.monsterName, palette::kText);
+    drawBar(frame, 28, 20, 18, monsterHp_, r.monsterMaxHp, hpColor(monsterHp_, r.monsterMaxHp));
+    drawText(frame, 28, 21, std::format("{}/{}", monsterHp_, r.monsterMaxHp), palette::kText);
+
+    drawPanel(frame, 1, portrait::kMenuTop, frame.width() - 2, portrait::kMenuRows + 2);
+    if (!roundDone_) {
+        drawText(frame, 3, portrait::kMenuTop + 1, "Fighting… ● finishes the round", palette::kDim);
+        return;
+    }
+    const auto lines = wordWrap(summary(), frame.width() - 6);
+    for (std::size_t i = 0; i < lines.size() && i < 3; ++i)
+        drawText(frame, 3, portrait::kMenuTop + 1 + static_cast<int>(i), lines[i], palette::kText);
+    if (training_.over()) {
+        drawText(frame, 3, portrait::kMenuTop + 5, "● see the results", palette::kDim);
+        return;
+    }
+    choice_.drawAs(Menu::Layout::Vertical, frame, 3, portrait::kMenuTop + 5, true,
+                   frame.width() - 6);
+    drawText(frame, 3, portrait::kMenuTop + 8, "Leaving banks the pot", palette::kDim);
 }
 
 void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
@@ -275,8 +337,15 @@ void TrainingPlaybackScreen::drawPlayback(engine::Framebuffer& frame) const {
 
 void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
     const game::Hero& hero = session_.state->hero;
-    drawStatusPanel(frame, hero, session_.content);
-    drawText(frame, 2, 5, "CATACOMB RESULTS", palette::kAccent);
+    const bool phone = isPortrait(frame);
+    if (phone) {
+        drawHeroHeader(frame, "CATACOMB RESULTS", hero);
+    } else {
+        drawStatusPanel(frame, hero, session_.content);
+        drawText(frame, 2, 5, "CATACOMB RESULTS", palette::kAccent);
+    }
+    // Compact lines start at column 4 and run 74 wide; phone ones use the full 48.
+    const int x = phone ? 1 : 4, width = frame.width() - x - 1;
 
     int won = 0;
     std::vector<std::string> drops, lost;
@@ -286,39 +355,42 @@ void TrainingPlaybackScreen::drawTotals(engine::Framebuffer& frame) const {
             (r.dropLostBagFull ? lost : drops).push_back(session_.content.item(*r.drop).name);
     }
     const std::int64_t exp = hero.exp - before_.exp;
-    drawText(frame, 4, 7, std::format("Rounds won    {} of {}", won, rounds_.size()),
+    drawText(frame, x, 7, std::format("Rounds won    {} of {}", won, rounds_.size()),
              palette::kText);
-    drawText(frame, 4, 8, "Gold", palette::kText);
-    drawText(frame, 18, 8, std::format("+{}", hero.gold - before_.gold), palette::kGold);
-    drawText(frame, 4, 9, std::format("EXP           {}{}", exp >= 0 ? "+" : "", exp),
+    drawText(frame, x, 8, "Gold", palette::kText);
+    drawText(frame, x + 14, 8, std::format("+{}", hero.gold - before_.gold), palette::kGold);
+    drawText(frame, x, 9, std::format("EXP           {}{}", exp >= 0 ? "+" : "", exp),
              palette::kText);
     const int levels = hero.level - before_.level;
-    drawText(frame, 4, 10,
+    drawText(frame, x, 10,
              levels > 0 ? std::format("Levels gained {} · {} blessing{} at the Prior", levels,
                                       levels, levels == 1 ? "" : "s")
                         : "Levels gained 0",
              palette::kText);
-    drawText(frame, 4, 11, std::format("Drops         {}", countedList(drops)), palette::kText, 74);
+    drawText(frame, x, 11, std::format("Drops         {}", countedList(drops)), palette::kText, width);
     if (!lost.empty())
-        drawText(frame, 4, 12, std::format("Lost (bag full) {}", countedList(lost)), palette::kDmg,
-                 74);
+        drawText(frame, x, 12, std::format("Lost (bag full) {}", countedList(lost)), palette::kDmg,
+                 width);
     if (rounds_.back().outcome == game::Outcome::Defeat) {
-        drawText(frame, 4, 14, std::format("{} has been injured badly", upper(hero.name)),
+        drawText(frame, x, 14, std::format("{} has been injured badly", upper(hero.name)),
                  palette::kDmg);
         if (lostPot_ > 0)
-            drawText(frame, 4, 15, std::format("The {} gold pot is lost", lostPot_),
+            drawText(frame, x, 15, std::format("The {} gold pot is lost", lostPot_),
                      palette::kDmg);
     } else if (banked_ > 0) {
-        drawText(frame, 4, 14, std::format("Pot banked    +{} gold (included above)", banked_),
+        drawText(frame, x, 14, std::format("Pot banked    +{} gold (included above)", banked_),
                  palette::kGold);
     }
-    drawCentered(frame, 22, "Enter return to the Hub", palette::kDim);
+    drawCentered(frame, phone ? portrait::kPadTop - 2 : 22,
+                 phone ? "● return to the Hub" : "Enter return to the Hub", palette::kDim);
 }
 
 void TrainingPlaybackScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
     if (totals_)
         drawTotals(frame);
+    else if (isPortrait(frame))
+        drawPlaybackPortrait(frame);
     else
         drawPlayback(frame);
 }

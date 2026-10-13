@@ -1,4 +1,5 @@
 #include "app/screens/town.hpp"
+#include "app/art.hpp"
 
 #include <format>
 #include <string>
@@ -36,7 +37,7 @@ Transition MerchantScreen::onKey(const engine::KeyEvent& key) {
     }
     if (key.key == Key::Escape)
         return Pop{};
-    if (key.key == Key::Tab) {
+    if (key.key == Key::Tab || key.key == Key::Left || key.key == Key::Right) {
         bagFocused_ = !bagFocused_;
         return Stay{};
     }
@@ -129,6 +130,10 @@ void MerchantScreen::finishAuction() {
 }
 
 void MerchantScreen::drawBody(engine::Framebuffer& frame) const {
+    if (isPortrait(frame)) {
+        drawBodyPortrait(frame);
+        return;
+    }
     drawText(frame, 1, 6, "For sale", bagFocused_ ? palette::kText : palette::kAccent);
     shop_.draw(frame, 1, 7, !bagFocused_);
     for (std::size_t i = 0; i < forSale_.size(); ++i) {
@@ -156,8 +161,41 @@ void MerchantScreen::drawBody(engine::Framebuffer& frame) const {
                  std::format("Bid accepted at {}…", auction_->bids[i]), palette::kText);
 }
 
+// One list at a time (◀ ▶ switch), the highlighted item's description above it, prices in the
+// labels' notes column.
+void MerchantScreen::drawBodyPortrait(engine::Framebuffer& frame) const {
+    drawText(frame, 2, 7, bagFocused_ ? "◀ Your bag ▶" : "◀ For sale ▶", palette::kAccent);
+    drawText(frame, 2, 8, "◀ ▶ switch list", palette::kDim);
+    const game::ItemDef* highlighted = nullptr;
+    if (!bagFocused_ && !forSale_.empty())
+        highlighted = forSale_[static_cast<std::size_t>(shop_.selected())];
+    else if (const auto id = bagFocused_ ? slotItem(hero().bag, bag_.selected()) : std::nullopt)
+        highlighted = &content().item(*id);
+    if (highlighted) {
+        drawText(frame, 2, 11, highlighted->name, palette::kText, 44);
+        const auto lines = wordWrap(highlighted->description, 44);
+        for (std::size_t i = 0; i < lines.size() && i < 6; ++i)
+            drawText(frame, 2, 12 + static_cast<int>(i), lines[i], palette::kDim);
+    }
+    drawButtonMenu(frame, bagFocused_ ? bag_ : shop_);
+    if (!bagFocused_)
+        for (std::size_t i = 0; i < forSale_.size() && i < portrait::kMenuRows; ++i) {
+            const std::string price = std::to_string(forSale_[i]->price);
+            drawText(frame, frame.width() - 4 - textWidth(price),
+                     portrait::kMenuTop + 1 + static_cast<int>(i), price, palette::kGold);
+        }
+    if (!auction_)
+        return;
+    const int rows = static_cast<int>(auction_->bids.size());
+    drawPanel(frame, 2, 7, frame.width() - 4, rows + 4);
+    drawText(frame, 4, 8, std::format("Auction: {}", auction_->itemName), palette::kAccent, 40);
+    for (std::size_t i = 0; i < auction_->shown; ++i)
+        drawText(frame, 4, 10 + static_cast<int>(i),
+                 std::format("Bid accepted at {}…", auction_->bids[i]), palette::kText);
+}
+
 std::string_view MerchantScreen::hint() const {
-    return auction_ ? "Enter skip" : "Tab switch list · Enter choose · Esc back";
+    return auction_ ? "Enter skip" : "Tab/←→ switch list · Enter choose · Esc back";
 }
 
 } // namespace heroes::app

@@ -16,16 +16,21 @@
 namespace heroes::app {
 
 // Where a battle is drawn. Columns of the hero's stats are fixed; the enemy's start at
-// enemyStatsX. The stats take statsRow and the row below; the log shows the newest logRows lines
-// from logRow.
+// enemyStatsX on enemyStatsRow (-1: the hero's row). Each side's stats take its row and the
+// one below; the log shows the newest logRows lines from logRow. A fighter whose x is off the
+// frame isn't drawn (the phone layout shows only the enemy).
 struct BattleLayout {
     int heroX, heroY, enemyX, enemyY;
     int bannerRow;
     int statsRow, enemyStatsX;
     int logRow, logRows;
+    int enemyStatsRow = -1;
 };
 inline constexpr BattleLayout kCompactBattle{6, 4, 44, 2, 9, 16, 44, 18, 4}; // ui.md, 80x24
 inline constexpr BattleLayout kLargeBattle{6, 3, 60, 2, 14, 29, 62, 32, 6};  // 120x40
+// 48x44: enemy stats on rows 1-2, the hero's on 3-4, the enemy sprite centered below, the log
+// above the actions.
+inline constexpr BattleLayout kPortraitBattle{1000, 0, 8, 5, 6, 3, 1, 19, 3, 1};
 
 // Plays a Battle's events as timed animations (ui.md "Event animations"): one at a time, in
 // order, each applying its HP/status change and log line when it starts. Draws the arena, the

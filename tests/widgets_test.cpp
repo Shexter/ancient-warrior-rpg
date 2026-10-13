@@ -57,7 +57,11 @@ TEST(Menu, HorizontalUsesLeftRightAndAd) {
     EXPECT_EQ(menu.selected(), 2);
     menu.handle(ch('a'));
     EXPECT_EQ(menu.selected(), 1);
-    menu.handle({Key::Down}); // vertical keys do nothing here
+    menu.handle({Key::Down}); // ↑↓ work too: the phone layout stacks these rows
+    EXPECT_EQ(menu.selected(), 2);
+    menu.handle({Key::Up});
+    EXPECT_EQ(menu.selected(), 1);
+    menu.handle(ch('s')); // but w/s stay vertical-only
     EXPECT_EQ(menu.selected(), 1);
 
     Framebuffer frame(80, 24);

@@ -16,12 +16,15 @@ class TrainingSetupScreen final : public Screen {
     explicit TrainingSetupScreen(Session& session);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
     Session& session_;
     NumberInput caveInput_{1, game::TrainingSession::kMaxCaveLevel};
     std::vector<int> odds_; // per cave, computed once: the state can't change on this screen
     std::optional<MessageBox> message_; // a refused session
+    mutable bool portrait_ = false;      // last drawn on the phone layout: taps hit the keypad
 };
 
 // Plays one round at a time at 10 events per second (Enter finishes the round). After a win or a
@@ -43,6 +46,7 @@ class TrainingPlaybackScreen final : public Screen {
     void finishRound();
     void leave();
     void drawPlayback(engine::Framebuffer& frame) const;
+    void drawPlaybackPortrait(engine::Framebuffer& frame) const;
     void drawTotals(engine::Framebuffer& frame) const;
     std::string summary() const;
 

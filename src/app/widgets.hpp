@@ -79,6 +79,16 @@ void drawHeader(engine::Framebuffer& frame, std::string_view title,
                 std::span<const HeaderStat> stats);
 // The screen's menu in a box filling the menu band (at most kMenuRows items show).
 void drawButtonMenu(engine::Framebuffer& frame, const Menu& menu);
+// A tappable keypad in the phone layout's menu band, so number and name inputs never need the
+// phone's keyboard. Its keys sit at fixed places, so a tap maps to a key without drawing state.
+enum class Keypad { Digits, Letters };
+void drawKeypad(engine::Framebuffer& frame, Keypad pad);
+// The key a tap on the keypad stands for: a digit or letter, Backspace (⌫), Enter (OK), or a
+// space (␣, letters only). Other taps and keys come back unchanged.
+engine::KeyEvent keypadKey(Keypad pad, const engine::KeyEvent& key);
+
+// The phone version of the status panel: `title`, then LEVEL / HP / FERVOR / GOLD and an HP bar.
+void drawHeroHeader(engine::Framebuffer& frame, std::string_view title, const game::Hero& hero);
 // The ✕ (Back) on the header row and the ▲ ◀ ● ▶ ▼ pad. Drawn by the App.
 void drawControls(engine::Framebuffer& frame);
 // The key a tap on the ✕ or a pad button stands for (Esc, an arrow, or Enter), if it hit one.
@@ -109,7 +119,13 @@ class Menu {
     // An unfocused menu (the other list of a two-list screen) hides its selection. Rows are
     // clipped to `maxWidth` cells from `x`.
     void draw(engine::Framebuffer& frame, int x, int y, bool focused = true,
-              int maxWidth = INT_MAX) const;
+              int maxWidth = INT_MAX) const {
+        drawAs(layout_, frame, x, y, focused, maxWidth);
+    }
+    // Draws as if the menu had `layout` (the phone layout stacks every menu's rows). Vertical
+    // rows can be windowed: `maxRows` rows from item `first`; only those are tappable.
+    void drawAs(Layout layout, engine::Framebuffer& frame, int x, int y, bool focused = true,
+                int maxWidth = INT_MAX, int first = 0, int maxRows = INT_MAX) const;
     int selected() const { return selected_; }
     int size() const { return static_cast<int>(items_.size()); }
     // Replaces the items (e.g. after the game state changed), keeping the selection where it is
@@ -148,7 +164,8 @@ class TextInput {
     double clock_ = 0;
 };
 
-// Digits only. Enter submits only a value in [min, max]; otherwise it shows
+// Digits only, or ↑↓ for ±1 and ←→ for ±10 (clamped to the range; how a phone sets a number
+// with the pad). Enter submits only a value in [min, max]; otherwise it shows
 // "Enter a number from MIN to MAX" in the damage color on the row below.
 class NumberInput {
   public:
@@ -200,9 +217,11 @@ class Typewriter {
     void tick(double dtSeconds);
     bool handle(const engine::KeyEvent& key); // true when the reader is done
     bool revealed() const { return shown_ >= static_cast<double>(total_); }
-    void draw(engine::Framebuffer& frame, int x, int y, engine::Rgb fg) const;
+    // `width` re-wraps the text narrower than it was built for (the phone layout); 0 keeps it.
+    void draw(engine::Framebuffer& frame, int x, int y, engine::Rgb fg, int width = 0) const;
 
   private:
+    std::vector<std::string> paragraphs_;
     std::vector<std::string> rows_;
     std::size_t total_ = 0;
     double shown_ = 0;

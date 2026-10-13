@@ -38,6 +38,9 @@ class Modal {
     void draw(engine::Framebuffer& frame) const;
 
   private:
+    void drawPortrait(engine::Framebuffer& frame) const;
+    mutable bool portrait_ = false; // last drawn on the phone layout: taps hit the keypad
+
     struct Message {
         MessageBox box;
         Then then;
@@ -71,6 +74,8 @@ class TownScreen : public Screen {
   public:
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) final;
     void draw(engine::Framebuffer& frame) const final;
+    // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
+    engine::Size canvasSize(engine::Size terminal) const final;
 
   protected:
     TownScreen(Session& session, std::string title);
@@ -131,6 +136,7 @@ class MerchantScreen final : public TownScreen {
     void onTick(double dtSeconds) override;
     void refresh() override;
     void drawBody(engine::Framebuffer& frame) const override;
+    void drawBodyPortrait(engine::Framebuffer& frame) const;
     std::string_view hint() const override;
     void chooseBagItem(const std::string& id);
     void startAuction(const std::string& id);
@@ -186,6 +192,7 @@ class GuildmasterScreen final : public TownScreen {
     std::string_view hint() const override;
     void restoration();
     void blessings();
+    void drawBodyPortrait(engine::Framebuffer& frame) const;
     void charisma(game::CharismaStat stat, std::string statName);
 
     bool learning_ = false; // the Learn Skill list is showing

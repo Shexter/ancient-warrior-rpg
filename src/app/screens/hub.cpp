@@ -5,7 +5,6 @@
 #include "app/screens/mission.hpp"
 #include "app/screens/town.hpp"
 #include "app/screens/training.hpp"
-#include "game/battle.hpp"
 #include "game/hero.hpp"
 #include "game/save.hpp"
 
@@ -121,17 +120,10 @@ engine::Size HubScreen::canvasSize(engine::Size terminal) const {
 
 void HubScreen::drawPortrait(engine::Framebuffer& frame) const {
     const game::Hero& hero = session_.state->hero;
-    const game::Combatant c = game::heroCombatant(hero, session_.content);
-    const HeaderStat stats[] = {
-        {"LEVEL", std::to_string(hero.level)},
-        {"HP", std::format("{}/{}", hero.hp, c.maxHp), hpColor(hero.hp, c.maxHp)},
-        {"FERVOR", std::format("{}/{}", hero.mp, c.maxMp), palette::kMp},
-        {"GOLD", std::to_string(hero.gold), palette::kGold},
-    };
-    drawHeader(frame,
-               std::format("{} · {}", upper(hero.name), session_.content.path(hero.pathId).name),
-               stats);
-    drawBar(frame, 1, 4, 46, hero.hp, c.maxHp, hpColor(hero.hp, c.maxHp));
+    drawHeroHeader(frame,
+                   std::format("{} · {}", upper(hero.name),
+                               session_.content.path(hero.pathId).name),
+                   hero);
     const Art art = compactArt(session_, std::format("hero_{}.sprite", hero.pathId));
     art.draw(frame, (frame.width() - art.width()) / 2, portrait::kSceneTop + 1);
     drawText(frame, 1, portrait::kMenuTop - 1, session_.lastMessage, palette::kText,

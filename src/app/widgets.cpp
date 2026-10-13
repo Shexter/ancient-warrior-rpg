@@ -196,10 +196,11 @@ std::optional<int> Menu::handle(const KeyEvent& key) {
     }
     const char c = static_cast<char>(std::tolower(static_cast<unsigned char>(key.ch)));
     const bool isChar = key.key == Key::Char;
-    if ((vertical && (key.key == Key::Up || (isChar && c == 'w'))) ||
+    // A horizontal menu also takes ↑↓, since the phone layout stacks its rows.
+    if (key.key == Key::Up || (vertical && isChar && c == 'w') ||
         (!vertical && (key.key == Key::Left || (isChar && c == 'a')))) {
         move(-1);
-    } else if ((vertical && (key.key == Key::Down || (isChar && c == 's'))) ||
+    } else if (key.key == Key::Down || (vertical && isChar && c == 's') ||
                (!vertical && (key.key == Key::Right || (isChar && c == 'd')))) {
         move(1);
     } else if (key.key == Key::Enter) {
@@ -216,7 +217,8 @@ std::optional<int> Menu::handle(const KeyEvent& key) {
     return std::nullopt;
 }
 
-void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) const {
+void Menu::drawAs(Layout layout, Framebuffer& frame, int x, int y, bool focused, int maxWidth,
+                  int first, int maxRows) const {
     std::size_t labelWidth = 0;
     for (const Item& item : items_)
         labelWidth = std::max(labelWidth, item.label.size());
@@ -226,21 +228,25 @@ void Menu::draw(Framebuffer& frame, int x, int y, bool focused, int maxWidth) co
     };
     int cursor = x;
     hits_.clear();
-    for (std::size_t i = 0; i < items_.size(); ++i) {
+    const bool vertical = layout == Layout::Vertical;
+    const auto begin = static_cast<std::size_t>(vertical ? std::max(0, first) : 0);
+    for (std::size_t i = begin; i < items_.size(); ++i) {
+        if (vertical && static_cast<long long>(i - begin) >= maxRows)
+            break;
         const Item& item = items_[i];
         const bool chosen = focused && static_cast<int>(i) == selected_;
         const Rgb color = !item.enabled ? palette::kDim
                           : chosen      ? palette::kAccent
                                         : palette::kText;
-        const int row = layout_ == Layout::Vertical ? y + static_cast<int>(i) : y;
-        const int col = layout_ == Layout::Vertical ? x : cursor;
+        const int row = vertical ? y + static_cast<int>(i - begin) : y;
+        const int col = layout == Layout::Vertical ? x : cursor;
         drawText(frame, col, row, chosen ? "▶ " : "  ", palette::kAccent, room(col));
         drawText(frame, col + 2, row, item.label, color, room(col + 2));
         const int noteX = col + 4 + static_cast<int>(labelWidth);
         if (!item.note.empty() && room(noteX) > 0)
             drawText(frame, noteX, row, item.note, palette::kDim, room(noteX));
         // A vertical row is tappable across its whole width; a horizontal item up to its label.
-        const int end = layout_ == Layout::Vertical
+        const int end = layout == Layout::Vertical
                             ? (maxWidth == INT_MAX ? frame.width() : x + maxWidth)
                             : col + 2 + textWidth(item.label);
         hits_.push_back({col, end, row, static_cast<int>(i)});
@@ -282,9 +288,88 @@ void drawHeader(Framebuffer& frame, std::string_view title, std::span<const Head
         put(frame, x, 5, U'─', palette::kBorder);
 }
 
+namespace {
+
+struct PadKey {
+    int x, y, w;
+    std::string_view label;
+    engine::KeyEvent key;
+};
+
+// Digits: a phone-style 3x4 grid of 14-wide keys. Letters: four rows of eleven 4-wide keys.
+std::vector<PadKey> padKeys(Keypad pad) {
+    std::vector<PadKey> keys;
+    const int top = portrait::kMenuTop + 1;
+    if (pad == Keypad::Digits) {
+        static constexpr std::string_view kLabels[] = {"1", "2", "3", "4", "5", "6",
+                                                       "7", "8", "9", "⌫", "0", "OK"};
+        for (int i = 0; i < 12; ++i) {
+            const std::string_view label = kLabels[i];
+            const KeyEvent key = label == "⌫"   ? KeyEvent{Key::Backspace}
+                                 : label == "OK" ? KeyEvent{Key::Enter}
+                                                 : KeyEvent{Key::Char, label[0]};
+            keys.push_back({2 + (i % 3) * 15, top + (i / 3) * 2, 14, label, key});
+        }
+        return keys;
+    }
+    static constexpr std::string_view kLabels[] = {
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+        "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "1", "2", "3", "4",
+        "5", "6", "7", "8", "9", "0", "␣", "⌫", "OK"};
+    for (int i = 0; i < static_cast<int>(std::size(kLabels)); ++i) {
+        const std::string_view label = kLabels[i];
+        const KeyEvent key = label == "⌫"   ? KeyEvent{Key::Backspace}
+                             : label == "OK" ? KeyEvent{Key::Enter}
+                             : label == "␣"  ? KeyEvent{Key::Char, ' '}
+                                             : KeyEvent{Key::Char, label[0]};
+        keys.push_back({2 + (i % 11) * 4, top + (i / 11) * 2, label == "OK" ? 8 : 4, label, key});
+    }
+    return keys;
+}
+
+} // namespace
+
+void drawKeypad(Framebuffer& frame, Keypad pad) {
+    drawPanel(frame, 1, portrait::kMenuTop, frame.width() - 2, portrait::kMenuRows + 2);
+    for (const PadKey& k : padKeys(pad)) {
+        const bool action = k.key.key != Key::Char;
+        drawText(frame, k.x + (k.w - textWidth(k.label)) / 2, k.y, k.label,
+                 action ? palette::kAccent : palette::kText);
+    }
+}
+
+KeyEvent keypadKey(Keypad pad, const KeyEvent& key) {
+    if (key.key != Key::Click)
+        return key;
+    for (const PadKey& k : padKeys(pad))
+        if (key.y >= k.y && key.y <= k.y + 1 && key.x >= k.x && key.x < k.x + k.w)
+            return k.key;
+    return key;
+}
+
+void drawHeroHeader(Framebuffer& frame, std::string_view title, const game::Hero& hero) {
+    const HeaderStat stats[] = {
+        {"LEVEL", std::to_string(hero.level)},
+        {"HP", std::format("{}/{}", hero.hp, hero.maxHp), hpColor(hero.hp, hero.maxHp)},
+        {"FERVOR", std::format("{}/{}", hero.mp, hero.maxMp), palette::kMp},
+        {"GOLD", std::to_string(hero.gold), palette::kGold},
+    };
+    drawHeader(frame, title, stats);
+    drawBar(frame, 1, 4, frame.width() - 2, hero.hp, hero.maxHp, hpColor(hero.hp, hero.maxHp));
+}
+
 void drawButtonMenu(Framebuffer& frame, const Menu& menu) {
     drawPanel(frame, 1, portrait::kMenuTop, frame.width() - 2, portrait::kMenuRows + 2);
-    menu.draw(frame, 3, portrait::kMenuTop + 1, true, frame.width() - 6);
+    // Longer menus scroll so the selected row stays in view, with ▲/▼ on the border when more
+    // rows are above or below.
+    const int rows = portrait::kMenuRows;
+    const int first = std::clamp(menu.selected() - rows + 1, 0, std::max(0, menu.size() - rows));
+    menu.drawAs(Menu::Layout::Vertical, frame, 3, portrait::kMenuTop + 1, true, frame.width() - 6,
+                first, rows);
+    if (first > 0)
+        put(frame, frame.width() - 4, portrait::kMenuTop, U'▲', palette::kDim);
+    if (first + rows < menu.size())
+        put(frame, frame.width() - 4, portrait::kMenuTop + rows + 1, U'▼', palette::kDim);
 }
 
 void drawControls(Framebuffer& frame) {
@@ -349,7 +434,16 @@ InputResult NumberInput::handle(const KeyEvent& key) {
         showError_ = true;
         return InputResult::Editing;
     }
-    if (key.key == Key::Backspace && !digits_.empty()) {
+    const int step = key.key == Key::Up      ? 1
+                     : key.key == Key::Down  ? -1
+                     : key.key == Key::Right ? 10
+                     : key.key == Key::Left  ? -10
+                                             : 0;
+    if (step != 0) {
+        const std::int64_t from = value().value_or(step > 0 ? min_ - step : min_);
+        digits_ = std::to_string(std::clamp(from + step, min_, max_));
+        showError_ = false;
+    } else if (key.key == Key::Backspace && !digits_.empty()) {
         digits_.pop_back();
         showError_ = false;
     } else if (key.key == Key::Char && key.ch >= '0' && key.ch <= '9' &&
@@ -405,7 +499,8 @@ void ConfirmBox::draw(Framebuffer& frame) const {
 
 // ---- Typewriter --------------------------------------------------------------------------
 
-Typewriter::Typewriter(const std::vector<std::string>& paragraphs, int width) {
+Typewriter::Typewriter(const std::vector<std::string>& paragraphs, int width)
+    : paragraphs_(paragraphs) {
     for (const std::string& paragraph : paragraphs)
         for (std::string& row : wordWrap(paragraph, width)) {
             total_ += row.size();
@@ -427,11 +522,18 @@ bool Typewriter::handle(const KeyEvent& key) {
     return false;
 }
 
-void Typewriter::draw(Framebuffer& frame, int x, int y, Rgb fg) const {
+void Typewriter::draw(Framebuffer& frame, int x, int y, Rgb fg, int width) const {
+    std::vector<std::string> narrow;
+    if (width > 0)
+        for (const std::string& paragraph : paragraphs_)
+            for (std::string& row : wordWrap(paragraph, width))
+                narrow.push_back(std::move(row));
+    // Narrower rows drop more break spaces, so they never hold more characters than `total_`.
+    const std::vector<std::string>& rows = width > 0 ? narrow : rows_;
     auto left = static_cast<std::size_t>(shown_);
-    for (std::size_t i = 0; i < rows_.size() && left > 0; ++i) {
-        const std::size_t n = std::min(left, rows_[i].size());
-        drawText(frame, x, y + static_cast<int>(i), std::string_view(rows_[i]).substr(0, n), fg);
+    for (std::size_t i = 0; i < rows.size() && left > 0; ++i) {
+        const std::size_t n = std::min(left, rows[i].size());
+        drawText(frame, x, y + static_cast<int>(i), std::string_view(rows[i]).substr(0, n), fg);
         left -= n;
     }
 }
