@@ -21,9 +21,9 @@ TEST(Content, FighterStats) {
 TEST(Content, IronSwordAtk) { EXPECT_EQ(shippedContent().item("iron_sword").bonus.atk, 50); }
 
 TEST(Content, ItemCountAndOrder) {
-    ASSERT_EQ(shippedContent().items().size(), 20u);
+    ASSERT_EQ(shippedContent().items().size(), 21u);
     EXPECT_EQ(shippedContent().items().front().id, "iron_sword");
-    EXPECT_EQ(shippedContent().items().back().id, "eternal_youth");
+    EXPECT_EQ(shippedContent().items().back().id, "ember_of_wrath");
 }
 
 TEST(Content, DropCandidatesNumberSixteen) {

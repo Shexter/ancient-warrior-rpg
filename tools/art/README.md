@@ -25,6 +25,8 @@ Every prompt ends with this style suffix: *Retro 16-bit video game character spr
 | `medusa` | 32x28 | 7 | magenta | Side view of Medusa the gorgon facing left: upper body of a woman with green-teal scaly skin and a head of writhing green snakes for hair, and below the waist one long coiled serpent tail (no legs). Menacing pose, clawed hands raised. |
 | `monster` | 16x16 | 42 | green | Side view of a wild brown beast facing left, like a snarling boar-wolf on four legs, brown fur, small tusks. |
 | `avaritia` | 32x28 | 7 | green | Side view of Avaritia, the demon of greed, facing left: a gaunt hunched figure in a heavy crimson and gold robe, grey skin, long clawed fingers clutching a bulging sack of gold coins, a chain of coins around its neck, a crown of bent coins, glowing yellow eyes, menacing pose. |
+| `gula` | 32x28 | 7 | green | Side view of Gula, the demon of gluttony, facing left: a huge bloated pale-purple demon with a vast round belly, a gaping fanged maw dripping drool, tiny horns, stubby clawed arms holding a gnawed bone and a goblet, torn banquet tablecloth draped as a robe, glowing orange eyes, menacing pose. |
+| `ira` | 32x28 | 7 | green | Side view of Ira, the demon of wrath, facing left: a muscular red-skinned horned demon wreathed in orange flames, cracked charred skin glowing with embers, a burning great axe raised overhead, snarling face, glowing white eyes, furious attacking pose. |
 
 One exception: the fighter's suffix put the background before the last three phrases ("... margin, solid pure green background (#00FF00), no shadow, no ground, no text."). Same model, seed and exact prompt reproduce the image on the same Draw Things version.
 
@@ -35,7 +37,7 @@ The same Draw Things images as the table above (same prompts and seeds, regenera
 | sprite | PNG size | half-block cells | glyph cells |
 |---|---|---|---|
 | `hero_fighter`, `hero_hunter`, `hero_rogue` | 48x48 | 48x24 | 48x24 |
-| `medusa`, `avaritia` | 56x52 | 56x26 | 56x26 |
+| `medusa`, `avaritia`, `gula`, `ira` | 56x52 | 56x26 | 56x26 |
 | `monster` | 32x32 | 32x16 | 32x16 |
 
 ```

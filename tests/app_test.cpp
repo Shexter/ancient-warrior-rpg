@@ -217,15 +217,15 @@ TEST(LargeSprites, ShippedArtLoadsInBothLooks) {
     const auto large = loadLargeSprites(game::shippedContent(),
                                         fs::path(HEROES_SOURCE_DIR) / "assets" / "sprites" / "large");
     ASSERT_TRUE(large.has_value()) << large.error();
-    EXPECT_EQ(large->blocks.size(), 6u);
-    EXPECT_EQ(large->glyphs.size(), 6u);
+    EXPECT_EQ(large->blocks.size(), 8u);
+    EXPECT_EQ(large->glyphs.size(), 8u);
     for (const char* hero : {"hero_fighter.sprite", "hero_hunter.sprite", "hero_rogue.sprite"}) {
         EXPECT_EQ(large->blocks.at(hero).width, 48) << hero;
         EXPECT_EQ(large->blocks.at(hero).height, 48) << hero;
         EXPECT_EQ(large->glyphs.at(hero).width, 48) << hero; // the same cell footprint
         EXPECT_EQ(large->glyphs.at(hero).height, 24) << hero;
     }
-    for (const char* boss : {"medusa.sprite", "avaritia.sprite"}) {
+    for (const char* boss : {"medusa.sprite", "avaritia.sprite", "gula.sprite", "ira.sprite"}) {
         EXPECT_EQ(large->blocks.at(boss).width, 56) << boss;
         EXPECT_EQ(large->glyphs.at(boss).height, 26) << boss;
     }

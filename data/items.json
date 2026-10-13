@@ -224,6 +224,15 @@
       "consumable": {
         "fullRestore": true
       }
+    },
+    {
+      "id": "ember_of_wrath",
+      "name": "Ember of Wrath",
+      "description": "Favilla Irae. A coal that never cools.",
+      "kind": "skill_key",
+      "price": 0,
+      "auctionValue": 4000,
+      "dropRate": 0
     }
   ]
 }

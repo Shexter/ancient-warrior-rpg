@@ -154,7 +154,7 @@ TEST(Sprites, MissingSpriteIsReportedByName) {
     const auto bank = loadSprites(game::shippedContent(), "/no/such/dir");
     ASSERT_FALSE(bank.has_value());
     EXPECT_NE(bank.error().find("monster.sprite"), std::string::npos);
-    EXPECT_EQ(shippedSprites().size(), 6u);
+    EXPECT_EQ(shippedSprites().size(), 8u);
 }
 
 TEST(Title, SaveWithMissingModsAsksBeforeLoading) {

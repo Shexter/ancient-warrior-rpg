@@ -283,12 +283,11 @@ TEST(ScriptContent, SyntaxErrorsNameThePathAndLine) {
         << errors[0];
 }
 
-TEST(ScriptContent, ShippedEnemiesUseTheMedusaScript) {
+TEST(ScriptContent, EachShippedBossHasItsOwnScript) {
     const Content content = loadContent(fs::path(HEROES_SOURCE_DIR) / "data").value();
-    EXPECT_EQ(content.scripts().size(), 1u);
-    EXPECT_TRUE(content.scripts().contains("scripts/medusa.lua"));
-    EXPECT_EQ(content.enemy("medusa").script, "scripts/medusa.lua");
-    EXPECT_EQ(content.enemy("avaritia").script, "scripts/medusa.lua");
+    EXPECT_EQ(content.scripts().size(), 4u);
+    for (const char* id : {"medusa", "avaritia", "gula", "ira"})
+        EXPECT_EQ(content.enemy(id).script, std::string("scripts/") + id + ".lua");
 }
 
 // ---- fun-pass: items and Defend (combat spec) ------------------------------------------------
@@ -398,4 +397,64 @@ TEST(SmartPolicy, DefendsAChargeAndHealsWhenLow) {
     const auto withItems = smartAction(*w.content, hurt, {});
     ASSERT_TRUE(std::holds_alternative<UseItem>(withItems));
     EXPECT_EQ(std::get<UseItem>(withItems).itemId, "eternal_youth"); // restores 800 > Holy Water's 100
+}
+
+// ---- fun-pass: Act I bosses (scripts run against the 5000 HP, 100 ATK, 0 DEF test enemy) -----
+
+namespace {
+
+std::string shippedScript(const char* name) {
+    std::ifstream in(fs::path(HEROES_SOURCE_DIR) / "data" / "scripts" / name);
+    return {std::istreambuf_iterator<char>(in), {}};
+}
+
+// The events of each hero Attack until the battle ends or `turns` turns pass.
+std::vector<std::vector<std::string>> attackTurns(Battle& b, int turns) {
+    std::vector<std::vector<std::string>> out;
+    for (int i = 0; i < turns && !b.over(); ++i)
+        out.push_back(formatted(b.act(Attack{}).value()));
+    return out;
+}
+
+} // namespace
+
+TEST(BossScripts, AvaritiaChargesOnTurnFourAndStrikesForTwoAndAHalfAttack) {
+    World w("avaritia", shippedScript("avaritia.lua"));
+    Battle b = w.battle();
+    const auto turns = attackTurns(b, 5);
+    ASSERT_EQ(turns.size(), 5u);
+    EXPECT_TRUE(has(turns[2], toString(ev::Damaged{Side::Hero, 100, 700, DamageCause::Attack})));
+    EXPECT_TRUE(has(turns[3], toString(ev::ScriptSaid{Side::Enemy, "Avaritia counts its coins..."})));
+    EXPECT_TRUE(has(turns[3], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
+    EXPECT_FALSE(has(turns[3], "Attacked Enemy")); // the telegraph turn doesn't hit
+    EXPECT_TRUE(has(turns[4], toString(ev::Damaged{Side::Hero, 250, 450, DamageCause::Skill})));
+    EXPECT_TRUE(has(turns[4], toString(ev::StatusExpired{Side::Enemy, StatusId::Charging})));
+}
+
+TEST(BossScripts, GulaHealsHalfOfEveryAttackAndAllOfItsDevour) {
+    World w("gula", shippedScript("gula.lua"));
+    Battle b = w.battle();
+    const auto turns = attackTurns(b, 4);
+    ASSERT_EQ(turns.size(), 4u);
+    EXPECT_TRUE(has(turns[0], toString(ev::Healed{Side::Enemy, 50, 4650})));
+    EXPECT_TRUE(has(turns[2], toString(ev::ScriptSaid{Side::Enemy, "Gula opens its maw..."})));
+    EXPECT_TRUE(has(turns[2], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
+    // 5000 - 4 x 400 + 50 + 50 = 3500 before the devour heals the 200 it deals.
+    EXPECT_TRUE(has(turns[3], toString(ev::Damaged{Side::Hero, 200, 600, DamageCause::Skill})));
+    EXPECT_TRUE(has(turns[3], toString(ev::Healed{Side::Enemy, 200, 3700})));
+}
+
+TEST(BossScripts, IraHitsHarderAsItBleedsAndChargesBelowHalf) {
+    World w("ira", shippedScript("ira.lua"));
+    Battle b = w.battle();
+    const auto turns = attackTurns(b, 9);
+    ASSERT_EQ(turns.size(), 9u);
+    // Turn 1: 400 of 5000 missing (8%) -> 108. Turn 7: 2800 missing (56%) -> 156, an odd turn.
+    EXPECT_TRUE(has(turns[0], toString(ev::Damaged{Side::Hero, 108, 892, DamageCause::Skill})));
+    EXPECT_TRUE(has(turns[6], toString(ev::Damaged{Side::Hero, 156, 76, DamageCause::Skill})));
+    // Turn 6 is even but Ira is at 2600, not below half: no charge yet.
+    EXPECT_FALSE(has(turns[5], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
+    EXPECT_TRUE(has(turns[7], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
+    // Turn 9: 3600 missing (72%) -> 172, doubled.
+    EXPECT_TRUE(has(turns[8], toString(ev::Damaged{Side::Hero, 344, 0, DamageCause::Skill})));
 }

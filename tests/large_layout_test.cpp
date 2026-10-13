@@ -28,10 +28,10 @@ void withLargeArt(Harness& h, ArtStyle art = ArtStyle::Glyph) {
     h.session.art = art;
 }
 
-// Hub -> Mission -> Medusa (the bonus, '2') -> Yes.
+// Hub -> Mission -> Medusa (the bonus, '4') -> Yes.
 void enterMedusa(Harness& h) {
     h.startAtHub(levelTwenty());
-    ASSERT_TRUE(h.press({ch('2'), ch('2'), kEnter, kEnter, ch('y')}));
+    ASSERT_TRUE(h.press({ch('2'), ch('4'), kEnter, kEnter, ch('y')}));
     ASSERT_TRUE(frameContains(h.frame(), "MEDUSA LAIR"));
 }
 

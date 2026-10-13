@@ -47,8 +47,8 @@ struct ViewFixture {
 };
 
 // Hub -> Mission -> a mission's intro -> "Enter the lair?" -> Yes. Missions: '1' Avaritia,
-// '2' the Medusa bonus.
-void enterBattle(Harness& h, game::GameState state, char mission = '2',
+// '2' Gula, '3' Ira, '4' the Medusa bonus.
+void enterBattle(Harness& h, game::GameState state, char mission = '4',
                  std::string_view location = "MEDUSA LAIR") {
     h.startAtHub(std::move(state));
     ASSERT_TRUE(h.press({ch('2'), ch(mission)}));
@@ -137,7 +137,7 @@ TEST(BattleView, EndsOnlyAfterTheDefeatHasPlayed) {
     EXPECT_FALSE(f.view.busy());
 }
 
-TEST(MissionSelect, ListsComingSoonAndDisablesClearedMissions) {
+TEST(MissionSelect, ListsActOneAndDisablesClearedMissions) {
     Harness h("mission_select");
     game::GameState state = levelTwenty();
     state.hero.completedMissions.insert("the_gorgon");
@@ -145,11 +145,11 @@ TEST(MissionSelect, ListsComingSoonAndDisablesClearedMissions) {
     ASSERT_TRUE(h.press({ch('2')}));
     const Framebuffer frame = h.frame();
     EXPECT_NE(rowText(frame, 7).find("Act I: \"Avaritia\""), std::string::npos);
-    EXPECT_NE(rowText(frame, 8).find("Bonus: \"The Gorgon\""), std::string::npos);
-    EXPECT_NE(rowText(frame, 8).find("Cleared"), std::string::npos);
-    EXPECT_NE(rowText(frame, 9).find("Coming Soon"), std::string::npos);
-    EXPECT_NE(rowText(frame, 10).find("Coming Soon"), std::string::npos);
-    ASSERT_TRUE(h.press({ch('2'), kEsc})); // the cleared bonus can't be chosen
+    EXPECT_NE(rowText(frame, 8).find("Act I: \"Gula\""), std::string::npos);
+    EXPECT_NE(rowText(frame, 9).find("Act I: \"Ira\""), std::string::npos);
+    EXPECT_NE(rowText(frame, 10).find("Bonus: \"The Gorgon\""), std::string::npos);
+    EXPECT_NE(rowText(frame, 10).find("Cleared"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('4'), kEsc})); // the cleared bonus can't be chosen
     EXPECT_EQ(h.app->depth(), 1u);
 }
 

@@ -13,6 +13,30 @@
       ]
     },
     {
+      "id": "gula",
+      "name": "Act I: \"Gula\"",
+      "location": "THE EMPTY FEAST",
+      "enemy": "gula",
+      "minLevel": 18,
+      "repeatable": false,
+      "story": [
+        "The banquet hall has eaten the city's bread for a year.",
+        "It is still hungry."
+      ]
+    },
+    {
+      "id": "ira",
+      "name": "Act I: \"Ira\"",
+      "location": "THE BURNING GATE",
+      "enemy": "ira",
+      "minLevel": 22,
+      "repeatable": false,
+      "story": [
+        "Wrath holds the east gate, and it burns hotter the more it bleeds.",
+        "Do not let it rage."
+      ]
+    },
+    {
       "id": "the_gorgon",
       "name": "Bonus: \"The Gorgon\"",
       "location": "MEDUSA LAIR",
