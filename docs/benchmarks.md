@@ -89,3 +89,25 @@ Medusa and Avaritia now take their turns through `data/scripts/medusa.lua`. Each
 Computed once when the cave list opens and once per finished round (one cave), never per frame, so no cache is needed.
 
 A fresh Knight's odds read 100 / 100 / 94 / 0 … for caves 1–4 onward: the jump from cave 3 to 4 is a real cliff in the training curve, not an estimator artifact.
+
+## Act I boss bands (fun-pass task 4.3, 2026-10-13)
+
+`heroes-sim --enemy BOSS --battles 20000 --seed 7`, shipped data, each path with the boss's intended build from the fun-pass reference (Guardian Angel and Righteous Strike only; Smite and Sanctuary arrive in chunk 5 and 5.2 re-runs this). The band: smart 50–80%, attack-only at least 30 points lower, smart with starting gear under 5%.
+
+| boss (HP / ATK / DEF) | path | smart | attack | starting gear |
+|---|---|---|---|---|
+| Avaritia (3200 / 200 / 15) | Knight | 69.56% | 0.00% | 0.00% |
+| | Hunter | 64.16% | 0.00% | 0.00% |
+| | Pilgrim | 51.86% | 0.01% | 0.00% |
+| Gula (4300 / 410 / 25) | Knight | 71.08% | 23.79% | 0.00% |
+| | Hunter | 65.38% | 6.67% | 0.00% |
+| | Pilgrim | 53.39% | 16.12% | 0.00% |
+| Ira (25000 / 315 / 40) | Knight | 75.87% | 28.06% | 0.00% |
+| | Hunter | 52.67% | 12.55% | 0.00% |
+| | Pilgrim | 59.03% | 12.71% | 0.00% |
+
+Tuning notes:
+- As first written the three scripts drew no random numbers, so every build won 0% or 100%. With the user's approval (2026-10-13) each boss now rolls its telegraph (Avaritia 1 in 4, Gula 1 in 3, Ira 1 in 2 below half HP) instead of a fixed cadence, and every hit varies by ±15%.
+- The reference starting stats were far below the intended builds' gear: Ira at 5000 HP died to two hits from a 3000-ATK hero. Ira needed 25000 HP so the fight lasts long enough for choices to matter.
+- Results are cliffy in boss HP (one more or one fewer hero hit), and the Pilgrim (lowest HP) sets the lower edge for every boss.
+- Pinned by `ActOneBalance.ShippedBossesStayInTheBand` on a 4,000-battle prefix.

@@ -91,8 +91,9 @@ TEST(ShippedSprites, AllFivePlaceholdersLoadWithTheDocumentedSizes) {
     };
     for (const Expected& e :
          {Expected{"hero_fighter.sprite", 24, 24}, Expected{"hero_hunter.sprite", 24, 24},
-          Expected{"hero_rogue.sprite", 24, 24}, Expected{"medusa.sprite", 32, 28}, Expected{"avaritia.sprite", 32, 28},
-          Expected{"monster.sprite", 16, 16}}) {
+          Expected{"hero_rogue.sprite", 24, 24}, Expected{"medusa.sprite", 32, 28},
+          Expected{"avaritia.sprite", 32, 28}, Expected{"gula.sprite", 32, 28},
+          Expected{"ira.sprite", 32, 28}, Expected{"monster.sprite", 16, 16}}) {
         const auto sprite = engine::loadSprite(dir / e.file);
         ASSERT_TRUE(sprite.has_value()) << sprite.error();
         EXPECT_EQ(sprite->width, e.width) << e.file;
@@ -113,7 +114,7 @@ TEST(SpriteBake, GlyphsPickTheCharacterByBrightnessAndKeepTheColor) {
     ASSERT_TRUE(glyphs.has_value()) << glyphs.error();
     EXPECT_EQ(glyphs->width, 3);
     EXPECT_EQ(glyphs->height, 1); // two pixel rows per cell
-    EXPECT_EQ(glyphs->at(0, 0), (engine::GlyphCell{'.', engine::Rgb{10, 10, 10}})); // sparse end
+    EXPECT_EQ(glyphs->at(0, 0), (engine::GlyphCell{'.', engine::Rgb{10, 10, 10}}));    // sparse end
     EXPECT_EQ(glyphs->at(1, 0), (engine::GlyphCell{'@', engine::Rgb{250, 250, 250}})); // dense end
     EXPECT_FALSE(glyphs->at(2, 0).has_value());
 }
@@ -133,8 +134,9 @@ TEST(SpriteBake, GlyphRampIsStretchedAcrossTheImage) {
     image.width = 3;
     image.height = 2;
     // Black (luminance 0), mid gray (128), and dark red over blue (average about 22).
-    image.pixels = {engine::Rgb{0, 0, 0}, engine::Rgb{128, 128, 128}, engine::Rgb{170, 0, 0},
-                    engine::Rgb{0, 0, 0}, std::nullopt,               engine::Rgb{0, 0, 120}};
+    image.pixels = {engine::Rgb{0, 0, 0},   engine::Rgb{128, 128, 128},
+                    engine::Rgb{170, 0, 0}, engine::Rgb{0, 0, 0},
+                    std::nullopt,           engine::Rgb{0, 0, 120}};
     const auto glyphs = bake::toGlyphs(image);
     EXPECT_EQ(glyphs.at(0, 0)->ch, bake::kGlyphRamp[1]); // the image's darkest: sparse end
     EXPECT_EQ(glyphs.at(1, 0)->ch, bake::kGlyphRamp[9]); // the image's brightest: dense end

@@ -1,6 +1,6 @@
 # Scripting (`src/game/script/`)
 
-Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Lua is compiled as C++, so a Lua error is a C++ exception that unwinds the engine functions a script called (`SOL_USING_CXX_LUA`). Only `heroes_game` links them. Shipped scripts: `data/scripts/medusa.lua` is Medusa's (and Avaritia's) turn, the same rules and random-draw order as the old C++ pattern, which was deleted. The core golden battles and the Avaritia balance tests pass unchanged with it.
+Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched with pinned SHA-256 hashes in `cmake/Dependencies.cmake`. Lua is compiled as C++, so a Lua error is a C++ exception that unwinds the engine functions a script called (`SOL_USING_CXX_LUA`). Only `heroes_game` links them. Shipped scripts: `data/scripts/medusa.lua` is Medusa's turn, the same rules and random-draw order as the old C++ pattern, which was deleted; the core golden battles pass unchanged with it. `avaritia.lua`, `gula.lua` and `ira.lua` are the Act I bosses: each rolls a telegraph (say a line, put Charging on itself for one turn), strikes harder on the next turn while Charging is still on (it then expires), and varies every hit by ±15%. Gula heals half of each hit (all of its devour); Ira's power grows with its missing HP and it only charges below half HP. `ActOneBalance` pins their stats.
 
 **`ScriptHost`**: one sandboxed `lua_State`. It is not thread-safe, so use one per thread.
 - `load(name, source)` runs the source as chunk `@name` in a fresh environment of its own. It must return a table, kept under `name`; otherwise the error is "`name`: the script must return a table".
@@ -35,7 +35,7 @@ Lua 5.4.7 (built as the C library `lua_static`) with sol2 v3.5.0, both fetched w
   - A view kept by a script past its battle reads the next battle's fighter, or fails cleanly between battles.
 - `ctx.turn` is the current turn.
 - `ctx.rng(n)`, with `n` from 1 to 1,000,000, draws from the battle's RNG.
-- `ctx.attack()` emits `Attacked` and makes a normal hit.
+- `ctx.attack(power)` emits `Attacked` and makes a normal hit (DEF applies). `power` is optional, from 0 to 10,000,000, and defaults to the attacker's ATK.
 - `ctx.damage(power, apply_def)` makes a Skill hit, with `power` from 0 to 10,000,000.
 - `ctx.heal(who, amount)`, `ctx.halve_hp(who)` and `ctx.apply_status(who, id, turns)` take `who` as `"self"` or `"target"`, and `turns` from 1 to 20.
 - `ctx.extra_turn()` is for enemy scripts only.

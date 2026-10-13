@@ -27,12 +27,11 @@ int BattleApi::rng(int n) {
     return static_cast<int>(battle_.rng_.below(static_cast<std::uint32_t>(n)));
 }
 
-int BattleApi::attack() {
+int BattleApi::attack(int power) {
     if (battle_.over_)
         return 0;
     out_.push_back(ev::Attacked{self_});
-    const int dealt =
-        battle_.hit(self_, battle_.combatant(self_).atk, true, DamageCause::Attack, out_);
+    const int dealt = battle_.hit(self_, power, true, DamageCause::Attack, out_);
     battle_.checkDeaths(out_);
     return dealt;
 }

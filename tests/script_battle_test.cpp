@@ -13,9 +13,9 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <stdexcept>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -46,12 +46,24 @@ fs::path scriptedData(const std::string& name, const std::string& enemyScript,
         std::ofstream(root / "data" / file) << doc.dump(2);
     };
     patch("enemies.json", "enemies",
-          {{"id", "scripted"}, {"name", "Golem"}, {"sprite", "monster.sprite"}, {"maxHp", 5000},
-           {"atk", 100}, {"def", 0}, {"life", 0}, {"script", "scripts/enemy.lua"},
-           {"rewardExp", 0}, {"rewardGold", 0}});
+          {{"id", "scripted"},
+           {"name", "Golem"},
+           {"sprite", "monster.sprite"},
+           {"maxHp", 5000},
+           {"atk", 100},
+           {"def", 0},
+           {"life", 0},
+           {"script", "scripts/enemy.lua"},
+           {"rewardExp", 0},
+           {"rewardGold", 0}});
     patch("skills.json", "skills",
-          {{"id", "scripted_skill"}, {"name", "Test Strike"}, {"description", "A test."},
-           {"mpCost", 10}, {"learnLevel", 1}, {"goldCost", 0}, {"keyItem", "topaz"},
+          {{"id", "scripted_skill"},
+           {"name", "Test Strike"},
+           {"description", "A test."},
+           {"mpCost", 10},
+           {"learnLevel", 1},
+           {"goldCost", 0},
+           {"keyItem", "topaz"},
            {"script", "scripts/skill.lua"}});
     return root / "data";
 }
@@ -156,8 +168,8 @@ TEST(ScriptBattle, RunawayEnemyScriptIsUndoneAndAttacksInstead) {
         EXPECT_EQ(la, formatted(b.act(Attack{}).value()));
         EXPECT_TRUE(has(la, "ScriptError scripts/enemy.lua"));
         EXPECT_FALSE(has(la, "ScriptSaid Enemy hi"));
-        EXPECT_TRUE(has(la, "Damaged Hero 100 " + std::to_string(1000 - 100 * (turn + 1)) +
-                                " Attack"));
+        EXPECT_TRUE(
+            has(la, "Damaged Hero 100 " + std::to_string(1000 - 100 * (turn + 1)) + " Attack"));
     }
 }
 
@@ -174,10 +186,11 @@ TEST(ScriptBattle, FailedSkillScriptChangesNothing) {
 }
 
 TEST(ScriptBattle, SameSeedSameEvents) {
-    const char* random = "return { take_turn = function(ctx)\n"
-                         "  if ctx.rng(3) == 0 then ctx.attack() else ctx.damage(ctx.rng(50), true) end\n"
-                         "  if ctx.rng(4) == 0 then ctx.extra_turn() end\n"
-                         "end }";
+    const char* random =
+        "return { take_turn = function(ctx)\n"
+        "  if ctx.rng(3) == 0 then ctx.attack() else ctx.damage(ctx.rng(50), true) end\n"
+        "  if ctx.rng(4) == 0 then ctx.extra_turn() end\n"
+        "end }";
     World w("replay", random);
     Battle a = w.battle(42), b = w.battle(42);
     for (int turn = 0; turn < 5; ++turn)
@@ -245,9 +258,9 @@ void editSkill(const fs::path& dataDir, const std::function<void(nlohmann::json&
 TEST(ScriptContent, ASkillHasAnEffectOrAScriptNotBoth) {
     const fs::path data = scriptedData("both", kAttackEnemy, kNoopSkill);
     editSkill(data, [](nlohmann::json& s) { s["effect"] = {{"healToFull", true}}; });
-    EXPECT_EQ(loadErrors(data), std::vector<std::string>{
-                                    "skills.json: skill 'scripted_skill': has both 'effect' and "
-                                    "'script'; use one"});
+    EXPECT_EQ(loadErrors(data),
+              std::vector<std::string>{"skills.json: skill 'scripted_skill': has both 'effect' and "
+                                       "'script'; use one"});
 }
 
 TEST(ScriptContent, MissingAndEscapingScriptPathsAreRejected) {
@@ -263,9 +276,9 @@ TEST(ScriptContent, MissingAndEscapingScriptPathsAreRejected) {
 }
 
 TEST(ScriptContent, ScriptsMustReturnTheRequiredFunction) {
-    const fs::path data = scriptedData(
-        "shape", "return { cast = function(ctx) end }", // an enemy needs take_turn
-        "return 7");
+    const fs::path data =
+        scriptedData("shape", "return { cast = function(ctx) end }", // an enemy needs take_turn
+                     "return 7");
     const auto errors = loadErrors(data);
     ASSERT_EQ(errors.size(), 2u);
     EXPECT_EQ(errors[0], "skills.json: skill 'scripted_skill': scripts/skill.lua: the script must "
@@ -275,8 +288,8 @@ TEST(ScriptContent, ScriptsMustReturnTheRequiredFunction) {
 }
 
 TEST(ScriptContent, SyntaxErrorsNameThePathAndLine) {
-    const fs::path data =
-        scriptedData("syntax", kAttackEnemy, "return {\n  cast = function(ctx)\n    ctx.say('x'\nend }");
+    const fs::path data = scriptedData("syntax", kAttackEnemy,
+                                       "return {\n  cast = function(ctx)\n    ctx.say('x'\nend }");
     const auto errors = loadErrors(data);
     ASSERT_EQ(errors.size(), 1u);
     EXPECT_NE(errors[0].find("skill 'scripted_skill': scripts/skill.lua:4:"), std::string::npos)
@@ -350,8 +363,7 @@ TEST(BattleChoices, AnItemNotInStockIsRejected) {
 TEST(BattleChoices, DefendHalvesAChargedStrikeAndRestoresFervor) {
     World w("defend", kChargingEnemy);
     Combatant hero{"Aria", 1000, 1000, 100, 50, 400, 0, 0, {}};
-    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0),
-                  &*w.host);
+    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0), &*w.host);
     const auto first = formatted(battle.act(Attack{}).value()); // the enemy charges
     EXPECT_TRUE(has(first, "StatusApplied Enemy charging 1"));
     const int mpBefore = battle.hero().mp;
@@ -365,8 +377,7 @@ TEST(BattleChoices, DefendHalvesAChargedStrikeAndRestoresFervor) {
 TEST(BattleChoices, GuardCoversOneEnemyPhaseAndExpiresAfterTheNextHeroTurn) {
     World w("guard_timing", "return { take_turn = function(ctx) ctx.damage(100, false) end }");
     Combatant hero{"Aria", 1000, 1000, 100, 50, 1, 0, 0, {}};
-    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0),
-                  &*w.host);
+    Battle battle(*w.content, hero, w.content->enemy("scripted"), {}, Rng::stream(1, 0), &*w.host);
     const auto turn1 = formatted(battle.act(Defend{}).value());
     EXPECT_TRUE(has(turn1, "Damaged Hero 50 950 Skill")); // guarded
     const auto turn2 = formatted(battle.act(Attack{}).value());
@@ -382,7 +393,8 @@ TEST(SmartPolicy, DefendsAChargeAndHealsWhenLow) {
     World w("smart_policy", kChargingEnemy);
     Combatant hero{"Aria", 1000, 1000, 100, 100, 400, 0, 0, {}};
     Battle battle(*w.content, hero, w.content->enemy("scripted"), {"angel_wings"},
-                  Rng::stream(1, 0), &*w.host, ItemStock{{"health_potion", 1}, {"eternal_youth", 1}});
+                  Rng::stream(1, 0), &*w.host,
+                  ItemStock{{"health_potion", 1}, {"eternal_youth", 1}});
     EXPECT_TRUE(std::holds_alternative<Attack>(smartAction(*w.content, battle, {})));
     ASSERT_TRUE(battle.act(Attack{}).has_value()); // the enemy charges
     EXPECT_TRUE(std::holds_alternative<Defend>(smartAction(*w.content, battle, {})));
@@ -396,7 +408,8 @@ TEST(SmartPolicy, DefendsAChargeAndHealsWhenLow) {
     EXPECT_EQ(std::get<CastSkill>(withSkill).skillId, "angel_wings");
     const auto withItems = smartAction(*w.content, hurt, {});
     ASSERT_TRUE(std::holds_alternative<UseItem>(withItems));
-    EXPECT_EQ(std::get<UseItem>(withItems).itemId, "eternal_youth"); // restores 800 > Holy Water's 100
+    EXPECT_EQ(std::get<UseItem>(withItems).itemId,
+              "eternal_youth"); // restores 800 > Holy Water's 100
 }
 
 // ---- fun-pass: Act I bosses (scripts run against the 5000 HP, 100 ATK, 0 DEF test enemy) -----
@@ -408,53 +421,114 @@ std::string shippedScript(const char* name) {
     return {std::istreambuf_iterator<char>(in), {}};
 }
 
-// The events of each hero Attack until the battle ends or `turns` turns pass.
-std::vector<std::vector<std::string>> attackTurns(Battle& b, int turns) {
-    std::vector<std::vector<std::string>> out;
-    for (int i = 0; i < turns && !b.over(); ++i)
-        out.push_back(formatted(b.act(Attack{}).value()));
+// One enemy turn, read from the events of a hero Attack.
+struct EnemyTurn {
+    int bossHpBefore = 0; // after the hero's hit
+    int dealt = -1;       // damage to the hero, -1 if none
+    int healed = 0;       // the boss's own healing
+    bool charged = false; // applied Charging
+    bool said = false;    // a ScriptSaid line
+    bool ended = false;   // the battle ended this turn (a heal after a kill does nothing)
+};
+
+// Plays hero Attacks until the battle ends, over several seeds, and reads each enemy turn.
+std::vector<EnemyTurn> enemyTurns(World& w) {
+    std::vector<EnemyTurn> out;
+    for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+        Battle b = w.battle(seed);
+        while (!b.over()) {
+            EnemyTurn t;
+            const std::vector<Event> events = b.act(Attack{}).value();
+            for (const Event& e : events) {
+                if (const auto* d = std::get_if<ev::Damaged>(&e))
+                    (d->target == Side::Enemy ? t.bossHpBefore : t.dealt) =
+                        d->target == Side::Enemy ? d->hpAfter : d->amount;
+                if (const auto* h = std::get_if<ev::Healed>(&e); h && h->target == Side::Enemy)
+                    t.healed += h->amount;
+                if (const auto* st = std::get_if<ev::StatusApplied>(&e))
+                    t.charged |= st->status == StatusId::Charging;
+                t.said |= std::holds_alternative<ev::ScriptSaid>(e);
+            }
+            t.ended = b.over();
+            if (!b.over() || t.dealt >= 0 || t.charged)
+                out.push_back(t);
+        }
+    }
     return out;
+}
+
+bool varied(int dealt, int power) { // +/-15%, rounded down
+    return dealt >= power * 85 / 100 && dealt <= power * 115 / 100;
 }
 
 } // namespace
 
-TEST(BossScripts, AvaritiaChargesOnTurnFourAndStrikesForTwoAndAHalfAttack) {
+TEST(BossScripts, AvaritiaTelegraphsThenStrikesForTwoAndAHalfAttack) {
     World w("avaritia", shippedScript("avaritia.lua"));
-    Battle b = w.battle();
-    const auto turns = attackTurns(b, 5);
-    ASSERT_EQ(turns.size(), 5u);
-    EXPECT_TRUE(has(turns[2], toString(ev::Damaged{Side::Hero, 100, 700, DamageCause::Attack})));
-    EXPECT_TRUE(has(turns[3], toString(ev::ScriptSaid{Side::Enemy, "Avaritia counts its coins..."})));
-    EXPECT_TRUE(has(turns[3], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
-    EXPECT_FALSE(has(turns[3], "Attacked Enemy")); // the telegraph turn doesn't hit
-    EXPECT_TRUE(has(turns[4], toString(ev::Damaged{Side::Hero, 250, 450, DamageCause::Skill})));
-    EXPECT_TRUE(has(turns[4], toString(ev::StatusExpired{Side::Enemy, StatusId::Charging})));
+    const auto turns = enemyTurns(w);
+    int charges = 0;
+    for (std::size_t i = 0; i + 1 < turns.size(); ++i) {
+        if (turns[i].charged) {
+            ++charges;
+            EXPECT_TRUE(turns[i].said);
+            EXPECT_EQ(turns[i].dealt, -1); // the telegraph turn doesn't hit
+            if (turns[i + 1].dealt >= 0) {
+                EXPECT_TRUE(varied(turns[i + 1].dealt, 250)) << turns[i + 1].dealt;
+            }
+        } else if (i == 0 || !turns[i - 1].charged) {
+            EXPECT_TRUE(varied(turns[i].dealt, 100)) << turns[i].dealt;
+        }
+    }
+    EXPECT_GT(charges, 5);
 }
 
-TEST(BossScripts, GulaHealsHalfOfEveryAttackAndAllOfItsDevour) {
+TEST(BossScripts, GulaHealsHalfOfEveryHitAndAllOfItsDevour) {
     World w("gula", shippedScript("gula.lua"));
-    Battle b = w.battle();
-    const auto turns = attackTurns(b, 4);
-    ASSERT_EQ(turns.size(), 4u);
-    EXPECT_TRUE(has(turns[0], toString(ev::Healed{Side::Enemy, 50, 4650})));
-    EXPECT_TRUE(has(turns[2], toString(ev::ScriptSaid{Side::Enemy, "Gula opens its maw..."})));
-    EXPECT_TRUE(has(turns[2], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
-    // 5000 - 4 x 400 + 50 + 50 = 3500 before the devour heals the 200 it deals.
-    EXPECT_TRUE(has(turns[3], toString(ev::Damaged{Side::Hero, 200, 600, DamageCause::Skill})));
-    EXPECT_TRUE(has(turns[3], toString(ev::Healed{Side::Enemy, 200, 3700})));
+    const auto turns = enemyTurns(w);
+    int devours = 0;
+    for (std::size_t i = 1; i < turns.size(); ++i) {
+        if (turns[i].charged || turns[i].dealt < 0 || turns[i].ended)
+            continue;
+        if (turns[i - 1].charged) {
+            ++devours;
+            EXPECT_TRUE(varied(turns[i].dealt, 200)) << turns[i].dealt;
+            EXPECT_EQ(turns[i].healed, turns[i].dealt);
+        } else {
+            EXPECT_TRUE(varied(turns[i].dealt, 100)) << turns[i].dealt;
+            EXPECT_EQ(turns[i].healed, turns[i].dealt / 2);
+        }
+    }
+    EXPECT_GT(devours, 5);
 }
 
-TEST(BossScripts, IraHitsHarderAsItBleedsAndChargesBelowHalf) {
+TEST(BossScripts, IraHitsHarderAsItBleedsAndChargesOnlyBelowHalf) {
     World w("ira", shippedScript("ira.lua"));
+    const auto turns = enemyTurns(w);
+    int charges = 0;
+    for (std::size_t i = 0; i < turns.size(); ++i) {
+        const int hp = turns[i].bossHpBefore;
+        const int power = 100 * (100 + 100 * (5000 - hp) / 5000) / 100;
+        if (turns[i].charged) {
+            ++charges;
+            EXPECT_LT(hp * 2, 5000);
+            EXPECT_TRUE(turns[i].said);
+        } else if (turns[i].dealt >= 0) {
+            const bool strike = i > 0 && turns[i - 1].charged;
+            EXPECT_TRUE(varied(turns[i].dealt, strike ? power * 2 : power))
+                << turns[i].dealt << " at " << hp;
+        }
+    }
+    EXPECT_GT(charges, 5);
+}
+
+TEST(ScriptBattle, AttackTakesAnOptionalPower) {
+    World w("attack_power", "return { take_turn = function(ctx) ctx.attack(250) end }");
     Battle b = w.battle();
-    const auto turns = attackTurns(b, 9);
-    ASSERT_EQ(turns.size(), 9u);
-    // Turn 1: 400 of 5000 missing (8%) -> 108. Turn 7: 2800 missing (56%) -> 156, an odd turn.
-    EXPECT_TRUE(has(turns[0], toString(ev::Damaged{Side::Hero, 108, 892, DamageCause::Skill})));
-    EXPECT_TRUE(has(turns[6], toString(ev::Damaged{Side::Hero, 156, 76, DamageCause::Skill})));
-    // Turn 6 is even but Ira is at 2600, not below half: no charge yet.
-    EXPECT_FALSE(has(turns[5], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
-    EXPECT_TRUE(has(turns[7], toString(ev::StatusApplied{Side::Enemy, StatusId::Charging, 1})));
-    // Turn 9: 3600 missing (72%) -> 172, doubled.
-    EXPECT_TRUE(has(turns[8], toString(ev::Damaged{Side::Hero, 344, 0, DamageCause::Skill})));
+    const auto lines = formatted(b.act(Attack{}).value());
+    EXPECT_TRUE(has(lines, "Attacked Enemy")); // the lunge and "attacks!" line still play
+    EXPECT_TRUE(has(lines, toString(ev::Damaged{Side::Hero, 250, 750, DamageCause::Attack})));
+
+    World bad("attack_float", "return { take_turn = function(ctx) ctx.attack(2.5) end }");
+    Battle e = bad.battle();
+    EXPECT_TRUE(has(formatted(e.act(Attack{}).value()), "ScriptError scripts/enemy.lua"));
 }

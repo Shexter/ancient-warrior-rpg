@@ -28,11 +28,13 @@ Each win adds `round gold × min(streak, 10) / 10` (integer) to the pot, where `
 
 ## Bosses
 
-| id | name | mission (id, min level) | maxHp / atk / def / life (*start*) | rewards | script behaviour |
+| id | name | mission (id, min level) | maxHp / atk / def / life (tuned in 4.3) | rewards | script behaviour |
 |---|---|---|---|---|---|
-| `avaritia` | Avaritia | `avaritia`, 15 | 3200 / 140 / 15 / 0 | 5000 EXP, 15000 gold, Gold Dust, Dark Pearl | Attacks; every 4th turn says "Avaritia counts its coins..." and charges; the next turn strikes for 2.5×ATK with DEF applied, then clears Charging |
-| `gula` | Gula | `gula`, 18 | 4000 / 170 / 25 / 0 | 7000 EXP, 20000 gold, Broken Compass, Holy Oil ×2 | Every attack heals Gula by half the damage dealt; every 3rd turn says "Gula opens its maw..." and charges, then devours for 2×ATK and heals all the damage dealt |
-| `ira` | Ira | `ira`, 22 | 5000 / 200 / 40 / 0 | 10000 EXP, 30000 gold, Ember of Wrath | Attack power is `ATK × (100 + 100 × missing HP / max HP) / 100`; below half HP it charges every other turn, then strikes for 2×(that power) |
+| `avaritia` | Avaritia | `avaritia`, 15 | 3200 / 200 / 15 / 0 | 5000 EXP, 15000 gold, Gold Dust, Dark Pearl | Attacks; on a 1-in-4 roll says "Avaritia counts its coins..." and charges; the next turn strikes for 2.5×ATK with DEF applied, then clears Charging |
+| `gula` | Gula | `gula`, 18 | 4300 / 410 / 25 / 0 | 7000 EXP, 20000 gold, Broken Compass, Holy Oil ×2 | Every attack heals Gula by half the damage dealt; on a 1-in-3 roll says "Gula opens its maw..." and charges, then devours for 2×ATK and heals all the damage dealt |
+| `ira` | Ira | `ira`, 22 | 25000 / 315 / 40 / 0 | 10000 EXP, 30000 gold, Ember of Wrath | Attack power is `ATK × (100 + 100 × missing HP / max HP) / 100`; below half HP it charges on a 1-in-2 roll, then strikes for 2×(that power) |
+
+Every boss hit varies by ±15% (`power × (85 + rng(31)) / 100`), so win rates aren't all-or-nothing (decided 2026-10-13, task 4.3).
 
 Mission names, locations and story lines:
 - `avaritia`: unchanged (Act I: "Avaritia", THE COUNTING HOUSE).

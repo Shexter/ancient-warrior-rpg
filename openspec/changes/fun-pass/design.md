@@ -64,6 +64,7 @@ See proposal.md for why. Relevant current state, after `add-lua-scripting`:
 
 **7. Bosses and skills are scripts.**
 - `avaritia.lua`, `gula.lua` and `ira.lua` use only the existing ctx API plus the new statuses. The three skills are scripts too.
+  - One addition, made in task 4.3: `ctx.attack(power)` takes an optional power (default ATK), so the bosses' varied and boosted hits still emit `Attacked` and play the lunge and "attacks!" line.
 - Medusa's `medusa.lua` is untouched, and Avaritia stops sharing it.
 - The band is re-pinned by the `AvaritiaBalance`-style tests for all three bosses, with two conditions:
   - smart wins 50–80%;

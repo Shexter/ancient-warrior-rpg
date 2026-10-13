@@ -30,14 +30,14 @@ class BattleApi {
     int turn() const;
     bool over() const;
 
-    int rng(int n);                         // Battle's Rng::below(n); n is 1..1,000,000
-    int attack();                           // Attacked, then a normal hit; returns damage dealt
-    int damage(int power, bool applyDef);   // a Skill hit of `power`; returns damage dealt
-    int heal(Side who, int amount);         // capped at max HP; returns HP restored
+    int rng(int n);        // Battle's Rng::below(n); n is 1..1,000,000
+    int attack(int power); // Attacked, then a normal hit of `power`; returns damage dealt
+    int damage(int power, bool applyDef); // a Skill hit of `power`; returns damage dealt
+    int heal(Side who, int amount);       // capped at max HP; returns HP restored
     void halveHp(Side who);
     void applyStatus(Side who, StatusId id, int turns);
-    void extraTurn();                       // enemy scripts only (the binding enforces it)
-    void say(std::string_view text);        // printable ASCII, at most 80 characters
+    void extraTurn();                // enemy scripts only (the binding enforces it)
+    void say(std::string_view text); // printable ASCII, at most 80 characters
 
     Side selfSide() const { return self_; }
     Side targetSide() const { return self_ == Side::Hero ? Side::Enemy : Side::Hero; }

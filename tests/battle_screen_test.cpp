@@ -137,7 +137,7 @@ TEST(BattleView, EndsOnlyAfterTheDefeatHasPlayed) {
     EXPECT_FALSE(f.view.busy());
 }
 
-TEST(MissionSelect, ListsActOneAndDisablesClearedMissions) {
+TEST(MissionSelect, ListsComingSoonAndDisablesClearedMissions) {
     Harness h("mission_select");
     game::GameState state = levelTwenty();
     state.hero.completedMissions.insert("the_gorgon");
@@ -149,6 +149,8 @@ TEST(MissionSelect, ListsActOneAndDisablesClearedMissions) {
     EXPECT_NE(rowText(frame, 9).find("Act I: \"Ira\""), std::string::npos);
     EXPECT_NE(rowText(frame, 10).find("Bonus: \"The Gorgon\""), std::string::npos);
     EXPECT_NE(rowText(frame, 10).find("Cleared"), std::string::npos);
+    EXPECT_NE(rowText(frame, 11).find("Coming Soon"), std::string::npos);
+    EXPECT_NE(rowText(frame, 12).find("Coming Soon"), std::string::npos);
     ASSERT_TRUE(h.press({ch('4'), kEsc})); // the cleared bonus can't be chosen
     EXPECT_EQ(h.app->depth(), 1u);
 }
@@ -157,7 +159,9 @@ TEST(Battle, FleeingPlaysOutAndAppliesTheSameResult) {
     Harness h("battle_flee");
     game::GameState expected = levelTwenty();
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon", &game::shippedScripts()).value();
+        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon",
+                                         &game::shippedScripts())
+                          .value();
         (void)battle.start();
         (void)battle.act(game::Flee{});
         (void)game::finishMission(expected, game::shippedContent(), "the_gorgon", battle);
@@ -181,7 +185,9 @@ TEST(Battle, AttackingEveryTurnMatchesTheGameAndShowsTheResult) {
     game::GameState expected = levelTwenty();
     game::Outcome outcome;
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon", &game::shippedScripts()).value();
+        auto battle = game::startMission(expected, game::shippedContent(), "the_gorgon",
+                                         &game::shippedScripts())
+                          .value();
         (void)battle.start();
         while (!battle.over())
             (void)battle.act(game::Attack{});
@@ -234,7 +240,8 @@ TEST(Vocabulary, NoScreenShowsAnMpLabel) {
     const auto showsMp = [](const Framebuffer& frame) {
         for (int y = 0; y < frame.height(); ++y) {
             const std::string row = " " + rowText(frame, y) + " ";
-            for (std::size_t at = row.find("MP"); at != std::string::npos; at = row.find("MP", at + 1))
+            for (std::size_t at = row.find("MP"); at != std::string::npos;
+                 at = row.find("MP", at + 1))
                 if (!std::isalpha(static_cast<unsigned char>(row[at - 1])) &&
                     !std::isalpha(static_cast<unsigned char>(row[at + 2])))
                     return true;
@@ -284,11 +291,13 @@ TEST(Avaritia, MissionUnlocksAtLevel15) {
 TEST(Avaritia, VictoryPaysGoldDustAndADarkPearl) {
     game::GameState state = levelTwenty();
     state.hero.level = 15;
-    state.hero.atk = 100000; // ends the fight in the hero's favor
+    state.hero.atk = 100000;  // ends the fight in the hero's favor
     state.hero.expToNext = 1; // the 5000 EXP reward is sure to level up
     game::GameState expected = state;
     {
-        auto battle = game::startMission(expected, game::shippedContent(), "avaritia", &game::shippedScripts()).value();
+        auto battle = game::startMission(expected, game::shippedContent(), "avaritia",
+                                         &game::shippedScripts())
+                          .value();
         (void)battle.start();
         while (!battle.over())
             (void)battle.act(game::Attack{});
@@ -341,9 +350,10 @@ TEST(BattleView, CompactFramesAreUnchanged) {
     f.play({ev::TurnStarted{Side::Hero, 1}, ev::Attacked{Side::Hero},
             ev::Damaged{Side::Enemy, 380, 2620, game::DamageCause::Attack},
             ev::SkillCast{"angel_wings", 10}, ev::Healed{Side::Hero, 25, 300},
-            ev::StatusApplied{Side::Enemy, game::StatusId::Stun, 3}, ev::TurnSkipped{Side::Enemy, game::StatusId::Stun},
-            ev::HpHalved{Side::Enemy, 1310}, ev::ExtraTurn{Side::Enemy},
-            ev::Defeated{Side::Enemy}, ev::BattleEnded{game::Outcome::Victory, 2}});
+            ev::StatusApplied{Side::Enemy, game::StatusId::Stun, 3},
+            ev::TurnSkipped{Side::Enemy, game::StatusId::Stun}, ev::HpHalved{Side::Enemy, 1310},
+            ev::ExtraTurn{Side::Enemy}, ev::Defeated{Side::Enemy},
+            ev::BattleEnded{game::Outcome::Victory, 2}});
     std::uint64_t hash = 14695981039346656037ull;
     for (int step = 0; step < 300; ++step) {
         hash = fingerprint(f.frame(), hash);

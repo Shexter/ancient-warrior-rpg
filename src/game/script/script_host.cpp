@@ -119,7 +119,6 @@ std::expected<sol::object, std::string> budgeted(ScriptHost::Impl& impl, const s
     return outcome;
 }
 
-
 // ---- ctx binding ---------------------------------------------------------------------------
 
 [[noreturn]] void reject(std::string message) { throw std::runtime_error(std::move(message)); }
@@ -181,32 +180,37 @@ sol::table makeCtx(ScriptHost::Impl* impl) {
     const auto makeView = [&lua, impl](Side side) {
         sol::table view = lua.create_table();
         sol::table meta = lua.create_table();
-        meta.set_function("__index", [impl, side](sol::this_state state, const sol::object&,
-                                                  std::string_view key) -> sol::object {
-            BattleApi& api = impl->current();
-            const Combatant& c = side == api.selfSide() ? api.self() : api.target();
-            if (key == "name")
-                return sol::make_object(state, c.name);
-            if (key == "has") // view.has("stun"), called with a dot like every ctx function
-                return sol::make_object(state, [impl, side](const sol::object& status) {
-                    const StatusId id = statusArg(status, "has: status");
-                    BattleApi& now = impl->current();
-                    const Combatant& f = side == now.selfSide() ? now.self() : now.target();
-                    return std::ranges::any_of(
-                        f.statuses, [id](const StatusInstance& st) { return st.id == id; });
-                });
-            const int* value = key == "hp"       ? &c.hp
-                               : key == "max_hp" ? &c.maxHp
-                               : key == "mp"     ? &c.mp
-                               : key == "max_mp" ? &c.maxMp
-                               : key == "atk"    ? &c.atk
-                               : key == "def"    ? &c.def
-                               : key == "life"   ? &c.life
-                                                 : nullptr;
-            return value ? sol::make_object(state, *value) : sol::make_object(state, sol::lua_nil);
-        });
-        meta.set_function("__newindex", [](const sol::object&, const sol::object&,
-                                           const sol::object&) { reject("fighters are read-only"); });
+        meta.set_function(
+            "__index",
+            [impl, side](sol::this_state state, const sol::object&,
+                         std::string_view key) -> sol::object {
+                BattleApi& api = impl->current();
+                const Combatant& c = side == api.selfSide() ? api.self() : api.target();
+                if (key == "name")
+                    return sol::make_object(state, c.name);
+                if (key == "has") // view.has("stun"), called with a dot like every ctx function
+                    return sol::make_object(state, [impl, side](const sol::object& status) {
+                        const StatusId id = statusArg(status, "has: status");
+                        BattleApi& now = impl->current();
+                        const Combatant& f = side == now.selfSide() ? now.self() : now.target();
+                        return std::ranges::any_of(
+                            f.statuses, [id](const StatusInstance& st) { return st.id == id; });
+                    });
+                const int* value = key == "hp"       ? &c.hp
+                                   : key == "max_hp" ? &c.maxHp
+                                   : key == "mp"     ? &c.mp
+                                   : key == "max_mp" ? &c.maxMp
+                                   : key == "atk"    ? &c.atk
+                                   : key == "def"    ? &c.def
+                                   : key == "life"   ? &c.life
+                                                     : nullptr;
+                return value ? sol::make_object(state, *value)
+                             : sol::make_object(state, sol::lua_nil);
+            });
+        meta.set_function("__newindex",
+                          [](const sol::object&, const sol::object&, const sol::object&) {
+                              reject("fighters are read-only");
+                          });
         meta["__metatable"] = false;
         view[sol::metatable_key] = meta;
         return view;
@@ -217,7 +221,13 @@ sol::table makeCtx(ScriptHost::Impl* impl) {
     ctx.set_function("rng", [impl](const sol::object& n) {
         return impl->current().rng(wholeNumber(n, "rng: n", 1, 1'000'000));
     });
-    ctx.set_function("attack", [impl] { return impl->current().attack(); });
+    ctx.set_function("attack",
+                     [impl](const sol::object& power) { // ctx.attack() or ctx.attack(power)
+                         BattleApi& api = impl->current();
+                         return api.attack(power.valid() && power.get_type() != sol::type::lua_nil
+                                               ? wholeNumber(power, "attack: power", 0, 10'000'000)
+                                               : api.self().atk);
+                     });
     ctx.set_function("damage", [impl](const sol::object& power, const sol::object& applyDef) {
         if (applyDef.get_type() != sol::type::boolean)
             reject("damage: apply_def must be true or false");
@@ -234,7 +244,7 @@ sol::table makeCtx(ScriptHost::Impl* impl) {
         api.halveHp(whoArg(api, who, "halve_hp: who"));
     });
     ctx.set_function("apply_status", [impl](const sol::object& who, const sol::object& id,
-                                             const sol::object& turns) {
+                                            const sol::object& turns) {
         BattleApi& api = impl->current();
         api.applyStatus(whoArg(api, who, "apply_status: who"), statusArg(id, "apply_status: id"),
                         wholeNumber(turns, "apply_status: turns", 1, 20));
@@ -253,18 +263,18 @@ sol::table makeCtx(ScriptHost::Impl* impl) {
     ctx.set_function("over", [impl] { return impl->current().over(); });
 
     sol::table meta = lua.create_table();
-    meta.set_function("__index", [impl, heroView, enemyView](sol::this_state state,
-                                                             const sol::object&,
-                                                             std::string_view key) -> sol::object {
-        BattleApi& api = impl->current();
-        if (key == "self" || key == "target") {
-            const Side side = key == "self" ? api.selfSide() : api.targetSide();
-            return side == Side::Hero ? heroView : enemyView;
-        }
-        if (key == "turn")
-            return sol::make_object(state, api.turn());
-        return sol::make_object(state, sol::lua_nil);
-    });
+    meta.set_function("__index",
+                      [impl, heroView, enemyView](sol::this_state state, const sol::object&,
+                                                  std::string_view key) -> sol::object {
+                          BattleApi& api = impl->current();
+                          if (key == "self" || key == "target") {
+                              const Side side = key == "self" ? api.selfSide() : api.targetSide();
+                              return side == Side::Hero ? heroView : enemyView;
+                          }
+                          if (key == "turn")
+                              return sol::make_object(state, api.turn());
+                          return sol::make_object(state, sol::lua_nil);
+                      });
     meta.set_function("__newindex", [](const sol::object&, const sol::object&, const sol::object&) {
         reject("ctx is read-only");
     });
@@ -379,8 +389,7 @@ std::expected<void, std::string> runWithCtx(ScriptHost::Impl& impl, const std::s
 
 } // namespace
 
-std::expected<void, std::string> ScriptHost::runEnemyTurn(const std::string& name,
-                                                          BattleApi& api) {
+std::expected<void, std::string> ScriptHost::runEnemyTurn(const std::string& name, BattleApi& api) {
     return runWithCtx(*impl_, name, "take_turn", api);
 }
 

@@ -176,40 +176,71 @@ TEST(SimArgs, RejectsBadCommandLines) {
 
 namespace {
 
-// The balance-simulator spec's Avaritia band, on the first 4,000 battles of seed 7 (a prefix of
-// the 20,000 in docs/benchmarks.md, so CI stays fast). Returns why the data misses it, or "".
-std::string avaritiaBandProblem(const std::filesystem::path& dataDir) {
+// The fun-pass band for an Act I boss, on the first 4,000 battles of seed 7 (a prefix of the
+// 20,000 in docs/benchmarks.md, so CI stays fast): with its intended build, smart wins 50-80% and
+// attack-only wins at least 30 points less; with starting gear smart wins under 5%.
+// Returns why the data misses it, or "".
+struct BossBuild {
+    const char* boss;
+    const char* weapon;
+    int weaponLevel;
+    const char* armor;
+    int armorLevel;
+    int blessings;
+    std::vector<std::pair<std::string, int>> items;
+};
+
+const BossBuild kActOne[] = {
+    {"avaritia", "iron_sword", 5, "steel_shield", 5, 14, {{"health_potion", 2}}},
+    {"gula", "fire_claymore", 1, "steel_shield", 5, 17, {{"health_potion", 3}, {"mana_potion", 1}}},
+    {"ira", "fire_claymore", 3, "diamond_plate", 1, 21, {{"health_potion", 3}, {"mana_potion", 2}}},
+};
+
+std::string bandProblem(const std::filesystem::path& dataDir, const BossBuild& build) {
     for (const char* path : {"fighter", "hunter", "rogue"}) {
         SimConfig config;
         config.dataDir = dataDir;
         config.pathId = path;
-        config.enemyId = "avaritia";
+        config.enemyId = build.boss;
         config.battles = 4000;
         config.seed = 7;
         config.threads = 8;
         config.policy = Policy::Smart;
         const auto start = runSimulation(config);
-        config.weaponLevel = 5;
-        config.armorLevel = 5;
+        config.weaponId = build.weapon;
+        config.weaponLevel = build.weaponLevel;
+        config.armorId = build.armor;
+        config.armorLevel = build.armorLevel;
         config.skills = {"angel_wings", "meteor_fist"};
-        const auto mid = runSimulation(config);
-        if (!start || !mid)
-            return std::string(path) + ": " + (start ? mid.error() : start.error());
-        const double midRate = 100.0 * static_cast<double>(mid->tally.wins) / 4000;
-        const double startRate = 100.0 * static_cast<double>(start->tally.wins) / 4000;
-        if (midRate < 40 || midRate > 80 || startRate >= 5)
-            return std::format("{}: mid-game {:.2f}%, starting {:.2f}%", path, midRate, startRate);
+        config.blessings = build.blessings;
+        config.items = build.items;
+        const auto smart = runSimulation(config);
+        config.policy = Policy::Attack;
+        const auto attack = runSimulation(config);
+        if (!start || !smart || !attack)
+            return std::string(path) + ": " +
+                   (!start   ? start.error()
+                    : !smart ? smart.error()
+                             : attack.error());
+        const auto rate = [](const auto& r) {
+            return 100.0 * static_cast<double>(r->tally.wins) / 4000;
+        };
+        if (rate(smart) < 50 || rate(smart) > 80 || rate(smart) - rate(attack) < 30 ||
+            rate(start) >= 5)
+            return std::format("{} {}: smart {:.2f}%, attack {:.2f}%, starting {:.2f}%", build.boss,
+                               path, rate(smart), rate(attack), rate(start));
     }
     return {};
 }
 
 } // namespace
 
-TEST(AvaritiaBalance, ShippedStatsStayInTheBand) {
-    EXPECT_EQ(avaritiaBandProblem(std::filesystem::path(HEROES_SOURCE_DIR) / "data"), "");
+TEST(ActOneBalance, ShippedBossesStayInTheBand) {
+    for (const BossBuild& build : kActOne)
+        EXPECT_EQ(bandProblem(std::filesystem::path(HEROES_SOURCE_DIR) / "data", build), "");
 }
 
-TEST(AvaritiaBalance, TheCheckCatchesAStrongerAvaritia) {
+TEST(ActOneBalance, TheCheckCatchesAStrongerAvaritia) {
     namespace fs = std::filesystem;
     const fs::path root = fs::temp_directory_path() / "heroes_avaritia_band";
     fs::remove_all(root);
@@ -224,21 +255,22 @@ TEST(AvaritiaBalance, TheCheckCatchesAStrongerAvaritia) {
             enemy["atk"] = enemy["atk"].get<int>() + 50;
     std::ofstream(root / "data" / "enemies.json") << enemies.dump();
     // Caught by the band itself, not by the copy failing to load.
-    EXPECT_NE(avaritiaBandProblem(root / "data").find("mid-game"), std::string::npos)
-        << avaritiaBandProblem(root / "data");
+    EXPECT_NE(bandProblem(root / "data", kActOne[0]).find("smart"), std::string::npos)
+        << bandProblem(root / "data", kActOne[0]);
 }
 
 TEST(Sim, ItemsComeIntoEveryBattle) {
-    const std::string_view args[] = {"--path", "fighter", "--enemy", "medusa", "--battles", "10",
-                                     "--seed", "7", "--items", "health_potion:2,eternal_youth:1"};
+    const std::string_view args[] = {
+        "--path", "fighter", "--enemy", "medusa",  "--battles",
+        "10",     "--seed",  "7",       "--items", "health_potion:2,eternal_youth:1"};
     const auto options = parseArgs(args, std::filesystem::path(HEROES_SOURCE_DIR) / "data", 1);
     ASSERT_TRUE(options.has_value()) << options.error();
-    EXPECT_EQ(options->config.items,
-              (std::vector<std::pair<std::string, int>>{{"health_potion", 2}, {"eternal_youth", 1}}));
+    EXPECT_EQ(options->config.items, (std::vector<std::pair<std::string, int>>{
+                                         {"health_potion", 2}, {"eternal_youth", 1}}));
     EXPECT_TRUE(runSimulation(options->config).has_value());
 
-    const std::string_view bad[] = {"--path", "fighter", "--enemy", "medusa", "--battles", "1",
-                                    "--seed", "7", "--items", "health_potion"};
+    const std::string_view bad[] = {"--path", "fighter", "--enemy", "medusa",  "--battles",
+                                    "1",      "--seed",  "7",       "--items", "health_potion"};
     EXPECT_EQ(parseArgs(bad, std::filesystem::path(HEROES_SOURCE_DIR) / "data", 1).error(),
               "--items expects id:count,... (got 'health_potion')");
     SimConfig notConsumable = startingFighter(1, 1);

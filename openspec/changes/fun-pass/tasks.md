@@ -27,8 +27,8 @@
 
 - [x] 4.1 Generate Gula and Ira sprites with Draw Things (compact 32×28, large 56×52 in both looks) and record prompts and seeds; show the user a preview before committing
 - [x] 4.2 Add `avaritia.lua`, `gula.lua` and `ira.lua` (telegraphs via Charging) with the enemies and missions from the reference table, in Act I order; verify script tests for each telegraph, Gula's drain and Ira's scaling, and that Medusa's goldens are unchanged
-- [ ] 4.3 Tune each boss with `heroes-sim` to the band (smart 50–80% and attack at least 30 points lower for every path with its intended build; smart below 5% with starting gear), record the runs in `docs/benchmarks.md`, update the tuned stats in the reference table, and pin all three with band tests; if a path can't fit, stop and report
-- [ ] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.3 Tune each boss with `heroes-sim` to the band (smart 50–80% and attack at least 30 points lower for every path with its intended build; smart below 5% with starting gear), record the runs in `docs/benchmarks.md`, update the tuned stats in the reference table, and pin all three with band tests; if a path can't fit, stop and report
+- [x] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Act I skills
 
