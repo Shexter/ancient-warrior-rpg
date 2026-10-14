@@ -27,6 +27,7 @@ The user chose the direction for each (2026-10-12): blessing points, battle deci
 - **What next.** The Hub shows one "Next:" line, for example "Next: Avaritia (Lv 15) — your odds ≈35%; upgrade gear or train". Its odds come from the same estimator as training.
 - **Content.**
   - Avaritia gets its own script with a telegraphed greed strike.
+  - Boss telegraphs are rolled each turn and boss hits vary by ±15%, so the balance band can be met (fixed patterns made every fight a 0% or 100% win; decided 2026-10-13).
   - Two new Act I sin bosses, **Gula** (heals from the damage it deals) and **Ira** (hits harder as it weakens), each with a mission, sprites in every size and look, and a reward.
   - Three new scripted skills: **Smite** (triple damage on a charging enemy), **Sanctuary** (guard and heal), and **Judgment** (a finisher). One new key item.
   - Mission order: Avaritia (15), Gula (18), Ira (22), then the Medusa bonus (20).
@@ -43,7 +44,8 @@ The user chose the direction for each (2026-10-12): blessing points, battle deci
 - `town-services`: the Prior spends blessing points.
 - `save-system`: save version 3 records blessing points.
 - `balance-simulator`: the `smart` policy defends, heals and uses items; the Act I band covers three bosses and requires choices to matter.
-- `game-content`: the Act I mission list (Avaritia with its own pattern, Gula, Ira, then Medusa) and the new skills and item.
+- `game-content`: the Act I mission list (Avaritia with its own pattern, Gula, Ira, then Medusa; rolled telegraphs and ±15% hits) and the new skills and item.
+- `content-scripting`: `ctx.attack` takes an optional power, so scripted strikes of any strength still play as attacks.
 
 ## Impact
 
