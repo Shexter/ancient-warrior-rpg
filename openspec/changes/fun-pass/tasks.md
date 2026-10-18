@@ -34,7 +34,7 @@
 
 - [x] 5.1 Add Smite, Sanctuary and Judgment (scripts) and the Ember of Wrath item per the reference table; verify script tests for the Smite-a-charging-boss scenario, Sanctuary's guard and heal, and Judgment's threshold, and that the skill overlay and Learn Skill list fit with nine skills (example mod included)
 - [x] 5.2 Re-run the band tests from 4.3 with the new skills in the builds; re-tune if needed and record
-- [ ] 5.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 6. What next
 
