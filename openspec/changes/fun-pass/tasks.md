@@ -40,7 +40,7 @@
 
 - [x] 6.1 Add mission win-chance estimates and `nextGoal(state, content, scripts)` per the reference wording; verify tests for every row of the wording table and that estimating leaves the state untouched; measure the Hub cost
 - [x] 6.2 Show the "Next:" line on the Hub (compact and large), refreshed when the state changes, never per frame; verify screen tests
-- [ ] 6.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 6.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 7. Final verification
 
