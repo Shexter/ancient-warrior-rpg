@@ -111,3 +111,24 @@ Tuning notes:
 - The reference starting stats were far below the intended builds' gear: Ira at 5000 HP died to two hits from a 3000-ATK hero. Ira needed 25000 HP so the fight lasts long enough for choices to matter.
 - Results are cliffy in boss HP (one more or one fewer hero hit), and the Pilgrim (lowest HP) sets the lower edge for every boss.
 - Pinned by `ActOneBalance.ShippedBossesStayInTheBand` on a 4,000-battle prefix.
+
+## Act I boss bands with the new skills (fun-pass task 5.2, 2026-10-17)
+
+Same runs as 4.3 (`--battles 20000 --seed 7`), now with the reference builds' full skill lists (Gula adds Smite; Ira adds Smite and Sanctuary) and a smart policy that casts them (Smite instead of Defend on a Charging enemy, Sanctuary below 30% HP after Angel Wings, Judgment below 25% enemy HP).
+
+| boss (HP / ATK / DEF) | path | smart | attack | starting gear |
+|---|---|---|---|---|
+| Avaritia (3200 / 200 / 15) | Knight | 69.56% | 0.00% | 0.00% |
+| | Hunter | 64.16% | 0.00% | 0.00% |
+| | Pilgrim | 51.86% | 0.01% | 0.00% |
+| Gula (5400 / 410 / 25) | Knight | 69.39% | 7.63% | 0.00% |
+| | Hunter | 69.44% | 0.96% | 0.00% |
+| | Pilgrim | 67.70% | 3.83% | 0.00% |
+| Ira (29000 / 325 / 40) | Knight | 50.02% | 19.16% | 0.00% |
+| | Hunter | 50.02% | 6.54% | 0.00% |
+| | Pilgrim | 50.02% | 6.17% | 0.00% |
+
+Re-tuning notes:
+- Smite (3x ATK through armor on a charge) made the 4.3 stats trivial: Gula at 4300 HP fell to 98–100% and Ira at 25000 to 49–100%. Gula is now 5400 HP, Ira 29000 HP / 325 ATK.
+- Results are cliffy in boss HP: Gula flips from ~99% to ~70% between 5200 and 5400 HP and to ~34% (Hunter) by 5600. Ira jumps from ~100% to a ~50% plateau between 28000 and 29000 HP. Ira's Knight gap to attack-only is 30.9 points, the narrowest in the band, and 50.02% sits on the lower edge; any further Ira change should re-measure all three paths.
+- Pinned by `ActOneBalance.ShippedBossesStayInTheBand` (now with per-boss skill lists) on a 4,000-battle prefix.

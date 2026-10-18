@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <set>
 #include <string>
 
 using namespace heroes::sim;
@@ -188,12 +189,16 @@ struct BossBuild {
     int armorLevel;
     int blessings;
     std::vector<std::pair<std::string, int>> items;
+    std::set<std::string> skills;
 };
 
 const BossBuild kActOne[] = {
-    {"avaritia", "iron_sword", 5, "steel_shield", 5, 14, {{"health_potion", 2}}},
-    {"gula", "fire_claymore", 1, "steel_shield", 5, 17, {{"health_potion", 3}, {"mana_potion", 1}}},
-    {"ira", "fire_claymore", 3, "diamond_plate", 1, 21, {{"health_potion", 3}, {"mana_potion", 2}}},
+    {"avaritia", "iron_sword", 5, "steel_shield", 5, 14, {{"health_potion", 2}},
+     {"angel_wings", "meteor_fist"}},
+    {"gula", "fire_claymore", 1, "steel_shield", 5, 17, {{"health_potion", 3}, {"mana_potion", 1}},
+     {"angel_wings", "meteor_fist", "smite"}},
+    {"ira", "fire_claymore", 3, "diamond_plate", 1, 21, {{"health_potion", 3}, {"mana_potion", 2}},
+     {"angel_wings", "meteor_fist", "smite", "sanctuary"}},
 };
 
 std::string bandProblem(const std::filesystem::path& dataDir, const BossBuild& build) {
@@ -211,7 +216,7 @@ std::string bandProblem(const std::filesystem::path& dataDir, const BossBuild& b
         config.weaponLevel = build.weaponLevel;
         config.armorId = build.armor;
         config.armorLevel = build.armorLevel;
-        config.skills = {"angel_wings", "meteor_fist"};
+        config.skills.assign(build.skills.begin(), build.skills.end());
         config.blessings = build.blessings;
         config.items = build.items;
         const auto smart = runSimulation(config);

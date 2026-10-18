@@ -22,11 +22,13 @@ PlayerAction smartAction(const Content& content, const Battle& battle,
     };
 
     if (has(enemy, StatusId::Charging))
-        return Defend{};
+        return ready("smite") ? PlayerAction{CastSkill{"smite"}} : PlayerAction{Defend{}};
 
     if (static_cast<long long>(hero.hp) * 100 < static_cast<long long>(hero.maxHp) * 30) {
         if (ready("angel_wings"))
             return CastSkill{"angel_wings"};
+        if (ready("sanctuary") && !has(hero, StatusId::Guard))
+            return CastSkill{"sanctuary"};
         // The item that restores the most HP (a full restore counts as all the HP missing).
         const ItemDef* best = nullptr;
         int bestHeal = 0;
@@ -45,6 +47,8 @@ PlayerAction smartAction(const Content& content, const Battle& battle,
             return UseItem{best->id};
     }
 
+    if (ready("judgment") && enemy.hp * 4 < enemy.maxHp)
+        return CastSkill{"judgment"};
     if (ready("supernova"))
         return CastSkill{"supernova"};
     if (ready("frozen_throne") && !has(enemy, StatusId::Stun))
