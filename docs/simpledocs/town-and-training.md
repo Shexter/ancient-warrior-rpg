@@ -9,6 +9,8 @@
 
 `caveWinChance(state, content, cave)` (`estimate.*`) is the win chance, in whole percent, of the next round at that cave with the hero's current HP: 200 fights on copies, each monster rolled from `Rng::stream(seed ^ (0xCA7E… + cave), i)`. It is deterministic for a state and never touches the state or its RNG. Training rounds have no player choices, so no policy is involved. All 30 caves take about 7 ms in a debug build and 0.1 ms in release.
 
+`missionWinChance(state, content, missionId, scripts)` (same files) plays 200 mission battles with the `smart` policy, the learned skills and the bag's consumables, on streams from `seed ^ salt(mission id)`; one estimate takes about 8 ms in a debug build. `nextGoal(state, content, scripts)` builds the Hub's "Next:" line: revive, spend blessings, train to the first open Act I mission (a name starting "Act I:"), its odds (below 50% suggests getting stronger), then the bonus mission, then "Act I is complete." The Hub does not show it yet (task 6.2).
+
 ## Merchant (refuses a dead hero)
 - `buy`: 1–99 units at the item price. `sell`: full price. Items with price 0 are not tradeable.
 - `auction`: one unit, fixed auction value, 1-in-10 no buyer. Otherwise up to `r` bid rounds each with a 1-in-3 chance to stop, +10% of value per bid, 10% fee. Payout is 450–855 for a 500-value item. Forks the RNG even when nothing sells.

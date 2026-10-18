@@ -385,9 +385,6 @@ std::expected<void, TownError> withdraw(GameState& state, std::string_view id, i
 
 // ---- Missions ----------------------------------------------------------------------------
 
-namespace {
-
-// The consumables in the bag, which the hero can use during a battle.
 ItemStock consumableStock(const Hero& hero, const Content& content) {
     ItemStock stock;
     for (const Inventory::Slot& slot : hero.bag.slots())
@@ -395,8 +392,6 @@ ItemStock consumableStock(const Hero& hero, const Content& content) {
             stock.emplace(slot->first, slot->second);
     return stock;
 }
-
-} // namespace
 
 std::expected<Battle, TownError> startMission(GameState& state, const Content& content,
                                               std::string_view id, script::ScriptHost* scripts) {

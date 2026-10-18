@@ -88,6 +88,8 @@ std::expected<void, TownError> deposit(GameState&, std::string_view id, int qty)
 std::expected<void, TownError> withdraw(GameState&, std::string_view id, int qty);
 
 // Missions
+// The consumables in the bag, which the hero can use during a battle.
+ItemStock consumableStock(const Hero&, const Content&);
 // `scripts` runs scripted enemies and skills in the battle (one host per thread).
 std::expected<Battle, TownError> startMission(GameState&, const Content&, std::string_view id,
                                               script::ScriptHost* scripts = nullptr);
