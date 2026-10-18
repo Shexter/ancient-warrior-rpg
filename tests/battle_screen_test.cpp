@@ -222,12 +222,13 @@ TEST(Battle, SkillOverlayDimsUnlearnedSkillsAndEscCloses) {
     enterBattle(h, state);
     ASSERT_TRUE(h.press({ch('2')}));
     Framebuffer frame = h.frame();
-    EXPECT_NE(rowText(frame, 15).find("Guardian Angel"), std::string::npos);
-    EXPECT_EQ(frame.at(20, 15).fg, palette::kAccent); // learned, affordable, selected
-    EXPECT_EQ(frame.at(20, 16).fg, palette::kDim);    // Meteor FIST: not learned
-    for (int y = 15; y <= 19; ++y) // descriptions are clipped at the panel's right border
+    EXPECT_NE(rowText(frame, 12).find("Guardian Angel"), std::string::npos);
+    EXPECT_EQ(frame.at(20, 12).fg, palette::kAccent); // learned, affordable, selected
+    EXPECT_EQ(frame.at(20, 13).fg, palette::kDim);    // Meteor FIST: not learned
+    for (int y = 12; y <= 19;
+         ++y) // eight skills; descriptions are clipped at the panel's right border
         EXPECT_EQ(frame.at(79, y).glyph, U'│') << "row " << y;
-    EXPECT_NE(rowText(frame, 19).find("Let There Be Light (50)"), std::string::npos);
+    EXPECT_NE(rowText(frame, 16).find("Let There Be Light (50)"), std::string::npos);
     ASSERT_TRUE(h.press({kEsc}));
     EXPECT_FALSE(frameContains(h.frame(), "Guardian Angel"));
 

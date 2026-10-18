@@ -298,7 +298,7 @@ TEST(ScriptContent, SyntaxErrorsNameThePathAndLine) {
 
 TEST(ScriptContent, EachShippedBossHasItsOwnScript) {
     const Content content = loadContent(fs::path(HEROES_SOURCE_DIR) / "data").value();
-    EXPECT_EQ(content.scripts().size(), 4u);
+    EXPECT_EQ(content.scripts().size(), 7u);
     for (const char* id : {"medusa", "avaritia", "gula", "ira"})
         EXPECT_EQ(content.enemy(id).script, std::string("scripts/") + id + ".lua");
 }
@@ -531,4 +531,47 @@ TEST(ScriptBattle, AttackTakesAnOptionalPower) {
     World bad("attack_float", "return { take_turn = function(ctx) ctx.attack(2.5) end }");
     Battle e = bad.battle();
     EXPECT_TRUE(has(formatted(e.act(Attack{}).value()), "ScriptError scripts/enemy.lua"));
+}
+
+TEST(ActISkills, SmiteTriplesAgainstAChargingEnemy) {
+    const char* charger =
+        "return { take_turn = function(ctx) ctx.apply_status('self', 'charging', 1) end }";
+    World charging("smite_charging", charger, shippedScript("smite.lua"));
+    Battle c = charging.battle();
+    ASSERT_TRUE(c.act(Attack{}).has_value()); // the enemy starts charging; 400 ATK hero, 0 DEF
+    EXPECT_TRUE(has(formatted(c.act(CastSkill{"scripted_skill"}).value()),
+                    toString(ev::Damaged{Side::Enemy, 1200, 3400, DamageCause::Skill})));
+
+    World calm("smite_calm", kAttackEnemy, shippedScript("smite.lua"));
+    Battle n = calm.battle();
+    EXPECT_TRUE(has(formatted(n.act(CastSkill{"scripted_skill"}).value()),
+                    toString(ev::Damaged{Side::Enemy, 400, 4600, DamageCause::Skill})));
+}
+
+TEST(ActISkills, SanctuaryGuardsAndHealsAFifthOfMaxHp) {
+    World w("sanctuary", kAttackEnemy, shippedScript("sanctuary.lua"));
+    Battle b = w.battle();
+    ASSERT_TRUE(b.act(Attack{}).has_value()); // the enemy hits for 100: 900/1000
+    const auto lines = formatted(b.act(CastSkill{"scripted_skill"}).value());
+    EXPECT_TRUE(has(lines, toString(ev::Healed{Side::Hero, 100, 1000}))); // 200 offered, capped
+    // The enemy's reply this turn already lands on the Guard: 100 halved to 50.
+    EXPECT_TRUE(has(lines, toString(ev::Damaged{Side::Hero, 50, 950, DamageCause::Attack})));
+}
+
+TEST(ActISkills, JudgmentFinishesAnEnemyBelowAQuarterAndOnlyThen) {
+    const char* bleeder = "return { take_turn = function(ctx) ctx.halve_hp('self') end }";
+    World w("judgment", bleeder, shippedScript("judgment.lua"));
+    Battle b = w.battle();
+    // 5000 -> hit 4600 -> halved 2300 -> hit 1900 -> halved 950: below a quarter of 5000.
+    ASSERT_TRUE(b.act(Attack{}).has_value());
+    EXPECT_EQ(b.enemy().hp, 2300);
+    ASSERT_TRUE(b.act(Attack{}).has_value());
+    EXPECT_EQ(b.enemy().hp, 950);
+    ASSERT_TRUE(b.act(CastSkill{"scripted_skill"}).has_value());
+    EXPECT_EQ(b.outcome(), Outcome::Victory); // 3 x 400 = 1200 >= 950
+
+    World healthy("judgment_healthy", kAttackEnemy, shippedScript("judgment.lua"));
+    Battle h = healthy.battle();
+    EXPECT_TRUE(has(formatted(h.act(CastSkill{"scripted_skill"}).value()),
+                    toString(ev::Damaged{Side::Enemy, 400, 4600, DamageCause::Skill})));
 }

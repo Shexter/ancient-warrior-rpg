@@ -75,10 +75,10 @@ TEST(LargeLayout, BattleUsesTheLargeGlyphArtAndRows) {
     for (int y = 32; y <= 37; ++y)
         EXPECT_NE(rowText(frame, y).find_first_not_of(' '), std::string::npos) << "row " << y;
 
-    ASSERT_TRUE(h.press({ch('2')})); // skill overlay, rows 26-32
+    ASSERT_TRUE(h.press({ch('2')})); // skill overlay, eight skills: rows 23-32
     frame = h.frame(kLargeCanvas);
-    EXPECT_NE(rowText(frame, 26).find("Skills · Fervor cost in ()"), std::string::npos);
-    EXPECT_NE(rowText(frame, 27).find("Guardian Angel"), std::string::npos);
+    EXPECT_NE(rowText(frame, 23).find("Skills · Fervor cost in ()"), std::string::npos);
+    EXPECT_NE(rowText(frame, 24).find("Guardian Angel"), std::string::npos);
 }
 
 TEST(LargeLayout, BlocksArtDrawsHalfBlocks) {
@@ -107,7 +107,7 @@ TEST(LargeLayout, ShrinkingMidBattleFallsBackWithTheSameState) {
     const Framebuffer compact = h.frame(engine::kCompactCanvas);
     EXPECT_NE(rowText(compact, 16).find("ARIA"), std::string::npos); // the compact stats row
     EXPECT_EQ(*h.session.state, during);
-    ASSERT_TRUE(h.wait(5)); // the battle carries on
+    ASSERT_TRUE(h.wait(5));                                   // the battle carries on
     EXPECT_EQ(h.app->canvasSize(kBigTerminal), kLargeCanvas); // and grows back
 }
 

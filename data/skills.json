@@ -79,6 +79,36 @@
         "ignoreDef": true,
         "halveTargetHpFirst": true
       }
+    },
+    {
+      "id": "smite",
+      "name": "Smite",
+      "description": "Percute. Strikes harder at an enemy gathering its strength.",
+      "mpCost": 20,
+      "learnLevel": 12,
+      "goldCost": 6000,
+      "keyItem": "gold_leaf",
+      "script": "scripts/smite.lua"
+    },
+    {
+      "id": "sanctuary",
+      "name": "Sanctuary",
+      "description": "Sanctuarium. A moment of shelter and healing.",
+      "mpCost": 30,
+      "learnLevel": 16,
+      "goldCost": 12000,
+      "keyItem": "frozen_tears",
+      "script": "scripts/sanctuary.lua"
+    },
+    {
+      "id": "judgment",
+      "name": "Judgment",
+      "description": "Iudicium. Ends what is already failing.",
+      "mpCost": 45,
+      "learnLevel": 22,
+      "goldCost": 25000,
+      "keyItem": "ember_of_wrath",
+      "script": "scripts/judgment.lua"
     }
   ]
 }
