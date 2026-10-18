@@ -31,6 +31,11 @@ class HubScreen final : public Screen {
     std::optional<MessageBox> message_;
     std::optional<ConfirmBox> confirm_;
     Asking asking_ = Asking::QuitUnsaved;
+    // The "Next:" line, recomputed only when the state differs from the one it was computed for
+    // (a goal costs several 200-fight estimates, so never per frame).
+    void refreshGoal();
+    std::optional<game::GameState> goalState_;
+    std::string goal_;
 };
 
 } // namespace heroes::app

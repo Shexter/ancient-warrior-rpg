@@ -5,6 +5,7 @@
 #include "app/screens/mission.hpp"
 #include "app/screens/town.hpp"
 #include "app/screens/training.hpp"
+#include "game/estimate.hpp"
 #include "game/hero.hpp"
 #include "game/save.hpp"
 
@@ -20,7 +21,14 @@ enum Choice { kTraining, kMission, kTown, kSave, kQuit };
 
 } // namespace
 
-HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItems()) {}
+HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItems()) { refreshGoal(); }
+
+void HubScreen::refreshGoal() {
+    if (goalState_ == session_.state)
+        return;
+    goalState_ = session_.state;
+    goal_ = game::nextGoal(*session_.state, session_.content, session_.scripts);
+}
 
 std::vector<Menu::Item> HubScreen::menuItems() const {
     const game::Hero& hero = session_.state->hero;
@@ -62,6 +70,7 @@ Transition HubScreen::quit() {
 
 Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
     menu_.setItems(menuItems());
+    refreshGoal();
     for (const engine::KeyEvent& key : keys) {
         if (message_) {
             if (message_->handle(key))
@@ -126,6 +135,7 @@ void HubScreen::drawPortrait(engine::Framebuffer& frame) const {
                    hero);
     const Art art = compactArt(session_, std::format("hero_{}.sprite", hero.pathId));
     art.draw(frame, (frame.width() - art.width()) / 2, portrait::kSceneTop + 1);
+    drawText(frame, 1, portrait::kMenuTop - 2, goal_, palette::kText, frame.width() - 2);
     drawText(frame, 1, portrait::kMenuTop - 1, session_.lastMessage, palette::kText,
              frame.width() - 2);
     drawButtonMenu(frame, menu_);
@@ -151,6 +161,7 @@ void HubScreen::draw(engine::Framebuffer& frame) const {
         compactArt(session_, heroFile).draw(frame, 4, 6);
         menu_.draw(frame, 34, 7);
     }
+    drawText(frame, 2, frame.height() - 3, goal_, palette::kText, frame.width() - 4);
     drawText(frame, 2, frame.height() - 2, session_.lastMessage, palette::kText,
              frame.width() - 4);
     if (message_)

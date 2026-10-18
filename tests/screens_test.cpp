@@ -1,3 +1,4 @@
+#include "app/art.hpp"
 #include "app/app.hpp"
 #include "app/screens/hub.hpp"
 #include "app/screens/title.hpp"
@@ -118,6 +119,19 @@ TEST(Hub, QuitAsksOnlyWithUnsavedChanges) {
     Harness saved("quit_saved");
     saved.startAtHub(freshGame());
     EXPECT_FALSE(saved.press({ch('5')})); // nothing unsaved: quits at once
+}
+
+TEST(Hub, ShowsTheNextLineInEveryLayoutAndRefreshesOnStateChange) {
+    Harness h("next_line");
+    h.startAtHub(freshGame());
+    ASSERT_TRUE(h.press({}));
+    EXPECT_NE(rowText(h.frame(), 21).find("Next: "), std::string::npos);
+    EXPECT_NE(rowText(h.frame(heroes::app::kLargeCanvas), 37).find("Next: "), std::string::npos);
+    EXPECT_NE(rowText(h.frame(engine::kPortraitCanvas), 20).find("Next: "), std::string::npos);
+
+    h.session.state->hero.hp = 0;
+    ASSERT_TRUE(h.press({ch('x')}));
+    EXPECT_NE(rowText(h.frame(), 21).find("Prior"), std::string::npos);
 }
 
 TEST(Hub, AdventureOptionsExplainWhyTheyAreDisabled) {
