@@ -2,6 +2,7 @@
 #include "app/screens/title.hpp"
 #include "game/content_loader.hpp"
 #include "game/script/script_host.hpp"
+#include "game/world/world_loader.hpp"
 #include "platform/env.hpp"
 #include "platform/paths.hpp"
 #include "platform/terminal.hpp"
@@ -43,6 +44,12 @@ int main(int argc, char** argv) {
             std::cerr << game::formatError(error) << '\n';
         return 2;
     }
+    const auto world = game::world::loadWorld(dataDir, *content);
+    if (!world) {
+        for (const game::ContentError& error : world.error())
+            std::cerr << game::formatError(error) << '\n';
+        return 2;
+    }
     const auto sprites = app::loadSprites(*content, dataDir / ".." / "assets" / "sprites");
     if (!sprites) {
         std::cerr << sprites.error() << '\n';
@@ -64,6 +71,7 @@ int main(int argc, char** argv) {
         platform::Terminal terminal;
         engine::Renderer renderer(platform::detectColorMode());
         app::Session session{*content, *sprites, *saveFile, options->seed};
+        session.world = &*world;
         session.layout = options->layout;
         session.art = options->art;
         session.large = std::move(*large);

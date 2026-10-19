@@ -13,7 +13,7 @@ enable_testing()
 add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp
     src/game/inventory.cpp src/game/hero.cpp src/game/battle.cpp src/game/training.cpp src/game/estimate.cpp src/game/town.cpp
     src/game/save.cpp src/game/autoplay.cpp src/game/script/script_host.cpp
-    src/game/script/battle_api.cpp)
+    src/game/script/battle_api.cpp src/game/world/world_loader.cpp src/game/world/world.cpp)
 target_include_directories(heroes_game PUBLIC src)
 target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json
     PRIVATE heroes_warnings lua_static sol2::sol2)
@@ -74,7 +74,7 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/mods_test.cpp
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
-    tests/battle_screen_test.cpp tests/large_layout_test.cpp)
+    tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.
@@ -89,6 +89,9 @@ add_test(NAME heroes_reports_bad_content
     COMMAND heroes --data-dir ${PROJECT_SOURCE_DIR}/tests/fixtures/content_bad/negative_price)
 set_tests_properties(heroes_reports_bad_content PROPERTIES
     PASS_REGULAR_EXPRESSION "items.json: item 'iron_sword': key 'price' must be between")
+add_test(NAME heroes_reports_bad_world
+    COMMAND ${CMAKE_COMMAND} -DHEROES=$<TARGET_FILE:heroes> -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+        -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/bad_world -P ${PROJECT_SOURCE_DIR}/tests/bad_world_cli.cmake)
 add_test(NAME heroes_rejects_bad_layout COMMAND heroes --layout big)
 set_tests_properties(heroes_rejects_bad_layout PROPERTIES
     PASS_REGULAR_EXPRESSION "--layout expects auto, compact or portrait, got 'big'.*usage: heroes .*--layout auto\\|compact\\|portrait")

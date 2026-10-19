@@ -7,6 +7,7 @@
 #include "game/content.hpp"
 #include "game/game_state.hpp"
 #include "game/script/script_host.hpp"
+#include "game/world/world_def.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -48,6 +49,7 @@ struct Session {
     ArtStyle art = ArtStyle::Glyph;
     LargeSprites large{};
     game::script::ScriptHost* scripts = nullptr; // the game thread's script sandbox
+    const game::world::WorldDef* world = nullptr; // the Overworld map, loaded at startup
 };
 
 class Screen;

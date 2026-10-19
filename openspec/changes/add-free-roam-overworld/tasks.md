@@ -2,10 +2,10 @@
 
 ## 1. World data and movement (headless)
 
-- [ ] 1.1 Add `WorldDef` and its loader for `data/world/overworld.txt`, `world.json` and `field.json` (D4), converting durations to ticks. Validate row lengths, unknown tile characters, spawn and landmarks on walkable tiles, unknown services and missions, zones inside the map, and every landmark reachable from spawn by flood fill. Errors name the file and the 1-based line. Verify with loader tests for each malformed case in the World data requirement and one valid fixture.
-- [ ] 1.2 Add a small first map (town plaza, the four services, a cave entrance, one zone, one lair) to `data/world/`, and load it at startup beside the sprites. A malformed world exits with code 2 before the terminal changes. Verify that the game starts with the real data, and with a broken copy via `--data-dir` exits 2 with the file and line.
-- [ ] 1.3 Add `World` with `step(WorldInput)` returning `WorldEvent`s (D1, D2): hero tile, facing, pace in ticks, blocking by terrain and map edge, and one `Rng` fork on construction. Verify with tests for Tap moves one tile, Held key walks (8 tiles in 60 ticks ±1), Blocked by water, and Replay (the same inputs twice give equal states and events).
-- [ ] 1.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Add `WorldDef` and its loader for `data/world/overworld.txt`, `world.json` and `field.json` (D4), converting durations to ticks. Validate row lengths, unknown tile characters, spawn and landmarks on walkable tiles, unknown services and missions, zones inside the map, and every landmark reachable from spawn by flood fill. Errors name the file and the 1-based line. Verify with loader tests for each malformed case in the World data requirement and one valid fixture.
+- [x] 1.2 Add a small first map (town plaza, the four services, a cave entrance, one zone, one lair) to `data/world/`, and load it at startup beside the sprites. A malformed world exits with code 2 before the terminal changes. Verify that the game starts with the real data, and with a broken copy via `--data-dir` exits 2 with the file and line.
+- [x] 1.3 Add `World` with `step(WorldInput)` returning `WorldEvent`s (D1, D2): hero tile, facing, pace in ticks, blocking by terrain and map edge, and one `Rng` fork on construction. Verify with tests for Tap moves one tile, Held key walks (8 tiles in 60 ticks ±1), Blocked by water, and Replay (the same inputs twice give equal states and events).
+- [x] 1.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Key press and release
 

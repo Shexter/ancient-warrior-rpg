@@ -1,0 +1,25 @@
+{
+  "legend": {
+    ".": { "terrain": "grass", "walkable": true },
+    ",": { "terrain": "tall_grass", "walkable": true },
+    "T": { "terrain": "tree", "walkable": false },
+    "~": { "terrain": "water", "walkable": false },
+    ":": { "terrain": "path", "walkable": true },
+    "s": { "terrain": "sand", "walkable": true },
+    "^": { "terrain": "rock", "walkable": false },
+    "#": { "terrain": "wall", "walkable": false },
+    "_": { "terrain": "floor", "walkable": true }
+  },
+  "spawn": { "x": 35, "y": 14 },
+  "landmarks": [
+    { "name": "Almonry", "x": 28, "y": 13, "opens": { "service": "almonry" } },
+    { "name": "Forge", "x": 44, "y": 13, "opens": { "service": "forge" } },
+    { "name": "Prior", "x": 28, "y": 16, "opens": { "service": "prior" } },
+    { "name": "Thesaurus", "x": 44, "y": 16, "opens": { "service": "thesaurus" } },
+    { "name": "Catacombs", "x": 35, "y": 2, "opens": { "training": true } },
+    { "name": "Lair of Avaritia", "x": 67, "y": 14, "opens": { "mission": "avaritia" } }
+  ],
+  "zones": [
+    { "name": "Glyphwick Meadow", "x": 58, "y": 6, "w": 12, "h": 18, "level": 1, "count": 4 }
+  ]
+}
