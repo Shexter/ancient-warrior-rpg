@@ -89,3 +89,40 @@ TEST(Input, OtherMouseReportsAreDroppedWhole) {
     // A legacy report's three raw bytes don't become keys.
     EXPECT_EQ(decode("\x1b[M !!q"), (std::vector<KeyEvent>{{Key::Char, 'q'}}));
 }
+
+TEST(Input, KittyKeysCarryTheirAction) {
+    EXPECT_EQ(decode("\x1b[119u\x1b[119;1:2u\x1b[119;1:3u"),
+              (std::vector<KeyEvent>{{Key::Char, 'w'},
+                                     {Key::Char, 'w', 0, 0, KeyAction::Repeat},
+                                     {Key::Char, 'w', 0, 0, KeyAction::Release}}));
+    EXPECT_EQ(decode("\x1b[119;2u\x1b[119;65u\x1b[119;66u"), // shift, caps lock, both
+              (std::vector<KeyEvent>{{Key::Char, 'W'}, {Key::Char, 'W'}, {Key::Char, 'w'}}));
+    EXPECT_EQ(decode("\x1b[13u\x1b[27u\x1b[127u\x1b[9u\x1b[32u"),
+              (std::vector<KeyEvent>{
+                  {Key::Enter}, {Key::Escape}, {Key::Backspace}, {Key::Tab}, {Key::Char, ' '}}));
+}
+
+TEST(Input, KittyArrowsCarryTheirAction) {
+    EXPECT_EQ(decode("\x1b[1;1:3A\x1b[1;1:2D\x1b[1;1:1C"),
+              (std::vector<KeyEvent>{{Key::Up, 0, 0, 0, KeyAction::Release},
+                                     {Key::Left, 0, 0, 0, KeyAction::Repeat},
+                                     {Key::Right}}));
+}
+
+TEST(Input, KittyModifiedAndFunctionalKeysAreDropped) {
+    EXPECT_TRUE(decode("\x1b[97;5u").empty());    // Ctrl+A
+    EXPECT_TRUE(decode("\x1b[97;3u").empty());    // Alt+A
+    EXPECT_TRUE(decode("\x1b[57441u").empty());   // left Shift on its own
+    EXPECT_TRUE(decode("\x1b[119;1:9u").empty()); // unknown event type
+    EXPECT_TRUE(decode("\x1b[?1u\x1b[?62;22c").empty()); // the startup query's replies
+}
+
+TEST(Input, KittyCtrlCRequestsAnInterruptOnce) {
+    InputDecoder d;
+    d.feed("\x1b[99;5u\x1b[99;5:3u");
+    EXPECT_FALSE(d.pop().has_value());
+    EXPECT_TRUE(d.takeInterrupt());
+    EXPECT_FALSE(d.takeInterrupt());
+    d.feed("\x1b[99;5:3u"); // a release alone is not an interrupt
+    EXPECT_FALSE(d.takeInterrupt());
+}

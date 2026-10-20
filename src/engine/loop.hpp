@@ -33,6 +33,9 @@ class LoopIo {
     virtual std::pair<int, int> size() const = 0; // cols, rows
     virtual std::vector<KeyEvent> readKeys() = 0; // non-blocking
     virtual void write(std::string_view bytes) = 0;
+    // Asks for key Repeat and Release events (on) or plain key presses (off), where the
+    // terminal can switch. Terminals that always report them, or never can, ignore it.
+    virtual void setKeyActions(bool /*on*/) {}
 };
 
 // Turns variable frame times into whole fixed steps. At most kMaxStepsPerFrame per call; time

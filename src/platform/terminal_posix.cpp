@@ -1,11 +1,14 @@
 #include "platform/terminal.hpp"
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <stdexcept>
 
 #include <errno.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -19,13 +22,15 @@ constexpr int kSignals[] = {SIGINT, SIGTERM, SIGHUP, SIGABRT};
 
 termios gSaved;
 std::atomic<bool> gActive{false};
+std::atomic<bool> gKittyPushed{false};
 bool gAtexitRegistered = false;
 
 // Safe to call from a signal handler (only write and tcsetattr) and idempotent.
 void restoreTerminal() {
     if (!gActive.exchange(false))
         return;
-    const ssize_t ignored = write(STDOUT_FILENO, kLeaveSequence.data(), kLeaveSequence.size());
+    const std::string_view leave = leaveSequence(gKittyPushed.exchange(false));
+    const ssize_t ignored = write(STDOUT_FILENO, leave.data(), leave.size());
     (void)ignored;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &gSaved);
 }
@@ -64,6 +69,38 @@ Terminal::Terminal() {
         signal(sig, onFatalSignal);
     gActive = true;
     write(kEnterSequence);
+    detectKitty();
+}
+
+void Terminal::detectKitty() {
+    using Clock = std::chrono::steady_clock;
+    constexpr auto kWait = std::chrono::milliseconds(200);
+    write(kKittyQuery);
+    std::string replies;
+    KittyProbe probe = KittyProbe::Waiting;
+    for (const auto deadline = Clock::now() + kWait;
+         probe == KittyProbe::Waiting && Clock::now() < deadline;) {
+        const auto left =
+            std::chrono::duration_cast<std::chrono::milliseconds>(deadline - Clock::now());
+        pollfd in{STDIN_FILENO, POLLIN, 0};
+        if (poll(&in, 1, static_cast<int>(std::max<long long>(1, left.count()))) > 0)
+            replies += readAvailable();
+        probe = probeKittyReply(replies);
+    }
+    kitty_ = probe == KittyProbe::Supported;
+    decoder_.feed(replies); // keys typed meanwhile still count; the replies decode to nothing
+}
+
+void Terminal::setKeyActions(bool on) {
+    if (!kitty_ || on == gKittyPushed.load())
+        return;
+    if (on) {
+        gKittyPushed = true; // flag first: a signal now pops a push that may not have landed
+        write(kKittyPush);
+    } else {
+        write(kKittyPop);
+        gKittyPushed = false;
+    }
 }
 
 Terminal::~Terminal() {
@@ -95,6 +132,8 @@ std::string Terminal::readAvailable() {
 
 std::vector<engine::KeyEvent> Terminal::readKeys() {
     decoder_.feed(readAvailable());
+    if (decoder_.takeInterrupt())
+        raise(SIGINT); // Ctrl+C as a kitty key report: quit as the terminal's own Ctrl+C would
     std::vector<engine::KeyEvent> keys;
     while (const auto key = decoder_.pop())
         keys.push_back(*key);

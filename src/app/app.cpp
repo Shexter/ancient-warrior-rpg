@@ -132,8 +132,20 @@ App::App(engine::LoopIo& io, engine::Renderer& renderer, std::unique_ptr<Screen>
 bool App::update(std::span<const engine::KeyEvent> keys, double dtSeconds) {
     if (stack_.empty())
         return false;
+    const bool wantsActions = stack_.back()->wantsKeyActions();
+    if (wantsActions != keyActions_) {
+        io_.setKeyActions(wantsActions);
+        keyActions_ = wantsActions;
+    }
     // On the phone layout, taps on the ✕ and the pad arrive as the keys they stand for.
-    std::vector<engine::KeyEvent> mapped(keys.begin(), keys.end());
+    std::vector<engine::KeyEvent> mapped;
+    for (engine::KeyEvent key : keys) {
+        if (!wantsActions && key.action == engine::KeyAction::Release)
+            continue;
+        if (!wantsActions)
+            key.action = engine::KeyAction::Press;
+        mapped.push_back(key);
+    }
     if (portrait_)
         for (engine::KeyEvent& key : mapped)
             if (const auto control = controlKey(key))

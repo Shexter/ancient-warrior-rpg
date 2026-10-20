@@ -261,3 +261,57 @@ TEST(Options, PortraitLayout) {
     const std::string_view args[] = {"--layout", "portrait"};
     EXPECT_EQ(parseOptions(args)->layout, Layout::Portrait);
 }
+
+namespace {
+
+class KeyModeIo final : public engine::LoopIo {
+  public:
+    std::pair<int, int> size() const override { return {80, 24}; }
+    std::vector<KeyEvent> readKeys() override { return {}; }
+    void write(std::string_view) override {}
+    void setKeyActions(bool on) override { requests.push_back(on); }
+    std::vector<bool> requests;
+};
+
+// Records the keys of its last update; pushes `next` once if given.
+class KeyScreen final : public Screen {
+  public:
+    KeyScreen(bool wants, std::vector<KeyEvent>& seen, Transition next = Stay{})
+        : wants_(wants), seen_(seen), next_(std::move(next)) {}
+    Transition update(std::span<const KeyEvent> keys, double) override {
+        seen_.assign(keys.begin(), keys.end());
+        return std::exchange(next_, Stay{});
+    }
+    void draw(Framebuffer&) const override {}
+    bool wantsKeyActions() const override { return wants_; }
+
+  private:
+    bool wants_;
+    std::vector<KeyEvent>& seen_;
+    Transition next_;
+};
+
+} // namespace
+
+TEST(App, OnlyOptedInScreensSeeRepeatsAndReleases) {
+    KeyModeIo io;
+    engine::Renderer renderer(engine::ColorMode::TrueColor);
+    std::vector<KeyEvent> plain, actions;
+    App app(io, renderer,
+            std::make_unique<KeyScreen>(
+                false, plain, Push{std::make_unique<KeyScreen>(true, actions, Pop{})}));
+    const std::vector<KeyEvent> keys{{Key::Char, 'd'},
+                                     {Key::Char, 'd', 0, 0, engine::KeyAction::Repeat},
+                                     {Key::Char, 'd', 0, 0, engine::KeyAction::Release}};
+
+    app.update(keys, 0); // the plain screen: a repeat is a press, the release is gone
+    EXPECT_EQ(plain, (std::vector<KeyEvent>{{Key::Char, 'd'}, {Key::Char, 'd'}}));
+    EXPECT_TRUE(io.requests.empty());
+
+    app.update(keys, 0); // the pushed screen opts in, so the terminal is asked first
+    EXPECT_EQ(actions, keys);
+    EXPECT_EQ(io.requests, std::vector<bool>{true});
+
+    app.update({}, 0); // it popped: back to plain keys
+    EXPECT_EQ(io.requests, (std::vector<bool>{true, false}));
+}

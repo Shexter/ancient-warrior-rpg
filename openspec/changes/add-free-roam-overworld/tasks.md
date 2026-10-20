@@ -9,11 +9,11 @@
 
 ## 2. Key press and release
 
-- [ ] 2.1 Add `KeyAction { Press, Repeat, Release }` to `KeyEvent`, defaulting to `Press`. Teach `InputDecoder` the kitty `CSI … u` forms and the `CSI 1 ; mods:event A–D` arrows, with Enter, Esc, Backspace and Tab mapping to their keys. `App` drops `Release` and passes `Repeat` as a plain key to every screen that doesn't opt in. Verify with decoder tests for press, repeat and release of `w`, the arrows and Enter, and that the existing input and screen tests pass unchanged.
-- [ ] 2.2 POSIX: detect the protocol at startup (`CSI ? u` then `CSI c`, 200 ms cap). Push `CSI > 11 u` while an opted-in screen is on top and pop it when it isn't. The restore path pops only if a push happened (D3). Windows: report key-up as `Release` and later down events as `Repeat`. Verify with tests of the leave sequence (the pop appears only after a push) and of the detection reply parser with and without a `CSI ? flags u` reply.
-- [ ] 2.3 Add `HeldKeys` (the most recently pressed held direction wins, and fallback mode reports only this tick's presses). Verify with tests for overlapping holds, release, and the fallback mode.
-- [ ] 2.4 Update SimpleDocs `terminal.md` with the key actions, detection, push and pop, and the fallback. Verify that it matches the code.
-- [ ] 2.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Add `KeyAction { Press, Repeat, Release }` to `KeyEvent`, defaulting to `Press`. Teach `InputDecoder` the kitty `CSI … u` forms and the `CSI 1 ; mods:event A–D` arrows, with Enter, Esc, Backspace and Tab mapping to their keys. `App` drops `Release` and passes `Repeat` as a plain key to every screen that doesn't opt in. Verify with decoder tests for press, repeat and release of `w`, the arrows and Enter, and that the existing input and screen tests pass unchanged.
+- [x] 2.2 POSIX: detect the protocol at startup (`CSI ? u` then `CSI c`, 200 ms cap). Push `CSI > 11 u` while an opted-in screen is on top and pop it when it isn't. The restore path pops only if a push happened (D3). Windows: report key-up as `Release` and later down events as `Repeat`. Verify with tests of the leave sequence (the pop appears only after a push) and of the detection reply parser with and without a `CSI ? flags u` reply.
+- [x] 2.3 Add `HeldKeys` (the most recently pressed held direction wins, and fallback mode reports only this tick's presses). Verify with tests for overlapping holds, release, and the fallback mode.
+- [x] 2.4 Update SimpleDocs `terminal.md` with the key actions, detection, push and pop, and the fallback. Verify that it matches the code.
+- [x] 2.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Overworld screen
 

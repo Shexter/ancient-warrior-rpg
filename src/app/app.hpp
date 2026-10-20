@@ -64,6 +64,7 @@ class App {
     engine::Renderer& renderer_;
     std::vector<std::unique_ptr<Screen>> stack_;
     mutable bool portrait_ = false; // the last frame drawn was the phone layout
+    bool keyActions_ = false;       // what the terminal was last asked for (setKeyActions)
 };
 
 } // namespace heroes::app

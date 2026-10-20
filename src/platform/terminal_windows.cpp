@@ -93,9 +93,15 @@ std::vector<engine::KeyEvent> Terminal::readKeys() {
         DWORD read = 0;
         if (!ReadConsoleInputW(gIn, &record, 1, &read) || read == 0)
             break;
-        if (record.EventType != KEY_EVENT || !record.Event.KeyEvent.bKeyDown)
+        if (record.EventType != KEY_EVENT)
             continue;
         const KEY_EVENT_RECORD& key = record.Event.KeyEvent;
+        bool& held = down_[key.wVirtualKeyCode & 0xFF];
+        const engine::KeyAction action = !key.bKeyDown ? engine::KeyAction::Release
+                                         : held        ? engine::KeyAction::Repeat
+                                                       : engine::KeyAction::Press;
+        held = key.bKeyDown != FALSE;
+        const std::size_t before = keys.size();
         switch (key.wVirtualKeyCode) {
         case VK_UP:
             keys.push_back({engine::Key::Up});
@@ -126,6 +132,8 @@ std::vector<engine::KeyEvent> Terminal::readKeys() {
                 keys.push_back({engine::Key::Char, static_cast<char>(key.uChar.UnicodeChar)});
             break;
         }
+        if (keys.size() > before)
+            keys.back().action = action;
     }
     return keys;
 }

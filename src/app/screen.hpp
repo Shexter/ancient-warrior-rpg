@@ -76,6 +76,9 @@ class Screen {
     virtual engine::Size canvasSize(engine::Size /*terminal*/) const {
         return engine::kCompactCanvas;
     }
+    // Whether this screen gets key Repeat and Release events as they arrive. Other screens get
+    // a Repeat as an ordinary press and never see a Release, as on a plain terminal.
+    virtual bool wantsKeyActions() const { return false; }
 };
 
 } // namespace heroes::app
