@@ -123,7 +123,7 @@ TEST(Overworld, TheViewStopsAtTheMapEdge) {
     ASSERT_TRUE(h.wait(3)); // up the path to the cave mouth at (35, 2)
     const Framebuffer frame = h.frame();
     EXPECT_EQ(heroAt(frame), (std::pair{4 + 35, 2})); // the view's top row is map row 0
-    for (int y = 2; y < frame.height(); ++y) { // under the HUD: the map's tree border, then nothing
+    for (int y = 2; y < frame.height() - 1; ++y) { // between the HUD rows and the hotbar
         EXPECT_TRUE(isTreeGlyph(frame.at(4, y).glyph)) << y;
         EXPECT_EQ(frame.at(3, y).glyph, U' ') << y;
     }
@@ -148,9 +148,9 @@ TEST(Overworld, TerrainLooksTheSameWhenRevisited) {
     ASSERT_EQ(ax, bx);
     ASSERT_NE(ay, by); // the camera did move
     int compared = 0;  // every map row on screen in both frames matches, wherever it is drawn
-    for (int y = kHudRows; y < before.height(); ++y) {
+    for (int y = kHudRows; y < before.height() - 1; ++y) { // not the hotbar row
         const int y2 = y + ay - by;
-        if (y2 < kHudRows || y2 >= after.height())
+        if (y2 < kHudRows || y2 >= after.height() - 1)
             continue;
         for (int x = 0; x < before.width(); ++x, ++compared)
             EXPECT_EQ(before.at(x, y), after.at(x, y2)) << x << "," << y;
@@ -163,7 +163,8 @@ TEST(Overworld, GoldenFrameAtSpawn) {
     enterWorld(h);
     const Framebuffer frame = h.frame();
     // The first map at spawn in 80x24: the status and goal rows, the centred plaza with its four
-    // service letters at the building doors, and the meadow's tall grass with the lair's ! east.
+    // service letters at the building doors, the meadow's tall grass with the lair's ! east, and
+// the hotbar.
     const std::vector<std::string> expected = {
         " ARIA Lv 1  HP ██████████ 350/350  FV ██████ 50/50  $20000  !x0  Sword          ",
         " » Next: train to Lv 15 for Act I: \"Avaritia\"                                   ",
@@ -188,7 +189,7 @@ TEST(Overworld, GoldenFrameAtSpawn) {
         "    Y.``.~~~-~~~=~-~-...,''.,..,.'.',...`....'.........,`',...;:vl:vivlvlv.^    ",
         "    ^,`..~=-=~~~~==~=`.''''''..`.,,',`...`.`,``'.'.'..,``,''..;;:ii:Yvl:ii,^    ",
         "    ^.,.`~~~~==-~=-~~,`.'.,`..`'`...,,,,'.....,.`..,,,`......'`,,'..,,'`,.'T    ",
-        "    Y'`.,`..,''`.,.',.,.^.....,'..`..``,.'...`.,T`....'..`.``''.`,''.'.,.,.T    ",
+        "  SPC  Swing    1  Firebolt 15    2  Nova 30    Q  Potion x0                    ",
     };
     std::vector<std::string> rows;
     for (int y = 0; y < frame.height(); ++y)
@@ -467,4 +468,143 @@ TEST(Overworld, MonstersAreDrawnAndFallingReturnsToTheHub) {
     EXPECT_TRUE(frameContains(hub, "You fell in the field. Visit the Prior to be revived."));
     EXPECT_NE(rowText(hub, 7).find("Fallen: visit the Prior"), std::string::npos); // Explore
     EXPECT_NE(rowText(hub, 8).find("Fallen: visit the Prior"), std::string::npos); // Training
+}
+
+namespace {
+
+std::string hotbar(const Framebuffer& frame) { return rowText(frame, frame.height() - 1); }
+
+// Where `text` starts on the bottom row.
+int hotbarAt(const Framebuffer& frame, const std::string& text) {
+    const std::string row = hotbar(frame);
+    const auto at = row.find(text);
+    return at == std::string::npos ? -1 : textWidth(row.substr(0, at));
+}
+
+} // namespace
+
+TEST(Overworld, TheHotbarShowsCostsAndCountsDownCooldowns) {
+    Harness h("world_hotbar");
+    enterWorld(h);
+    EXPECT_NE(hotbar(h.frame()).find("SPC  Swing    1  Firebolt 15    2  Nova 30    Q  Potion x0"),
+              std::string::npos);
+    ASSERT_TRUE(h.press({ch('2')}));
+    const Framebuffer cooling = h.frame();
+    EXPECT_NE(hotbar(cooling).find("Nova 30 4.0s"), std::string::npos) << hotbar(cooling);
+    EXPECT_EQ(cooling.at(hotbarAt(cooling, "Nova"), cooling.height() - 1).fg, palette::kDim);
+    ASSERT_TRUE(h.wait(1));
+    EXPECT_NE(hotbar(h.frame()).find("Nova 30 3.0s"), std::string::npos);
+    ASSERT_TRUE(h.wait(3.1));
+    EXPECT_NE(hotbar(h.frame()).find("Nova 30    Q"), std::string::npos);
+}
+
+TEST(Overworld, ARefusedAbilityFlashesItsSlot) {
+    Harness h("world_flash");
+    game::GameState state = freshGame();
+    state.hero.mp = 0;
+    enterWorld(h, state);
+    ASSERT_TRUE(h.press({ch('1')}));
+    const Framebuffer frame = h.frame();
+    EXPECT_EQ(frame.at(hotbarAt(frame, "Firebolt"), frame.height() - 1).bg, palette::kDmg);
+    ASSERT_TRUE(h.press({ch('q')}));
+    EXPECT_NE(rowText(h.frame(), 1).find("» No potions"), std::string::npos);
+    ASSERT_TRUE(h.wait(0.5));
+    const Framebuffer later = h.frame();
+    EXPECT_EQ(later.at(hotbarAt(later, "Firebolt"), later.height() - 1).bg, palette::kPanel);
+}
+
+TEST(Overworld, AKillIsAnnouncedWithItsRewards) {
+    const game::world::WorldDef world = huntingGround();
+    Harness h("world_kill");
+    h.session.world = &world;
+    game::GameState state = freshGame();
+    state.hero.atk = 100000;
+    h.startAtHub(state);
+    ASSERT_TRUE(h.press({kHubExplore}));
+    for (int i = 0; i < 60 * 30 && !frameContains(h.frame(), "defeated"); ++i) {
+        ASSERT_TRUE(h.press({ch('2')})); // Nova whenever it's ready, until the Fox comes close
+        h.session.state->hero.mp = h.session.state->hero.maxMp;
+    }
+    const std::string line = rowText(h.frame(), 1);
+    EXPECT_NE(line.find("» Fox defeated · +"), std::string::npos) << line;
+    // A level 3 Fox's 300 EXP takes a fresh hero up two levels.
+    EXPECT_NE(line.find("Level up! +2 blessings at the Prior"), std::string::npos) << line;
+}
+
+namespace {
+
+// Steps until a monster's wind-up targets the hero: the hero's cell turns dark red.
+bool waitForWindUp(Harness& h) {
+    for (int i = 0; i < 60 * 20; ++i) {
+        const Framebuffer f = h.frame();
+        const auto [x, y] = heroAt(f);
+        if (x >= 0 && f.at(x, y).bg == (engine::Rgb{96, 24, 36}))
+            return true;
+        if (!h.wait(1.0 / 60))
+            return false;
+    }
+    return false;
+}
+
+} // namespace
+
+TEST(Overworld, GoldenWindUpAndNovaFrames) {
+    const game::world::WorldDef world = huntingGround();
+    Harness h("world_golden_fight");
+    h.session.world = &world;
+    game::GameState state = freshGame();
+    state.hero.maxHp = state.hero.hp = 100000; // survives as long as the test needs
+    h.startAtHub(state);
+    ASSERT_TRUE(h.press({kHubExplore}));
+    ASSERT_TRUE(waitForWindUp(h));
+    const Framebuffer windUp = h.frame();
+    std::vector<std::string> windUpRows;
+    for (int y = 4; y <= 19; ++y) // the 12x12 meadow, centred
+        windUpRows.push_back(cellText(windUp, 32, y, 16));
+    const std::vector<std::string> expectedWindUp = {
+        "                ",
+        "                ",
+        "  .,,,.`,,.',`  ",
+        "  ,@f.`',,`...  ",
+        "  .....,',.''.  ",
+        "  `...'....,`.  ",
+        "  ,..'.'`...'.  ",
+        "  .``..,`...`'  ",
+        "  ..,...'`.,,`  ",
+        "  ,..,.,.,,`'`  ",
+        "  `.',.`'..,..  ",
+        "  .,.....`,,`.  ",
+        "  `,,'`.`.,'''  ",
+        "  ''.......,..  ",
+        "                ",
+        "                ",
+    };
+    EXPECT_EQ(windUpRows, expectedWindUp); // the Fox (f) beside the hero, mid wind-up
+    const auto [hx, hy] = heroAt(windUp);
+    EXPECT_EQ(windUp.at(hx, hy).bg, (engine::Rgb{96, 24, 36})); // the targeted tile
+
+    ASSERT_TRUE(h.press({ch('2')}));
+    const Framebuffer nova = h.frame();
+    std::vector<std::string> novaRows;
+    for (int y = 4; y <= 19; ++y)
+        novaRows.push_back(cellText(nova, 32, y, 16));
+    const std::vector<std::string> expectedNova = {
+        "*******         ",
+        "*     *         ",
+        "* .93,*`,,.',`  ",
+        "* ,@f.*',,`...  ",
+        "* ....*,',.''.  ",
+        "* `...*....,`.  ",
+        "*******'`...'.  ",
+        "  .``..,`...`'  ",
+        "  ..,...'`.,,`  ",
+        "  ,..,.,.,,`'`  ",
+        "  `.',.`'..,..  ",
+        "  .,.....`,,`.  ",
+        "  `,,'`.`.,'''  ",
+        "  ''.......,..  ",
+        "                ",
+        "                ",
+    };
+    EXPECT_EQ(novaRows, expectedNova); // the radius 3 ring, and Nova's damage over the Fox
 }

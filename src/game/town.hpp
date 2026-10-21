@@ -90,6 +90,8 @@ std::expected<void, TownError> withdraw(GameState&, std::string_view id, int qty
 // Missions
 // The consumables in the bag, which the hero can use during a battle.
 ItemStock consumableStock(const Hero&, const Content&);
+// A consumable that restores HP (a potion, as the field's Q and HUD count them).
+bool restoresHp(const ItemDef& item);
 // `scripts` runs scripted enemies and skills in the battle (one host per thread).
 std::expected<Battle, TownError> startMission(GameState&, const Content&, std::string_view id,
                                               script::ScriptHost* scripts = nullptr);

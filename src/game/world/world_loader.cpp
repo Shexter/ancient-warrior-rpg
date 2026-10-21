@@ -293,10 +293,30 @@ FieldTuning readField(std::string_view text, Errors& errors) {
         return field;
     Fields f(ctx, *doc, "",
              {"heroStepMs", "monsterWanderMs", "monsterChaseMs", "noticeRadius", "windUpMs",
-              "attackCooldownMs", "lifeRegenMs", "fervorRegenMs", "respawnMs", "respawnDistance"});
-    const auto ticks = [&](std::string_view key) { // to the nearest whole tick, at least 1
-        const int ms = f.req<int>(key, 1, 600000);
-        return std::max(1, static_cast<int>((static_cast<std::int64_t>(ms) * kTicksPerSecond + 500) / 1000));
+              "attackCooldownMs", "lifeRegenMs", "fervorRegenMs", "respawnMs", "respawnDistance",
+              "boltStepMs", "swing", "firebolt", "nova"});
+    // Milliseconds to the nearest whole tick, at least 1.
+    const auto ticksIn = [](Fields& from, std::string_view key) {
+        const int ms = from.req<int>(key, 1, 600000);
+        return std::max(
+            1, static_cast<int>((static_cast<std::int64_t>(ms) * kTicksPerSecond + 500) / 1000));
+    };
+    const auto ticks = [&](std::string_view key) { return ticksIn(f, key); };
+    const auto ability = [&](std::string_view key, bool hasReach) {
+        AbilityTuning a;
+        const Json* j = required(f, key);
+        if (!j)
+            return a;
+        Fields af(ctx, *j, std::string(key),
+                  hasReach ? std::initializer_list<std::string_view>{"cost", "cooldownMs",
+                                                                     "powerPercent", "reach"}
+                           : std::initializer_list<std::string_view>{"cost", "cooldownMs",
+                                                                     "powerPercent"});
+        a.cost = af.req<int>("cost", 0, 1000000);
+        a.cooldownTicks = ticksIn(af, "cooldownMs");
+        a.powerPercent = af.req<int>("powerPercent", 0, 1000);
+        a.reach = hasReach ? af.req<int>("reach", 1, 32) : 1;
+        return a;
     };
     field.ticksPerTile = ticks("heroStepMs");
     field.wanderTicks = ticks("monsterWanderMs");
@@ -308,6 +328,10 @@ FieldTuning readField(std::string_view text, Errors& errors) {
     field.fervorRegenTicks = ticks("fervorRegenMs");
     field.respawnTicks = ticks("respawnMs");
     field.respawnDistance = f.req<int>("respawnDistance", 0, kMaxSide);
+    field.boltTicksPerTile = ticks("boltStepMs");
+    field.abilities[static_cast<std::size_t>(Ability::Swing)] = ability("swing", false);
+    field.abilities[static_cast<std::size_t>(Ability::Firebolt)] = ability("firebolt", true);
+    field.abilities[static_cast<std::size_t>(Ability::Nova)] = ability("nova", true);
     return field;
 }
 

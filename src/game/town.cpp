@@ -385,6 +385,10 @@ std::expected<void, TownError> withdraw(GameState& state, std::string_view id, i
 
 // ---- Missions ----------------------------------------------------------------------------
 
+bool restoresHp(const ItemDef& item) {
+    return item.consumable && (item.consumable->restoreHp > 0 || item.consumable->fullRestore);
+}
+
 ItemStock consumableStock(const Hero& hero, const Content& content) {
     ItemStock stock;
     for (const Inventory::Slot& slot : hero.bag.slots())

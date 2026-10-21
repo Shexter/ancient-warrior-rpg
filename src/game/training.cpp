@@ -59,19 +59,14 @@ TrainingRound playRound(Hero& hero, const Content& content, Rng& rng, int caveLe
     hero.hp = fighter.hp;
 
     if (round.outcome == Outcome::Victory) {
-        round.goldGained = monster.goldReward;
-        round.expGained = monster.expReward;
-        hero.gold += monster.goldReward;
-        round.levelsGained = grantExp(hero, content, monster.expReward);
-        round.drop = rollDrop(rng, content, caveLevel);
-        if (round.drop) {
-            if (hero.bag.canAdd(*round.drop))
-                (void)hero.bag.add(*round.drop, 1);
-            else
-                round.dropLostBagFull = true;
-        }
+        MonsterRewards rewards = grantMonsterRewards(hero, content, rng, monster, caveLevel);
+        round.goldGained = rewards.gold;
+        round.expGained = rewards.exp;
+        round.levelsGained = rewards.levelsGained;
+        round.drop = std::move(rewards.drop);
+        round.dropLostBagFull = rewards.dropLostBagFull;
     } else if (round.outcome == Outcome::Defeat) {
-        hero.exp = std::max<std::int64_t>(0, hero.exp - monster.expReward);
+        loseToMonster(hero, monster);
     }
     return round;
 }
@@ -92,6 +87,27 @@ TrainingMonster rollTrainingMonster(Rng& rng, int caveLevel) {
     const std::int64_t gold = static_cast<std::int64_t>(roll(rng, 10, 10)) * 10 * caveLevel;
     const auto tier = static_cast<std::size_t>(caveLevel / 10);
     return {std::string(kTierNames[tier]), 100 * caveLevel, atk, def, gold, 100 * caveLevel};
+}
+
+MonsterRewards grantMonsterRewards(Hero& hero, const Content& content, Rng& rng,
+                                   const TrainingMonster& monster, int level) {
+    MonsterRewards rewards;
+    rewards.gold = monster.goldReward;
+    rewards.exp = monster.expReward;
+    hero.gold += monster.goldReward;
+    rewards.levelsGained = grantExp(hero, content, monster.expReward);
+    rewards.drop = rollDrop(rng, content, level);
+    if (rewards.drop) {
+        if (hero.bag.canAdd(*rewards.drop))
+            (void)hero.bag.add(*rewards.drop, 1);
+        else
+            rewards.dropLostBagFull = true;
+    }
+    return rewards;
+}
+
+void loseToMonster(Hero& hero, const TrainingMonster& monster) {
+    hero.exp = std::max<std::int64_t>(0, hero.exp - monster.expReward);
 }
 
 std::optional<std::string> rollDrop(Rng& rng, const Content& content, int caveLevel) {

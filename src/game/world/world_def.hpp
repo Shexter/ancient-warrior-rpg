@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <variant>
@@ -61,6 +62,16 @@ struct Zone {
     int count; // monsters alive at once
 };
 
+enum class Ability { Swing, Firebolt, Nova };
+inline constexpr int kAbilityCount = 3;
+
+struct AbilityTuning {
+    int cost = 0;          // Fervor
+    int cooldownTicks = 1; // from one use to the next
+    int powerPercent = 100; // of the hero's ATK (with equipment)
+    int reach = 1;         // Firebolt: tiles of flight; Nova: radius (Chebyshev); Swing: unused
+};
+
 // field.json, durations already in ticks.
 struct FieldTuning {
     int ticksPerTile = 1;        // the hero's walking pace
@@ -73,6 +84,10 @@ struct FieldTuning {
     int fervorRegenTicks = 1;    // the hero regains 1 Fervor this often
     int respawnTicks = 1;        // a zone below its count gets a monster back after this
     int respawnDistance = 0;     // tiles (Chebyshev) from the hero, at least, for a new monster
+    std::array<AbilityTuning, kAbilityCount> abilities{}; // by Ability
+    int boltTicksPerTile = 1;    // how fast a Firebolt flies
+
+    const AbilityTuning& ability(Ability a) const { return abilities[static_cast<std::size_t>(a)]; }
 };
 
 // The loaded, validated world: the map grid and everything placed on it.

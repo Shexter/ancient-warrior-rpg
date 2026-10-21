@@ -41,11 +41,11 @@
 
 ## 6. Abilities, potions and rewards
 
-- [ ] 6.1 Swing (Space, or a click turning toward the clicked cell on its longer axis), Firebolt (1, a projectile that stops at blocked tiles or the first monster within range), and Nova (2, Chebyshev radius), with costs, cooldowns and power percents from `field.json` (D7). Refused uses change nothing and emit a flash event. Verify with tests for Swing at an adjacent monster, Not enough Fervor, Bolt blocked by a tree, a click aiming left, and the Nova radius edge.
-- [ ] 6.2 Q uses the first HP-restoring consumable through `useConsumable`, or shows "No potions". Kills give gold and EXP through `grantExp` and a `rollDrop` at the zone level, and a drop that doesn't fit a full bag is lost with a message. Verify with tests for Drinking a potion, no potions, Level up in the field (a blessing point is gained), and a full bag.
-- [ ] 6.3 Hotbar on the bottom row (key, name, cost, a dimmed cooldown countdown, the flash on refusal, the potion key), plus the bolt, the Nova ring and the wind-up warning color drawn. Verify with screen tests for Ability recharging, and golden frames of a wind-up and a Nova.
-- [ ] 6.4 Add a headless field bot (step away during wind-ups, swing when facing a monster, potion below 30% HP). Add a test that a hero at each starter path's intended level clears a zone of that level without falling in at least 8 of 10 seeds, and tune `field.json` until it passes. Record the numbers in `docs/benchmarks.md`. Verify that the test passes and the numbers are recorded.
-- [ ] 6.5 Update SimpleDocs `overworld.md`. Verify that it matches the code.
+- [x] 6.1 Swing (Space, or a click turning toward the clicked cell on its longer axis), Firebolt (1, a projectile that stops at blocked tiles or the first monster within range), and Nova (2, Chebyshev radius), with costs, cooldowns and power percents from `field.json` (D7). Refused uses change nothing and emit a flash event. Verify with tests for Swing at an adjacent monster, Not enough Fervor, Bolt blocked by a tree, a click aiming left, and the Nova radius edge.
+- [x] 6.2 Q uses the first HP-restoring consumable through `useConsumable`, or shows "No potions". Kills give gold and EXP through `grantExp` and a `rollDrop` at the zone level, and a drop that doesn't fit a full bag is lost with a message. Verify with tests for Drinking a potion, no potions, Level up in the field (a blessing point is gained), and a full bag.
+- [x] 6.3 Hotbar on the bottom row (key, name, cost, a dimmed cooldown countdown, the flash on refusal, the potion key), plus the bolt, the Nova ring and the wind-up warning color drawn. Verify with screen tests for Ability recharging, and golden frames of a wind-up and a Nova.
+- [x] 6.4 Add a headless field bot (step away during wind-ups, swing when facing a monster, potion below 30% HP). Add a test that a hero at each starter path's intended level clears a zone of that level without falling in at least 8 of 10 seeds, and tune `field.json` until it passes. Record the numbers in `docs/benchmarks.md`. Verify that the test passes and the numbers are recorded.
+- [x] 6.5 Update SimpleDocs `overworld.md`. Verify that it matches the code.
 - [ ] 6.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 7. The full world

@@ -40,6 +40,21 @@ TrainingMonster rollTrainingMonster(Rng& rng, int caveLevel);
 // Always draws twice when any item can drop, never when none can.
 std::optional<std::string> rollDrop(Rng& rng, const Content& content, int caveLevel);
 
+// What beating a training-roll monster gave the hero.
+struct MonsterRewards {
+    std::int64_t gold = 0, exp = 0;
+    int levelsGained = 0;
+    std::optional<std::string> drop;
+    bool dropLostBagFull = false;
+    bool operator==(const MonsterRewards&) const = default;
+};
+// Applies a win over `monster` at `level`: its gold, its EXP (through grantExp), then a drop
+// roll; a drop that doesn't fit the bag is lost. Shared by training rounds and the field.
+MonsterRewards grantMonsterRewards(Hero& hero, const Content& content, Rng& rng,
+                                   const TrainingMonster& monster, int level);
+// A loss to `monster`: the hero gives up its EXP reward, never going below 0.
+void loseToMonster(Hero& hero, const TrainingMonster& monster);
+
 // The hero (a copy, e.g. from heroCombatant) trades hits with the monster until one falls or the
 // exchange cap is hit, appending the events. Shared by training and its win-chance estimate.
 Outcome fightTrainingMonster(Combatant& hero, const TrainingMonster& monster,

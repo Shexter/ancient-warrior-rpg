@@ -1,5 +1,6 @@
 #include "game/battle.hpp"
 #include "game/hero.hpp"
+#include "game/town.hpp"
 #include "game/world/world.hpp"
 #include "game/world/world_loader.hpp"
 #include "state_helpers.hpp"
@@ -10,6 +11,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <expected>
+#include <format>
 #include <filesystem>
 #include <string>
 #include <regex>
@@ -50,7 +52,10 @@ std::string worldJson(std::string spawn = R"({"x": 1, "y": 1})",
 // Field tuning for the tests: the shipped pace, and monsters that act quickly.
 constexpr const char* kField = R"({"heroStepMs": 125, "monsterWanderMs": 500,
     "monsterChaseMs": 250, "noticeRadius": 4, "windUpMs": 500, "attackCooldownMs": 1000,
-    "lifeRegenMs": 2000, "fervorRegenMs": 500, "respawnMs": 1000, "respawnDistance": 5})";
+    "lifeRegenMs": 2000, "fervorRegenMs": 500, "respawnMs": 1000, "respawnDistance": 5,
+    "boltStepMs": 50, "swing": {"cost": 0, "cooldownMs": 350, "powerPercent": 100},
+    "firebolt": {"cost": 15, "cooldownMs": 800, "powerPercent": 150, "reach": 10},
+    "nova": {"cost": 30, "cooldownMs": 4000, "powerPercent": 120, "reach": 3}})";
 
 std::expected<WorldDef, std::vector<ContentError>> parse(const std::string& map,
                                                          const std::string& json,
@@ -571,4 +576,187 @@ TEST(Field, ReplayWithMonstersIsDeterministic) {
     GameState a = freshState(), b = freshState();
     EXPECT_EQ(play(a), play(b));
     EXPECT_EQ(a, b);
+}
+
+// ---- Abilities, potions and rewards (chunk 6) -------------------------------------------------
+
+namespace {
+
+std::vector<WorldEvent> act(World& w, WorldInput input) { return w.step(input); }
+
+template <class T> const T* find(const std::vector<WorldEvent>& events) {
+    for (const WorldEvent& e : events)
+        if (const auto* hit = std::get_if<T>(&e))
+            return hit;
+    return nullptr;
+}
+
+// Turns the hero toward the monster beside it (a refused move still turns).
+void faceMonster(World& w) {
+    const Tile m = w.monsters()[0].at, h = w.hero();
+    run(w, m.x > h.x ? Dir::Right : m.x < h.x ? Dir::Left : m.y > h.y ? Dir::Down : Dir::Up, 9);
+}
+
+// One level 5 monster (500 HP, so one hit doesn't kill it) on its own 1x1 zone at `at`, where it
+// can't wander off; spawn is (1, 1).
+WorldDef pinnedMonster(Tile at, const std::string& map = openMap(), int respawnDistance = 5) {
+    return fieldWorld(std::format(R"([{{"name": "Pin", "x": {}, "y": {}, "w": 1, "h": 1,
+                                        "level": 5, "count": 1}}])",
+                                  at.x, at.y),
+                      map, withField(kField, "respawnDistance", respawnDistance));
+}
+
+} // namespace
+
+TEST(Field, SwingHitsTheMonsterInFront) {
+    const WorldDef def = fieldWorld(kCornerZone);
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    provoke(w);
+    faceMonster(w);
+    const Monster before = w.monsters()[0];
+    const int expected = defendedDamage(
+        state.hero.atk + equipmentBonus(state.hero, shippedContent()).atk, before.stats.def);
+    const auto events = act(w, {.swing = true});
+    EXPECT_EQ(w.monsters()[0].hp, before.hp - expected);
+    EXPECT_NE(std::ranges::find(events, WorldEvent{wev::Damaged{before.at, expected, false}}),
+              events.end());
+    EXPECT_GT(w.cooldownLeft(Ability::Swing), 0);
+    const auto again = act(w, {.swing = true}); // still cooling down
+    EXPECT_NE(find<wev::AbilityRefused>(again), nullptr);
+    EXPECT_EQ(w.monsters()[0].hp, before.hp - expected);
+}
+
+TEST(Field, AKillPaysGoldExpAndALevelUp) {
+    const WorldDef def = fieldWorld(kCornerZone);
+    GameState state = freshState();
+    state.hero.atk = 100000;
+    World w(def, state, shippedContent());
+    provoke(w);
+    faceMonster(w);
+    const Monster monster = w.monsters()[0];
+    const Hero before = state.hero;
+    const auto events = act(w, {.swing = true});
+    const auto* kill = find<wev::MonsterDefeated>(events);
+    ASSERT_NE(kill, nullptr);
+    EXPECT_TRUE(w.monsters().empty());
+    EXPECT_EQ(kill->name, monster.stats.name);
+    EXPECT_EQ(kill->rewards.gold, monster.stats.goldReward);
+    EXPECT_EQ(state.hero.gold, before.gold + monster.stats.goldReward);
+    Hero expected = before;
+    const int levels = grantExp(expected, shippedContent(), monster.stats.expReward);
+    EXPECT_GE(levels, 1); // 100 exp takes a fresh hero past level 1
+    EXPECT_EQ(kill->rewards.levelsGained, levels);
+    EXPECT_EQ(state.hero.level, expected.level);
+    EXPECT_EQ(state.hero.blessings, before.blessings + levels);
+}
+
+TEST(Field, ADropThatDoesNotFitAFullBagIsLost) {
+    const WorldDef def = pinnedMonster({3, 1}, openMap(), 0); // refills right next to the hero
+    GameState state = freshState();
+    state.hero.atk = 100000;
+    fillWithout(state.hero.bag, "", 10);
+    const Inventory bag = state.hero.bag;
+    World w(def, state, shippedContent());
+    run(w, Dir::Right, 9); // (2, 1), facing the monster at (3, 1)
+    for (int kill = 0; kill < 200; ++kill) {
+        const auto events = act(w, {.swing = true});
+        const auto* defeated = find<wev::MonsterDefeated>(events);
+        ASSERT_NE(defeated, nullptr);
+        if (const auto& drop = defeated->rewards.drop) {
+            EXPECT_EQ(defeated->rewards.dropLostBagFull, !bag.canAdd(*drop)) << *drop;
+            if (defeated->rewards.dropLostBagFull) { // one that can't stack onto the full bag
+                EXPECT_EQ(state.hero.bag, bag);
+                return;
+            }
+            state.hero.bag = bag; // it stacked: put the bag back as it was
+        }
+        run(w, std::nullopt, 61); // the zone refills after 1 s
+        ASSERT_EQ(w.monsters().size(), 1U);
+    }
+    FAIL() << "no drop in 200 kills";
+}
+
+TEST(Field, AbilitiesNeedFervor) {
+    const WorldDef def = fieldWorld(kCornerZone);
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    provoke(w);
+    state.hero.mp = 29; // Nova costs 30
+    const int hp = w.monsters()[0].hp;
+    const auto events = act(w, {.nova = true});
+    EXPECT_EQ(find<wev::AbilityRefused>(events)->ability, Ability::Nova);
+    EXPECT_EQ(find<wev::NovaBurst>(events), nullptr);
+    EXPECT_EQ(state.hero.mp, 29);
+    EXPECT_EQ(w.monsters()[0].hp, hp);
+    EXPECT_EQ(w.cooldownLeft(Ability::Nova), 0);
+}
+
+TEST(Field, AFireboltFliesUntilItHitsSomething) {
+    for (const bool wall : {false, true}) {
+        const WorldDef def = pinnedMonster({8, 1}, wall ? withTile(openMap(), 5, 1, '#') : openMap());
+        GameState state = freshState();
+        World w(def, state, shippedContent());
+        run(w, Dir::Right, 9); // (2, 1), facing right
+        const int hp = w.monsters()[0].hp;
+        auto events = act(w, {.firebolt = true});
+        EXPECT_EQ(state.hero.mp, state.hero.maxMp - 15);
+        EXPECT_EQ(w.bolts().size(), 1U);
+        const auto rest = run(w, std::nullopt, 60);
+        events.insert(events.end(), rest.begin(), rest.end());
+        EXPECT_TRUE(w.bolts().empty());
+        if (wall) {
+            EXPECT_EQ(w.monsters()[0].hp, hp) << "the wall at (5, 1) stops it";
+            EXPECT_EQ(find<wev::Damaged>(events), nullptr);
+        } else {
+            const int power = (state.hero.atk + equipmentBonus(state.hero, shippedContent()).atk) *
+                              150 / 100;
+            EXPECT_EQ(w.monsters()[0].hp, hp - defendedDamage(power, w.monsters()[0].stats.def));
+        }
+    }
+}
+
+TEST(Field, NovaHitsEverythingWithinItsRadius) {
+    // Two pinned monsters: (4, 1) is 3 tiles from spawn, (5, 1) is 4.
+    const WorldDef def = fieldWorld( // level 5: 500 HP each, so Nova doesn't kill
+        R"([{"name": "In", "x": 4, "y": 1, "w": 1, "h": 1, "level": 5, "count": 1},
+            {"name": "Out", "x": 5, "y": 1, "w": 1, "h": 1, "level": 5, "count": 1}])",
+        openMap(), withField(kField, "respawnDistance", 0));
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    ASSERT_EQ(w.monsters().size(), 2U);
+    const int inside = w.monsters()[0].hp, outside = w.monsters()[1].hp;
+    const auto events = act(w, {.nova = true});
+    EXPECT_EQ(*find<wev::NovaBurst>(events), (wev::NovaBurst{{1, 1}, 3}));
+    EXPECT_LT(w.monsters()[0].hp, inside);
+    EXPECT_EQ(w.monsters()[1].hp, outside);
+    EXPECT_EQ(state.hero.mp, state.hero.maxMp - 30);
+}
+
+TEST(Field, AClickTurnsTowardItsLongerAxisAndSwings) {
+    const WorldDef def = fieldWorld("[]");
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    run(w, Dir::Right, 9); // (2, 1), facing right
+    act(w, {.aim = Tile{0, 2}}); // two left, one down: left wins
+    EXPECT_EQ(w.facing(), Dir::Left);
+    EXPECT_GT(w.cooldownLeft(Ability::Swing), 0);
+    run(w, std::nullopt, 30);
+    act(w, {.aim = Tile{3, 5}}); // one right, four down
+    EXPECT_EQ(w.facing(), Dir::Down);
+}
+
+TEST(Field, QDrinksTheFirstHealingPotion) {
+    const WorldDef def = fieldWorld("[]");
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    EXPECT_NE(find<wev::NoPotions>(act(w, {.potion = true})), nullptr);
+    ASSERT_TRUE(state.hero.bag.add("health_potion", 1).has_value());
+    state.hero.hp = 10;
+    GameState expected = state;
+    ASSERT_TRUE(useConsumable(expected, shippedContent(), "health_potion").has_value());
+    const auto events = act(w, {.potion = true});
+    EXPECT_EQ(*find<wev::PotionDrunk>(events), (wev::PotionDrunk{"health_potion"}));
+    EXPECT_EQ(state.hero.hp, expected.hero.hp);
+    EXPECT_EQ(state.hero.bag.count("health_potion"), 0);
 }

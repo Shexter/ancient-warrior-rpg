@@ -143,3 +143,16 @@ overworld scroll bytes: 200x60 232929, 120x40 93328
 ```
 
 Both are under the design's 300 KB budget for a 200×60 scroll, so the camera keeps scrolling one column at a time (D9; the 4-tile jump fallback is not needed). At the 8 tiles/s walking pace a continuous scroll at 200×60 is about 1.9 MB/s, which is fine locally and the thing to watch over SSH. The test fails if a 200×60 scroll goes over 300 KB.
+
+## Field balance by zone level (add-free-roam-overworld task 6.4, 2026-10-21)
+
+A headless bot plays a 30×20 open meadow zone of 4 monsters at the given level, using the shipped `data/world/field.json`. The bot steps out of wind-ups aimed at it, drinks below 30% HP, walks up and swings, and uses Firebolt when it has Fervor to spare. A clear is 4 kills within two minutes without falling; seeds 1–10. The hero is fresh at level 1 with starting gear. Results are deterministic.
+
+```
+./heroes_tests --gtest_filter=FieldBalance.StarterPathsByZoneLevel
+field bot fighter   L1 10/10  L2 10/10  L3 10/10  L4  3/10  L5  0/10  L6  0/10
+field bot hunter    L1 10/10  L2 10/10  L3 10/10  L4  8/10  L5  6/10  L6  0/10
+field bot rogue     L1 10/10  L2 10/10  L3 10/10  L4 10/10  L5  4/10  L6  6/10
+```
+
+`FieldBalance.EveryStarterPathClearsALevelOneZone` pins the task's bar (at least 8 of 10 at level 1 for every path), and the shipped tuning meets it unchanged. A level 1 zone is a walk-over: its monsters' ATK (30–38) doesn't get past a starting hero's armor, so they do 0 damage. Levels 2–3 are where field fights start to cost HP, and level 4 and up need gear or blessings. That is the curve chunk 7's zone bands are laid out on. The rogue's non-monotonic L5/L6 comes from its high base DEF meeting the rolled monster ATK spread.

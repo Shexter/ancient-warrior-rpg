@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <string>
 #include <utility>
@@ -26,6 +27,9 @@ using game::world::Tile;
 
 inline constexpr engine::Size kMaxCanvas{200, 60};
 inline constexpr int kNumberTicks = 36;           // how long a damage number shows (0.6 s)
+inline constexpr int kNovaTicks = 12;             // how long the Nova ring shows (0.2 s)
+inline constexpr int kNoticeTicks = 150;          // how long a notice holds the goal line (2.5 s)
+inline constexpr int kFlashTicks = 18;            // a refused hotbar slot's flash (0.3 s)
 inline constexpr engine::Rgb kMonster{226, 110, 120};
 inline constexpr engine::Rgb kWindUpTile{96, 24, 36}; // under the tile a wind-up will hit
 
@@ -102,8 +106,7 @@ int potionCount(const game::Hero& hero, const game::Content& content) {
     for (const game::Inventory::Slot& slot : hero.bag.slots()) {
         if (!slot)
             continue;
-        const game::ItemDef& item = content.item(slot->first);
-        if (item.consumable && (item.consumable->restoreHp > 0 || item.consumable->fullRestore))
+        if (game::restoresHp(content.item(slot->first)))
             count += slot->second;
     }
     return count;
@@ -117,6 +120,9 @@ engine::Cell landmarkMark(const game::world::Landmark& landmark) {
     return {static_cast<char32_t>(landmark.name.empty() ? '?' : landmark.name[0]), palette::kBg,
             palette::kAccent};
 }
+
+// "1 blessing" / "3 blessings".
+std::string blessingsText(int n) { return std::format("{} blessing{}", n, n == 1 ? "" : "s"); }
 
 // A line of the panel background across `w` cells.
 void fillRow(engine::Framebuffer& frame, int x, int y, int w) {
@@ -138,39 +144,117 @@ Transition OverworldScreen::update(std::span<const engine::KeyEvent> keys, doubl
         goal_ = game::nextGoal(*session_.state, session_.content, session_.scripts);
         refreshGoal_ = false;
     }
-    bool interact = false;
+    const auto input = readKeys(keys);
+    if (!input)
+        return Pop{};
+    ageEffects();
+    for (const game::world::WorldEvent& event : world_.step(*input))
+        if (auto next = handle(event))
+            return std::move(*next);
+    return Stay{};
+}
+
+std::optional<game::world::WorldInput>
+OverworldScreen::readKeys(std::span<const engine::KeyEvent> keys) {
+    game::world::WorldInput input;
     for (const engine::KeyEvent& key : keys) {
-        if (key.action != engine::KeyAction::Press)
+        if (key.action == engine::KeyAction::Release)
             continue;
-        if (key.key == engine::Key::Escape)
-            return Pop{};
+        const bool press = key.action == engine::KeyAction::Press;
+        if (key.key == engine::Key::Escape && press)
+            return std::nullopt;
+        if (key.key == engine::Key::Click && camera_) {
+            const Tile at{camera_->x + key.x, camera_->y + key.y};
+            if (session_.world->inBounds(at))
+                input.aim = at;
+        }
         if (key.key != engine::Key::Char)
             continue;
-        if (key.ch == 'e' || key.ch == 'E')
-            interact = true;
-        else if (key.ch == 'm' || key.ch == 'M')
-            minimap_ = !minimapShown(lastCanvasWidth_);
+        switch (key.ch) { // abilities also take a held key's repeats; the cooldown paces them
+        case ' ':
+            input.swing = true;
+            break;
+        case '1':
+            input.firebolt = true;
+            break;
+        case '2':
+            input.nova = true;
+            break;
+        case 'q':
+        case 'Q':
+            input.potion = input.potion || press;
+            break;
+        case 'e':
+        case 'E':
+            input.interact = input.interact || press;
+            break;
+        case 'm':
+        case 'M':
+            if (press)
+                minimap_ = !minimapShown(lastCanvasWidth_);
+            break;
+        default:
+            break;
+        }
     }
     held_.update(keys);
+    input.move = held_.direction();
+    return input;
+}
+
+void OverworldScreen::ageEffects() {
     ++ticks_;
     for (FloatingNumber& n : numbers_)
         ++n.age;
     std::erase_if(numbers_, [](const FloatingNumber& n) { return n.age >= kNumberTicks; });
-    for (const game::world::WorldEvent& event : world_.step({held_.direction(), interact})) {
-        namespace wev = game::world::wev;
-        if (std::holds_alternative<wev::HeroFell>(event)) {
-            session_.lastMessage = "You fell in the field. Visit the Prior to be revived.";
-            return Pop{};
-        }
-        if (const auto* hit = std::get_if<wev::Damaged>(&event))
-            numbers_.push_back({hit->at, hit->amount, hit->onHero, 0});
-        if (const auto* use = std::get_if<wev::Interact>(&event))
-            if (auto next = open(session_.world->landmarks[use->landmark])) {
-                refreshGoal_ = true;
-                return Push{std::move(next)};
-            }
+    if (nova_ && ++nova_->age >= kNovaTicks)
+        nova_.reset();
+    if (!notice_.empty() && ++noticeAge_ >= kNoticeTicks)
+        notice_.clear();
+    for (int& flash : flashes_)
+        flash = std::max(0, flash - 1);
+}
+
+void OverworldScreen::notify(std::string text) {
+    notice_ = std::move(text);
+    noticeAge_ = 0;
+}
+
+std::optional<Transition> OverworldScreen::handle(const game::world::WorldEvent& event) {
+    namespace wev = game::world::wev;
+    if (std::holds_alternative<wev::HeroFell>(event)) {
+        session_.lastMessage = "You fell in the field. Visit the Prior to be revived.";
+        return Pop{};
     }
-    return Stay{};
+    if (const auto* hit = std::get_if<wev::Damaged>(&event))
+        numbers_.push_back({hit->at, hit->amount, hit->onHero, 0});
+    else if (const auto* refused = std::get_if<wev::AbilityRefused>(&event))
+        flashes_[static_cast<std::size_t>(refused->ability)] = kFlashTicks;
+    else if (const auto* burst = std::get_if<wev::NovaBurst>(&event))
+        nova_ = NovaRing{burst->center, burst->radius, 0};
+    else if (std::holds_alternative<wev::NoPotions>(event)) {
+        notify("No potions");
+        flashes_[game::world::kAbilityCount] = kFlashTicks;
+    } else if (const auto* drunk = std::get_if<wev::PotionDrunk>(&event))
+        notify(std::format("Drank {}", session_.content.item(drunk->itemId).name));
+    else if (const auto* kill = std::get_if<wev::MonsterDefeated>(&event)) {
+        const game::MonsterRewards& r = kill->rewards;
+        std::string text =
+            std::format("{} defeated · +{} gold · +{} exp", kill->name, r.gold, r.exp);
+        if (r.levelsGained > 0)
+            text += std::format(" · Level up! +{} at the Prior", blessingsText(r.levelsGained));
+        if (r.drop)
+            text += r.dropLostBagFull
+                        ? std::format(" · Bag full, {} lost", session_.content.item(*r.drop).name)
+                        : std::format(" · Drop: {}", session_.content.item(*r.drop).name);
+        notify(std::move(text));
+    } else if (const auto* use = std::get_if<wev::Interact>(&event)) {
+        if (auto next = open(session_.world->landmarks[use->landmark])) {
+            refreshGoal_ = true;
+            return Push{std::move(next)};
+        }
+    }
+    return std::nullopt;
 }
 
 std::unique_ptr<Screen> OverworldScreen::open(const game::world::Landmark& landmark) {
@@ -225,6 +309,49 @@ void OverworldScreen::draw(engine::Framebuffer& frame) const {
     drawHud(frame);
     if (minimapShown(frame.width()))
         drawMinimap(frame);
+    drawHotbar(frame);
+}
+
+void OverworldScreen::drawHotbar(engine::Framebuffer& frame) const {
+    struct Slot {
+        std::string_view key, name;
+        int cost;
+        int cooldown; // ticks left
+        int flash;
+    };
+    using game::world::Ability;
+    const game::world::FieldTuning& field = session_.world->field;
+    const auto ability = [&](Ability a, std::string_view key, std::string_view name) {
+        return Slot{key, name, field.ability(a).cost, world_.cooldownLeft(a),
+                    flashes_[static_cast<std::size_t>(a)]};
+    };
+    const std::string potions =
+        std::format("Potion x{}", potionCount(session_.state->hero, session_.content));
+    const std::array<Slot, 4> slots{
+        ability(Ability::Swing, "SPC", "Swing"), ability(Ability::Firebolt, "1", "Firebolt"),
+        ability(Ability::Nova, "2", "Nova"),
+        Slot{"Q", potions, 0, 0, flashes_[game::world::kAbilityCount]}};
+
+    const int y = frame.height() - 1;
+    fillRow(frame, 0, y, frame.width());
+    int x = 1;
+    for (const Slot& slot : slots) {
+        const engine::Rgb bg = slot.flash > 0 ? palette::kDmg : palette::kPanel;
+        frame.fillRect(x, y, textWidth(slot.key) + 2, 1, {U' ', palette::kBg, palette::kText});
+        drawText(frame, x + 1, y, slot.key, palette::kBg);
+        x += textWidth(slot.key) + 3;
+        const engine::Rgb fg = slot.cooldown > 0 ? palette::kDim : palette::kText;
+        std::string label(slot.name);
+        if (slot.cost > 0)
+            label += std::format(" {}", slot.cost);
+        if (slot.cooldown > 0)
+            label += std::format(" {:.1f}s", slot.cooldown / 60.0);
+        const int width = textWidth(label);
+        frame.fillRect(x, y, width, 1, {U' ', fg, bg});
+        x += drawText(frame, x, y, label, slot.cost > 0 && slot.cooldown == 0 ? palette::kMp : fg,
+                      std::max(0, frame.width() - x)) +
+             3;
+    }
 }
 
 void OverworldScreen::drawTerrain(engine::Framebuffer& frame) const {
@@ -267,6 +394,19 @@ void OverworldScreen::drawCreatures(engine::Framebuffer& frame) const {
         const bool flash = m.mode == Mode::WindUp && (ticks_ / 4) % 2 == 0;
         c->fg = flash ? palette::kAccent : kMonster;
     }
+    for (const game::world::Bolt& bolt : world_.bolts())
+        if (engine::Cell* c = cell(bolt.at)) {
+            c->glyph = U'*';
+            c->fg = palette::kGold;
+        }
+    if (nova_)
+        for (int dy = -nova_->radius; dy <= nova_->radius; ++dy)
+            for (int dx = -nova_->radius; dx <= nova_->radius; ++dx)
+                if (std::max(std::abs(dx), std::abs(dy)) == nova_->radius)
+                    if (engine::Cell* c = cell({nova_->center.x + dx, nova_->center.y + dy})) {
+                        c->glyph = U'*';
+                        c->fg = palette::kMp;
+                    }
     engine::Cell& heroCell = *cell(world_.hero());
     heroCell.glyph = U'@';
     heroCell.fg = palette::kAccent;
@@ -284,8 +424,11 @@ void OverworldScreen::drawHud(engine::Framebuffer& frame) const {
     const std::string weapon = hero.weapon ? content.item(hero.weapon->itemId).name : "—";
     const int potions = potionCount(hero, content);
     const std::string prompt = landmarkPrompt();
-    const std::string goalLine = "» " + (prompt.empty() ? goal_ : prompt);
-    const engine::Rgb goalColor = prompt.empty() ? palette::kText : palette::kAccent;
+    // A notice beats a landmark prompt, which beats the Next: goal (the only one in plain text).
+    const bool showGoal = notice_.empty() && prompt.empty();
+    const std::string goalLine =
+        "» " + (!notice_.empty() ? notice_ : !prompt.empty() ? prompt : goal_);
+    const engine::Rgb goalColor = showGoal ? palette::kText : palette::kAccent;
 
     if (frame.width() < kLargeCanvas.width) { // two rows across the top
         fillRow(frame, 0, 0, frame.width());

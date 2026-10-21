@@ -6,7 +6,9 @@
 #include "game/training.hpp"
 #include "game/world/world_def.hpp"
 
+#include <array>
 #include <cstddef>
+#include <string>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -15,8 +17,10 @@ namespace heroes::game::world {
 
 // What the player asks for during one tick.
 struct WorldInput {
-    std::optional<Dir> move; // a movement key is held, or was pressed or repeated this tick
+    std::optional<Dir> move{}; // a movement key is held, or was pressed or repeated this tick
     bool interact = false;   // E was pressed this tick
+    bool swing = false, firebolt = false, nova = false, potion = false;
+    std::optional<Tile> aim{}; // a clicked map tile: turn toward it, then swing
 };
 
 namespace wev {
@@ -37,8 +41,40 @@ struct Damaged { // a hit landed on the tile, for the number shown over it
 struct HeroFell { // HP reached 0; the world does nothing more
     bool operator==(const HeroFell&) const = default;
 };
+struct AbilityRefused { // not enough Fervor, or still cooling down; nothing changed
+    Ability ability;
+    bool operator==(const AbilityRefused&) const = default;
+};
+struct NovaBurst {
+    Tile center;
+    int radius;
+    bool operator==(const NovaBurst&) const = default;
+};
+struct PotionDrunk {
+    std::string itemId;
+    bool operator==(const PotionDrunk&) const = default;
+};
+struct NoPotions {
+    bool operator==(const NoPotions&) const = default;
+};
+struct MonsterDefeated {
+    std::string name;
+    Tile at;
+    MonsterRewards rewards;
+    bool operator==(const MonsterDefeated&) const = default;
+};
 } // namespace wev
-using WorldEvent = std::variant<wev::HeroMoved, wev::Interact, wev::Damaged, wev::HeroFell>;
+using WorldEvent =
+    std::variant<wev::HeroMoved, wev::Interact, wev::Damaged, wev::HeroFell, wev::AbilityRefused,
+                 wev::NovaBurst, wev::PotionDrunk, wev::NoPotions, wev::MonsterDefeated>;
+
+struct Bolt { // a Firebolt in flight
+    Tile at;
+    Dir dir;
+    int tilesLeft;
+    int timer; // ticks to its next tile
+    bool operator==(const Bolt&) const = default;
+};
 
 struct Monster {
     enum class Mode { Wander, Chase, WindUp, Cooldown };
@@ -64,6 +100,8 @@ class World {
     Tile hero() const { return hero_; }
     Dir facing() const { return facing_; }
     const std::vector<Monster>& monsters() const { return monsters_; }
+    const std::vector<Bolt>& bolts() const { return bolts_; }
+    int cooldownLeft(Ability a) const { return cooldowns_[static_cast<std::size_t>(a)]; } // ticks
     bool fallen() const { return fallen_; }
     // The landmark on or next to the hero (diagonals count), the closest first; ties go to the
     // one listed first.
@@ -73,6 +111,14 @@ class World {
     bool occupied(Tile t) const; // by the hero or a monster
     bool inZone(std::size_t zone, Tile t) const;
     void moveHero(const WorldInput& input, std::vector<WorldEvent>& events);
+    void useAbilities(const WorldInput& input, std::vector<WorldEvent>& events);
+    bool spend(Ability a, std::vector<WorldEvent>& events); // Fervor and cooldown, or refuse
+    int power(Ability a) const;
+    void drinkPotion(std::vector<WorldEvent>& events);
+    void advanceBolts(std::vector<WorldEvent>& events);
+    // Hits monsters_[index]; a monster brought to 0 HP is removed and pays out.
+    void hitMonster(std::size_t index, int power, std::vector<WorldEvent>& events);
+    std::optional<std::size_t> monsterAt(Tile t) const;
     void regenerate();
     void updateMonster(Monster& m, std::vector<WorldEvent>& events);
     std::optional<Tile> chaseStep(const Monster& m) const;
@@ -93,6 +139,8 @@ class World {
     int lifeTicks_ = 0, fervorTicks_ = 0;
     bool fallen_ = false;
     std::vector<Monster> monsters_;
+    std::vector<Bolt> bolts_;
+    std::array<int, kAbilityCount> cooldowns_{};
     std::vector<int> respawnTicks_; // per zone, counting down while the zone is below its count
     // Walking distance from the hero over a (4r+1)^2 window centred on `distanceOrigin_`.
     std::vector<int> distances_;

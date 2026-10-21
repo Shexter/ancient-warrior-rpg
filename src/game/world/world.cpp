@@ -2,11 +2,15 @@
 
 #include "game/battle.hpp"
 #include "game/hero.hpp"
+#include "game/town.hpp"
 
 #include <algorithm>
 #include <array>
 #include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
+#include <string>
 
 namespace heroes::game::world {
 
@@ -40,12 +44,17 @@ std::vector<WorldEvent> World::step(const WorldInput& input) {
     std::vector<WorldEvent> events;
     if (fallen_)
         return events;
+    for (int& cooldown : cooldowns_)
+        if (cooldown > 0)
+            --cooldown;
     moveHero(input, events);
+    useAbilities(input, events);
     if (input.interact)
         if (const auto landmark = nearbyLandmark())
             events.push_back(wev::Interact{*landmark});
     regenerate();
     refreshDistances();
+    advanceBolts(events);
     for (Monster& m : monsters_) {
         updateMonster(m, events);
         if (fallen_)
@@ -76,6 +85,105 @@ void World::moveHero(const WorldInput& input, std::vector<WorldEvent>& events) {
     events.push_back(wev::HeroMoved{hero_, to});
     hero_ = to;
     moveTicksLeft_ = def_->field.ticksPerTile;
+}
+
+void World::useAbilities(const WorldInput& input, std::vector<WorldEvent>& events) {
+    if (input.aim && *input.aim != hero_) { // turn along the axis with the larger distance
+        const int dx = input.aim->x - hero_.x, dy = input.aim->y - hero_.y;
+        facing_ = std::abs(dx) >= std::abs(dy) ? (dx > 0 ? Dir::Right : Dir::Left)
+                                               : (dy > 0 ? Dir::Down : Dir::Up);
+    }
+    if ((input.swing || input.aim) && spend(Ability::Swing, events))
+        if (const auto target = monsterAt(neighbor(hero_, facing_)))
+            hitMonster(*target, power(Ability::Swing), events);
+    if (input.firebolt && spend(Ability::Firebolt, events))
+        bolts_.push_back({hero_, facing_, def_->field.ability(Ability::Firebolt).reach, 0});
+    if (input.nova && spend(Ability::Nova, events)) {
+        const int radius = def_->field.ability(Ability::Nova).reach;
+        events.push_back(wev::NovaBurst{hero_, radius});
+        const int novaPower = power(Ability::Nova);
+        for (std::size_t i = monsters_.size(); i-- > 0;) // backwards: a kill removes monsters_[i]
+            if (chebyshev(monsters_[i].at, hero_) <= radius)
+                hitMonster(i, novaPower, events);
+    }
+    if (input.potion)
+        drinkPotion(events);
+}
+
+bool World::spend(Ability a, std::vector<WorldEvent>& events) {
+    const AbilityTuning& tuning = def_->field.ability(a);
+    int& cooldown = cooldowns_[static_cast<std::size_t>(a)];
+    Hero& hero = state_->hero;
+    if (cooldown > 0 || hero.mp < tuning.cost) {
+        events.push_back(wev::AbilityRefused{a});
+        return false;
+    }
+    hero.mp -= tuning.cost;
+    cooldown = tuning.cooldownTicks;
+    return true;
+}
+
+int World::power(Ability a) const {
+    const Hero& hero = state_->hero;
+    const std::int64_t atk = hero.atk + equipmentBonus(hero, *content_).atk;
+    return static_cast<int>(atk * def_->field.ability(a).powerPercent / 100);
+}
+
+void World::drinkPotion(std::vector<WorldEvent>& events) {
+    for (const Inventory::Slot& slot : state_->hero.bag.slots()) {
+        if (!slot || !restoresHp(content_->item(slot->first)))
+            continue;
+        std::string id = slot->first; // the slot may empty when it is used
+        (void)useConsumable(*state_, *content_, id); // it is in the bag and consumable
+        events.push_back(wev::PotionDrunk{std::move(id)});
+        return;
+    }
+    events.push_back(wev::NoPotions{});
+}
+
+void World::advanceBolts(std::vector<WorldEvent>& events) {
+    for (std::size_t b = 0; b < bolts_.size();) {
+        Bolt& bolt = bolts_[b];
+        bool gone = false;
+        if (expired(bolt.timer)) {
+            bolt.timer = def_->field.boltTicksPerTile;
+            const Tile next = neighbor(bolt.at, bolt.dir);
+            if (!def_->walkable(next)) {
+                gone = true; // a tree, wall, water or the map edge stops it
+            } else if (const auto target = monsterAt(next)) {
+                hitMonster(*target, power(Ability::Firebolt), events);
+                gone = true;
+            } else {
+                bolt.at = next;
+                gone = --bolt.tilesLeft == 0;
+            }
+        }
+        if (gone)
+            bolts_.erase(bolts_.begin() + static_cast<std::ptrdiff_t>(b));
+        else
+            ++b;
+    }
+}
+
+void World::hitMonster(std::size_t index, int power, std::vector<WorldEvent>& events) {
+    Monster& m = monsters_[index];
+    const int damage = defendedDamage(power, m.stats.def);
+    m.hp = std::max(0, m.hp - damage);
+    events.push_back(wev::Damaged{m.at, damage, false});
+    if (m.hp > 0)
+        return;
+    const Monster dead = std::move(m);
+    monsters_.erase(monsters_.begin() + static_cast<std::ptrdiff_t>(index));
+    MonsterRewards rewards = grantMonsterRewards(state_->hero, *content_, rng_, dead.stats,
+                                                 def_->zones[dead.zone].level);
+    events.push_back(wev::MonsterDefeated{dead.stats.name, dead.at, std::move(rewards)});
+}
+
+std::optional<std::size_t> World::monsterAt(Tile t) const {
+    const auto it = std::ranges::find(monsters_, t, &Monster::at);
+    if (it == monsters_.end())
+        return std::nullopt;
+    return static_cast<std::size_t>(it - monsters_.begin());
 }
 
 void World::regenerate() {
@@ -163,7 +271,7 @@ void World::hitHero(const Monster& m, std::vector<WorldEvent>& events) {
     events.push_back(wev::Damaged{hero_, damage, true});
     if (hero.hp > 0)
         return;
-    hero.exp = std::max<std::int64_t>(0, hero.exp - m.stats.expReward);
+    loseToMonster(hero, m.stats);
     fallen_ = true;
     events.push_back(wev::HeroFell{});
 }

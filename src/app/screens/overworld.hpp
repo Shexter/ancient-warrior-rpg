@@ -4,6 +4,7 @@
 #include "app/screen.hpp"
 #include "game/world/world.hpp"
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -12,8 +13,9 @@
 namespace heroes::app {
 
 // The real-time world map: the hero walks with the arrows or W/A/S/D (held keys keep walking),
-// E next to a landmark opens its screen, M shows or hides the minimap, and Esc returns to the
-// Hub. A status panel and a goal panel are drawn over the map. Requires a game state and a
+// swings with Space or a click, casts Firebolt (1) and Nova (2), drinks a potion with Q, opens a
+// landmark's screen with E, shows or hides the minimap with M, and returns to the Hub with Esc.
+// A status panel, a goal panel and a hotbar are drawn over the map. Requires a game state and a
 // loaded world.
 class OverworldScreen final : public Screen {
   public:
@@ -27,6 +29,13 @@ class OverworldScreen final : public Screen {
     const game::world::World& world() const { return world_; }
 
   private:
+    // This step's input from the keys, or nothing when Esc asks to leave.
+    std::optional<game::world::WorldInput> readKeys(std::span<const engine::KeyEvent> keys);
+    // Reacts to one world event; a transition when it leaves the screen.
+    std::optional<Transition> handle(const game::world::WorldEvent& event);
+    void notify(std::string text); // a short message in the goal line
+    void ageEffects();
+    void drawHotbar(engine::Framebuffer& frame) const;
     // The screen a landmark opens, or nothing (a locked lair only repeats its note).
     std::unique_ptr<Screen> open(const game::world::Landmark& landmark);
     // "Forge — press E", "Lair of Avaritia — Requires Lv 15", or empty away from landmarks.
@@ -52,6 +61,14 @@ class OverworldScreen final : public Screen {
         int age; // ticks shown so far
     };
     std::vector<FloatingNumber> numbers_;
+    struct NovaRing {
+        game::world::Tile center;
+        int radius, age;
+    };
+    std::optional<NovaRing> nova_;
+    std::string notice_; // "No potions", a kill's rewards; shown over the goal line for a while
+    int noticeAge_ = 0;
+    std::array<int, game::world::kAbilityCount + 1> flashes_{}; // hotbar slot flash ticks left
     int ticks_ = 0; // steps since the screen opened, for the wind-up flash
     mutable int lastCanvasWidth_ = 80; // for M before a choice is made
     // The map tile drawn at the canvas's top-left. It follows the hero as frames are drawn, since
