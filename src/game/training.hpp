@@ -18,6 +18,7 @@ struct TrainingMonster {
     std::string name;
     int maxHp, atk, def;
     std::int64_t goldReward, expReward;
+    bool operator==(const TrainingMonster&) const = default;
 };
 
 struct TrainingRound {

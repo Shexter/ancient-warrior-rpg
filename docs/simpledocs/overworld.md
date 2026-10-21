@@ -10,14 +10,38 @@ The Overworld is loaded at startup, after content and before sprites, by `world:
   - `landmarks`: `{name, x, y, opens}`, where `opens` holds exactly one of `service` (`almonry`, `forge`, `prior`, `thesaurus`), `training: true`, or `mission` (a mission id).
   - `zones`: `{name, x, y, w, h, level 1–30, count 1–50}`.
   - Placement checks run only when everything parsed. Spawn and landmarks must be on walkable tiles inside the map, zones inside the map, and every landmark reachable from spawn on foot (four directions).
-- **`field.json`:** `heroStepMs` (1–10000), the time to walk one tile. It is converted to the nearest whole tick at 60 ticks per second, at least 1 (125 ms → 8 ticks).
+- **`field.json`:** every key is required. Durations are 1–600000 ms, converted to the nearest whole tick at 60 ticks per second and at least 1 (125 ms → 8 ticks). The shipped values are:
+
+  | Key | Shipped | Meaning |
+  |---|---|---|
+  | `heroStepMs` | 125 | time to walk one tile |
+  | `monsterWanderMs` | 700 | between a wandering monster's steps |
+  | `monsterChaseMs` | 250 | between a chasing monster's steps |
+  | `noticeRadius` | 6 | tiles, 1–32 |
+  | `windUpMs` | 500 | from a wind-up to its hit |
+  | `attackCooldownMs` | 1200 | after a monster's hit |
+  | `lifeRegenMs` | 2000 | between Life regen ticks |
+  | `fervorRegenMs` | 500 | between +1 Fervor ticks |
+  | `respawnMs` | 30000 | respawn delay |
+  | `respawnDistance` | 12 | tiles, 0–1024 |
 
 The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14), the Almonry, Forge, Prior and Thesaurus at the four building doors, the Catacombs (training) at the cave mouth to the north, the level 1 Glyphwick Meadow zone to the east, and the Lair of Avaritia inside it.
 
-`world::World(def, state)` is the simulation. It starts the hero on spawn facing down, and forks `state.rng` once. `step(WorldInput)` advances one tick:
+`world::World(def, state, content)` is the simulation. It starts the hero on spawn facing down, forks `state.rng` once, and places each zone's monsters. `step(WorldInput)` advances one tick (and does nothing once the hero has fallen):
 - Once the current move has finished, a held or requested direction turns the hero that way.
 - If the next tile is walkable and inside the map, the hero moves there at once and emits `HeroMoved{from, to}`. The next move can start `ticksPerTile` ticks later.
 - A refused move still turns the hero.
+- Monsters block the hero, and the hero blocks monsters.
+- **Regen:** every `lifeRegenMs` the hero regains Life HP (base plus equipment, up to max HP; nothing at Life 0, e.g. a Fighter). Every `fervorRegenMs` the hero regains 1 Fervor, up to the maximum. Both counters start full on entry.
+- **Monsters** (`Monster`: zone, `TrainingMonster` stats, HP, tile, mode, target, timer):
+  - A new monster takes a random free walkable tile of its zone at least `respawnDistance` (Chebyshev) from the hero, then rolls its stats with `rollTrainingMonster` at the zone's level. The draw order is the tile, then atk, def and gold.
+  - On entry each zone fills up to its count. A zone below its count gets one back every `respawnMs` while a tile qualifies; with none, it waits (an empty zone near spawn on a small map fills only once the hero walks away).
+  - **Wander:** every `monsterWanderMs` it picks one of the four directions or stays (`rng.below(5)`), moving only onto a free walkable tile in its zone.
+  - **Chase:** the hero is in the zone and within `noticeRadius` (Chebyshev), or within twice that once it is already chasing. Noticing shortens its timer to `monsterChaseMs` at once. Every `monsterChaseMs` it steps to the free in-zone neighbour with the smallest walking distance to the hero (ties in the order up, down, left, right). The distances come from one breadth-first search over walkable tiles in a window of twice the notice radius around the hero, redone only when the hero changes tile.
+  - **WindUp:** when it is next to the hero (four directions) it targets the hero's tile for `windUpMs`. When the wind-up ends it hits only if the hero is still on that tile: `defendedDamage(atk, hero DEF + equipment DEF)`, emitting `Damaged{tile, amount, onHero}`.
+  - **Cooldown:** `attackCooldownMs`, then Wander, which re-checks for a chase on its next tick.
+- **Falling:** a hit that takes HP to 0 subtracts that monster's EXP reward (not below 0), keeps equipment, gold and items, and emits `HeroFell`.
+- `defendedDamage(power, def)` (`battle.hpp`, `max(0, power − def)`) is the one damage rule, shared by `Battle::hit`, training exchanges and the field.
 - `nearbyLandmark()` is the landmark on or next to the hero, diagonals included. The smallest `|dx| + |dy|` wins, and a tie goes to the one listed first.
 - `WorldInput::interact` (E this tick) emits `Interact{landmark index}` when there is one.
 
@@ -43,10 +67,14 @@ The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14
 
 - **Landmarks** are drawn inverted so they can't pass for terrain: a lair is a light `!` on red, and any other landmark is its name's first letter on the accent color (A, F, P, T and C on the first map).
 - **The hero** is `@` in the accent color over its tile's background.
+- **Monsters** are drawn as their name's lower-case initial (`f` Fox, `b` Bat or Bull, `h` Horse) in a red. During a wind-up the target tile's background turns dark red and the monster flashes the accent color every 4 steps.
+- **Damage numbers** rise from the `Damaged` events: one row above the tile for 0.3 s, then two rows for 0.3 s, red on the hero and gold on a monster.
+- **Opening** marks the session unsaved, since the world forks the game's random stream.
 - **Each step**, in order:
   - If the hero can't adventure (they fell in a mission or a training round opened from here) the screen pops to the Hub, which shows that screen's last message.
   - If a landmark's screen has just closed, the goal line is worked out again.
   - Then key presses are read: Esc pops; E (any case) interacts; M (any case) shows or hides the minimap.
+  - The world steps. A `HeroFell` sets the Hub's message to "You fell in the field. Visit the Prior to be revived." and pops; `Damaged` adds a damage number; `Interact` opens the landmark.
 - **Interacting** pushes the landmark's screen: the Almonry (`MerchantScreen`), Forge (`BlacksmithScreen`), Prior (`GuildmasterScreen`), Thesaurus (`BankScreen`), the Catacombs (`TrainingSetupScreen`), or a lair's `MissionIntroScreen` opened with `fromWorld`.
   - Those screens' Esc and their results `Pop` back here, with the hero where they stood. The Training and mission Result screens still say "Enter return to the Hub".
   - Backing out of a lair's intro (Esc, or No to "Enter the lair?") pops back here instead of replacing itself with Mission Select.

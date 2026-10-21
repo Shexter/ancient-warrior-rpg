@@ -63,7 +63,16 @@ struct Zone {
 
 // field.json, durations already in ticks.
 struct FieldTuning {
-    int ticksPerTile; // the hero's walking pace
+    int ticksPerTile = 1;        // the hero's walking pace
+    int wanderTicks = 1;         // between a wandering monster's steps
+    int chaseTicks = 1;          // between a chasing monster's steps
+    int noticeRadius = 1;        // tiles (Chebyshev); a chase gives up beyond twice this
+    int windUpTicks = 1;         // from a monster's wind-up to its hit
+    int attackCooldownTicks = 1; // after a monster's hit before it acts again
+    int lifeRegenTicks = 1;      // the hero regains Life HP this often
+    int fervorRegenTicks = 1;    // the hero regains 1 Fervor this often
+    int respawnTicks = 1;        // a zone below its count gets a monster back after this
+    int respawnDistance = 0;     // tiles (Chebyshev) from the hero, at least, for a new monster
 };
 
 // The loaded, validated world: the map grid and everything placed on it.

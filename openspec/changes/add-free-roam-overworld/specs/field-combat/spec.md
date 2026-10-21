@@ -7,15 +7,19 @@ Real-time fights against monsters roaming the Overworld. Positioning, dodging te
 ## ADDED Requirements
 
 ### Requirement: Zones and monsters
-Each zone SHALL have a level from 1 to 30 and a monster count. A zone's monsters SHALL be rolled with the training-monster roll at the zone's level, giving their name, HP, ATK, DEF, gold and EXP. A defeated monster SHALL respawn after a fixed delay (set in the field data) on a walkable tile in its zone that is outside the hero's view. Monsters SHALL stay inside their zone.
+Each zone SHALL have a level from 1 to 30 and a monster count. A zone's monsters SHALL be rolled with the training-monster roll at the zone's level, giving their name, HP, ATK, DEF, gold and EXP. A zone SHALL start with its monsters placed, and a zone below its count SHALL get one back after a fixed delay (set in the field data). Monsters SHALL appear only on a free walkable tile in their zone at least a minimum distance from the hero (in tiles, set in the field data), so they never pop into existence beside the hero whatever the terminal size; when no tile qualifies, the zone waits until one does. Monsters SHALL stay inside their zone.
 
 #### Scenario: Zone level sets stats
 - **WHEN** a level 5 zone spawns a monster
 - **THEN** its stats and rewards are those the training-monster roll gives at level 5
 
-#### Scenario: Respawn out of sight
-- **WHEN** a monster is defeated and the respawn delay passes
-- **THEN** a newly rolled monster appears in that zone on a tile the hero cannot see
+#### Scenario: Respawn away from the hero
+- **WHEN** a zone is below its count and the respawn delay passes
+- **THEN** a newly rolled monster appears in that zone at least the minimum distance from the hero
+
+#### Scenario: Hero standing over the whole zone
+- **WHEN** every tile of a zone below its count is closer to the hero than the minimum distance
+- **THEN** no monster appears until the hero walks far enough away
 
 ### Requirement: Monster behavior and telegraphs
 A monster SHALL wander its zone until the hero comes within its notice radius. It SHALL then step toward the hero along a walkable path until the hero leaves the zone or gets beyond twice that radius. A monster next to the hero SHALL wind up an attack on the hero's tile, shown on screen for the whole wind-up time. When the wind-up ends it SHALL hit only if the hero is still on that tile, then wait out its attack cooldown.

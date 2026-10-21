@@ -76,7 +76,7 @@ int Battle::hit(Side attacker, int power, bool applyDef, DamageCause cause, Even
     const Side targetSide = opponent(attacker);
     Combatant& target = combatant(targetSide);
     const int def = hasStatus(target, StatusId::DefenseDown) ? target.def / 2 : target.def;
-    int damage = applyDef ? std::max(0, power - def) : power;
+    int damage = applyDef ? defendedDamage(power, def) : power;
     if (hasStatus(target, StatusId::Guard)) // halved before Reflect splits what's left
         damage /= 2;
     if (hasStatus(target, StatusId::Reflect) && damage > 0) {

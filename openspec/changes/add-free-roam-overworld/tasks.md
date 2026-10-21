@@ -32,12 +32,12 @@
 
 ## 5. Field monsters and defeat
 
-- [ ] 5.1 Zones and monsters in `World` (D5, D6). Monsters are rolled with `rollTrainingMonster` at the zone level, wander inside the zone, notice within the radius, chase by a BFS distance map capped at twice the radius, and give up beyond it or outside the zone. Each does a wind-up on the hero's tile, then hits or misses, then cools down. Monsters and the hero block each other. Verify with tests for Zone level sets stats, Dodging, Standing still, a chase around a tree, and giving up outside the zone.
-- [ ] 5.2 Damage as a shared `max(0, power − def)` free function used by `Battle`'s basic attack and the field. Life regen on its interval, Fervor regen, and floating damage numbers as events. Verify with tests for Armor absorbs a weak hit and both regens, and that the battle golden tests pass with `battle_golden_data.hpp` unchanged.
-- [ ] 5.3 Field defeat (D10): subtract the last hitter's EXP reward (not below 0), keep equipment, gold and items, emit `HeroFell`, and the Overworld returns to the Hub with "You fell in the field. Visit the Prior to be revived." Verify with tests for Falling (Explore, Training and Mission disabled afterwards) and the EXP floor.
-- [ ] 5.4 Respawn after the delay on a walkable zone tile outside the view. Verify with the Respawn out of sight test.
-- [ ] 5.5 Update SimpleDocs `overworld.md`. Verify that it matches the code.
-- [ ] 5.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.1 Zones and monsters in `World` (D5, D6). Monsters are rolled with `rollTrainingMonster` at the zone level, wander inside the zone, notice within the radius, chase by a BFS distance map capped at twice the radius, and give up beyond it or outside the zone. Each does a wind-up on the hero's tile, then hits or misses, then cools down. Monsters and the hero block each other. Verify with tests for Zone level sets stats, Dodging, Standing still, a chase around a tree, and giving up outside the zone.
+- [x] 5.2 Damage as a shared `max(0, power − def)` free function used by `Battle`'s basic attack and the field. Life regen on its interval, Fervor regen, and floating damage numbers as events. Verify with tests for Armor absorbs a weak hit and both regens, and that the battle golden tests pass with `battle_golden_data.hpp` unchanged.
+- [x] 5.3 Field defeat (D10): subtract the last hitter's EXP reward (not below 0), keep equipment, gold and items, emit `HeroFell`, and the Overworld returns to the Hub with "You fell in the field. Visit the Prior to be revived." Verify with tests for Falling (Explore, Training and Mission disabled afterwards) and the EXP floor.
+- [x] 5.4 Respawn after the delay on a free walkable zone tile at least `respawnDistance` tiles (Chebyshev) from the hero; with no such tile the zone waits. Verify with the Respawn away from the hero and Hero standing over the whole zone tests.
+- [x] 5.5 Update SimpleDocs `overworld.md`. Verify that it matches the code.
+- [x] 5.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 6. Abilities, potions and rewards
 

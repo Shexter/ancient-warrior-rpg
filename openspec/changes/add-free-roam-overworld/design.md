@@ -66,7 +66,8 @@ The hero occupies one tile. A move starts only when the current one has finished
   - the spawn tile;
   - landmarks: `{ name, x, y, opens: { service: "almonry"|"forge"|"prior"|"thesaurus" } | { training: true } | { mission: "<id>" } }`;
   - zones: `{ name, x, y, w, h, level, count }`.
-- `data/world/field.json` holds the tuning: pace, monster speeds, notice radius, wind-up, monster attack cooldown, regen interval and rates, respawn delay, and each ability's key label, cost, cooldown, power multiple (in percent, an integer) and range or radius.
+- `data/world/field.json` holds the tuning: pace, monster speeds, notice radius, wind-up, monster attack cooldown, regen interval and rates, respawn delay and minimum respawn distance from the hero, and each ability's key label, cost, cooldown, power multiple (in percent, an integer) and range or radius.
+- Respawn uses a distance from the hero, not the screen's view (decided with the user, 2026-10-21): the headless world doesn't know the terminal size, and on a big terminal the whole starter map is visible, so "outside the view" would mean monsters never come back.
 
 The world is loaded by the same JSON helpers and error style as `content_loader`, into a `WorldDef`, not into `Content`. Validation, including flood-fill reachability of every landmark from spawn, runs at load and fails with the file and line. The world is loaded in `main` beside the sprites and passed in through `Session`.
 *Alternative:* put the world in `Content` so mods could override it. That was rejected because mod support for the world is a non-goal, and keeping it out leaves `Content` and the mod-merge rules unchanged.

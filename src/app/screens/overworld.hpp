@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace heroes::app {
 
@@ -34,6 +35,7 @@ class OverworldScreen final : public Screen {
     void drawTerrain(engine::Framebuffer& frame) const;
     void drawHud(engine::Framebuffer& frame) const;
     void drawMinimap(engine::Framebuffer& frame) const;
+    void drawCreatures(engine::Framebuffer& frame) const; // monsters, the hero, damage numbers
 
     Session& session_;
     game::world::World world_;
@@ -43,6 +45,14 @@ class OverworldScreen final : public Screen {
     std::string goal_;
     bool refreshGoal_ = false;
     std::optional<bool> minimap_;      // the player's M choice; unset follows the canvas width
+    struct FloatingNumber {            // a hit's damage, rising over where it landed
+        game::world::Tile at;
+        int amount;
+        bool onHero;
+        int age; // ticks shown so far
+    };
+    std::vector<FloatingNumber> numbers_;
+    int ticks_ = 0; // steps since the screen opened, for the wind-up flash
     mutable int lastCanvasWidth_ = 80; // for M before a choice is made
     // The map tile drawn at the canvas's top-left. It follows the hero as frames are drawn, since
     // only drawing knows the canvas size; unset until the first frame centres it on the hero.

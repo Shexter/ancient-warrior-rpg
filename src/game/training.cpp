@@ -24,13 +24,13 @@ Outcome fightTrainingMonster(Combatant& hero, const TrainingMonster& monster,
                              std::vector<Event>& events) {
     int monsterHp = monster.maxHp;
     for (int exchange = 1; exchange <= kExchangeCap; ++exchange) {
-        const int heroHit = std::max(0, hero.atk - monster.def);
+        const int heroHit = defendedDamage(hero.atk, monster.def);
         monsterHp = std::max(0, monsterHp - heroHit);
         events.push_back(ev::Damaged{Side::Enemy, heroHit, monsterHp, DamageCause::Attack});
         if (monsterHp == 0)
             return Outcome::Victory;
 
-        const int monsterHit = std::max(0, monster.atk - hero.def);
+        const int monsterHit = defendedDamage(monster.atk, hero.def);
         hero.hp = std::max(0, hero.hp - monsterHit);
         events.push_back(ev::Damaged{Side::Hero, monsterHit, hero.hp, DamageCause::Attack});
         if (hero.hp == 0)

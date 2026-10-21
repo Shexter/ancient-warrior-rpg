@@ -5,6 +5,7 @@
 #include "game/hero.hpp"
 #include "game/rng.hpp"
 
+#include <algorithm>
 #include <expected>
 #include <map>
 #include <set>
@@ -34,6 +35,9 @@ struct Combatant {
 };
 
 Combatant heroCombatant(const Hero& hero, const Content& content); // base + equipmentBonus
+
+// The game's damage rule for a hit that DEF applies to: battles, training and the field.
+constexpr int defendedDamage(int power, int def) { return std::max(0, power - def); }
 Combatant enemyCombatant(const EnemyDef& enemy);
 
 struct Attack {};

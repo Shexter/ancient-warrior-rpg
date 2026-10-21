@@ -26,7 +26,18 @@ std::pair<int, int> heroAt(const Framebuffer& frame) {
     return {-1, -1};
 }
 
+// The shipped world without its monster zones, for tests about walking and landmarks.
+const game::world::WorldDef& quietWorld() {
+    static const game::world::WorldDef world = [] {
+        game::world::WorldDef w = shippedWorld();
+        w.zones.clear();
+        return w;
+    }();
+    return world;
+}
+
 void enterWorld(Harness& h, game::GameState state = freshGame()) {
+    h.session.world = &quietWorld();
     h.startAtHub(std::move(state));
     ASSERT_TRUE(h.press({kHubExplore}));
     ASSERT_EQ(h.app->depth(), 2u);
@@ -200,7 +211,8 @@ game::world::WorldDef bigMeadow() {
         R"({"legend": {".": {"terrain": "grass", "walkable": true},
                        ",": {"terrain": "tall_grass", "walkable": true}},
             "spawn": {"x": 200, "y": 100}, "landmarks": [], "zones": []})",
-        R"({"heroStepMs": 125})", game::shippedContent());
+        readFile(fs::path(HEROES_SOURCE_DIR) / "data" / "world" / "field.json"),
+        game::shippedContent());
     EXPECT_TRUE(world.has_value());
     return std::move(*world);
 }
@@ -411,4 +423,48 @@ TEST(Overworld, GoldenHudAt150x45) {
         " └────────────────────────────────┘ ",
     };
     EXPECT_EQ(rows, expected);
+}
+
+namespace {
+
+// A 12x12 meadow around spawn (1, 1) with one level 3 monster (level 1 can't get past a starting
+// hero's armor) that notices from anywhere.
+game::world::WorldDef huntingGround() {
+    std::string map;
+    for (int y = 0; y < 12; ++y)
+        map += std::string(12, '.') + '\n';
+    std::string field = readFile(fs::path(HEROES_SOURCE_DIR) / "data" / "world" / "field.json");
+    field.replace(field.find("\"noticeRadius\": 6"), 17, "\"noticeRadius\": 12");
+    field.replace(field.find("\"respawnDistance\": 12"), 21, "\"respawnDistance\": 5");
+    auto world = game::world::parseWorld(
+        map,
+        R"({"legend": {".": {"terrain": "grass", "walkable": true}}, "spawn": {"x": 1, "y": 1},
+            "landmarks": [],
+            "zones": [{"name": "All", "x": 0, "y": 0, "w": 12, "h": 12, "level": 3, "count": 1}]})",
+        field, game::shippedContent());
+    EXPECT_TRUE(world.has_value());
+    return std::move(*world);
+}
+
+} // namespace
+
+TEST(Overworld, MonstersAreDrawnAndFallingReturnsToTheHub) {
+    const game::world::WorldDef world = huntingGround();
+    Harness h("world_fall");
+    h.session.world = &world;
+    game::GameState state = freshGame();
+    state.hero.hp = 1;
+    h.startAtHub(state);
+    ASSERT_TRUE(h.press({kHubExplore}));
+    EXPECT_TRUE(h.session.dirty);
+    EXPECT_TRUE(frameContains(h.frame(), "f")); // a Fox, drawn as its lower-case initial
+    for (int i = 0; i < 60 * 30 && h.app->depth() == 2; ++i)
+        ASSERT_TRUE(h.wait(1.0 / 60));
+    ASSERT_EQ(h.app->depth(), 1u);
+    EXPECT_EQ(h.session.state->hero.hp, 0);
+    ASSERT_TRUE(h.wait(1.0 / 60)); // the Hub refreshes its menu on its next step
+    const Framebuffer hub = h.frame();
+    EXPECT_TRUE(frameContains(hub, "You fell in the field. Visit the Prior to be revived."));
+    EXPECT_NE(rowText(hub, 7).find("Fallen: visit the Prior"), std::string::npos); // Explore
+    EXPECT_NE(rowText(hub, 8).find("Fallen: visit the Prior"), std::string::npos); // Training
 }

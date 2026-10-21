@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <deque>
 #include <format>
 #include <fstream>
@@ -286,13 +287,27 @@ void checkPlacement(const WorldDef& world, Errors& errors) {
 
 FieldTuning readField(std::string_view text, Errors& errors) {
     Ctx ctx{errors, std::string(kFieldFile)};
-    FieldTuning field{1};
+    FieldTuning field;
     auto doc = parseJson(ctx, text);
     if (!doc)
         return field;
-    Fields f(ctx, *doc, "", {"heroStepMs"});
-    const int stepMs = f.req<int>("heroStepMs", 1, 10000);
-    field.ticksPerTile = std::max(1, (stepMs * kTicksPerSecond + 500) / 1000); // nearest tick
+    Fields f(ctx, *doc, "",
+             {"heroStepMs", "monsterWanderMs", "monsterChaseMs", "noticeRadius", "windUpMs",
+              "attackCooldownMs", "lifeRegenMs", "fervorRegenMs", "respawnMs", "respawnDistance"});
+    const auto ticks = [&](std::string_view key) { // to the nearest whole tick, at least 1
+        const int ms = f.req<int>(key, 1, 600000);
+        return std::max(1, static_cast<int>((static_cast<std::int64_t>(ms) * kTicksPerSecond + 500) / 1000));
+    };
+    field.ticksPerTile = ticks("heroStepMs");
+    field.wanderTicks = ticks("monsterWanderMs");
+    field.chaseTicks = ticks("monsterChaseMs");
+    field.noticeRadius = f.req<int>("noticeRadius", 1, 32);
+    field.windUpTicks = ticks("windUpMs");
+    field.attackCooldownTicks = ticks("attackCooldownMs");
+    field.lifeRegenTicks = ticks("lifeRegenMs");
+    field.fervorRegenTicks = ticks("fervorRegenMs");
+    field.respawnTicks = ticks("respawnMs");
+    field.respawnDistance = f.req<int>("respawnDistance", 0, kMaxSide);
     return field;
 }
 

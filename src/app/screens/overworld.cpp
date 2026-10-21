@@ -25,6 +25,9 @@ using game::world::Terrain;
 using game::world::Tile;
 
 inline constexpr engine::Size kMaxCanvas{200, 60};
+inline constexpr int kNumberTicks = 36;           // how long a damage number shows (0.6 s)
+inline constexpr engine::Rgb kMonster{226, 110, 120};
+inline constexpr engine::Rgb kWindUpTile{96, 24, 36}; // under the tile a wind-up will hit
 
 struct TerrainStyle {
     std::string_view ramp; // glyphs picked per tile by its position
@@ -123,8 +126,10 @@ void fillRow(engine::Framebuffer& frame, int x, int y, int w) {
 } // namespace
 
 OverworldScreen::OverworldScreen(Session& session)
-    : session_(session), world_(*session.world, *session.state),
-      goal_(game::nextGoal(*session.state, session.content, session.scripts)) {}
+    : session_(session), world_(*session.world, *session.state, session.content),
+      goal_(game::nextGoal(*session.state, session.content, session.scripts)) {
+    session_.dirty = true; // the world forked the game's random stream, and the field changes HP
+}
 
 Transition OverworldScreen::update(std::span<const engine::KeyEvent> keys, double) {
     if (!game::canAdventure(session_.state->hero))
@@ -147,12 +152,24 @@ Transition OverworldScreen::update(std::span<const engine::KeyEvent> keys, doubl
             minimap_ = !minimapShown(lastCanvasWidth_);
     }
     held_.update(keys);
-    for (const game::world::WorldEvent& event : world_.step({held_.direction(), interact}))
-        if (const auto* use = std::get_if<game::world::wev::Interact>(&event))
+    ++ticks_;
+    for (FloatingNumber& n : numbers_)
+        ++n.age;
+    std::erase_if(numbers_, [](const FloatingNumber& n) { return n.age >= kNumberTicks; });
+    for (const game::world::WorldEvent& event : world_.step({held_.direction(), interact})) {
+        namespace wev = game::world::wev;
+        if (std::holds_alternative<wev::HeroFell>(event)) {
+            session_.lastMessage = "You fell in the field. Visit the Prior to be revived.";
+            return Pop{};
+        }
+        if (const auto* hit = std::get_if<wev::Damaged>(&event))
+            numbers_.push_back({hit->at, hit->amount, hit->onHero, 0});
+        if (const auto* use = std::get_if<wev::Interact>(&event))
             if (auto next = open(session_.world->landmarks[use->landmark])) {
                 refreshGoal_ = true;
                 return Push{std::move(next)};
             }
+    }
     return Stay{};
 }
 
@@ -228,9 +245,37 @@ void OverworldScreen::drawTerrain(engine::Framebuffer& frame) const {
         if (x >= 0 && y >= 0 && x < frame.width() && y < frame.height())
             frame.set(x, y, landmarkMark(landmark));
     }
-    engine::Cell& heroCell = frame.at(hero.x - camera_->x, hero.y - camera_->y);
+    drawCreatures(frame);
+}
+
+void OverworldScreen::drawCreatures(engine::Framebuffer& frame) const {
+    using Mode = game::world::Monster::Mode;
+    const auto cell = [&](Tile t) -> engine::Cell* {
+        const int x = t.x - camera_->x, y = t.y - camera_->y;
+        return x >= 0 && y >= 0 && x < frame.width() && y < frame.height() ? &frame.at(x, y)
+                                                                            : nullptr;
+    };
+    for (const game::world::Monster& m : world_.monsters())
+        if (engine::Cell* target = m.mode == Mode::WindUp ? cell(m.target) : nullptr)
+            target->bg = kWindUpTile;
+    for (const game::world::Monster& m : world_.monsters()) {
+        engine::Cell* c = cell(m.at);
+        if (!c)
+            continue;
+        const char letter = m.stats.name.empty() ? 'm' : m.stats.name[0];
+        c->glyph = static_cast<char32_t>(letter >= 'A' && letter <= 'Z' ? letter - 'A' + 'a' : letter);
+        const bool flash = m.mode == Mode::WindUp && (ticks_ / 4) % 2 == 0;
+        c->fg = flash ? palette::kAccent : kMonster;
+    }
+    engine::Cell& heroCell = *cell(world_.hero());
     heroCell.glyph = U'@';
     heroCell.fg = palette::kAccent;
+    for (const FloatingNumber& n : numbers_) {
+        const std::string text = std::to_string(n.amount);
+        const int x = n.at.x - camera_->x - static_cast<int>(text.size()) / 2;
+        const int y = n.at.y - camera_->y - (n.age < kNumberTicks / 2 ? 1 : 2);
+        drawText(frame, x, y, text, n.onHero ? palette::kDmg : palette::kAccent);
+    }
 }
 
 void OverworldScreen::drawHud(engine::Framebuffer& frame) const {
