@@ -56,7 +56,7 @@ add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screen
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
     src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
     src/app/screens/mission.cpp src/app/battle_view.cpp src/app/art.cpp
-    src/app/held_keys.cpp)
+    src/app/held_keys.cpp src/app/screens/overworld.cpp)
 target_include_directories(heroes_app PUBLIC src)
 target_link_libraries(heroes_app PUBLIC heroes_game heroes_engine PRIVATE heroes_warnings)
 
@@ -75,7 +75,8 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/mods_test.cpp
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
-    tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp)
+    tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
+    tests/overworld_screen_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.

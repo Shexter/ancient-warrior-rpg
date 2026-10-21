@@ -6,6 +6,7 @@
 #include "app/screens/hub.hpp"
 #include "app/screens/title.hpp"
 #include "engine/framebuffer.hpp"
+#include "game/world/world_loader.hpp"
 
 #include "shipped_content.hpp"
 
@@ -43,6 +44,13 @@ inline const LargeSprites& shippedLargeSprites() {
     return large;
 }
 
+inline const game::world::WorldDef& shippedWorld() {
+    static const game::world::WorldDef world =
+        game::world::loadWorld(fs::path(HEROES_SOURCE_DIR) / "data", game::shippedContent())
+            .value();
+    return world;
+}
+
 class NullIo : public engine::LoopIo {
   public:
     std::pair<int, int> size() const override { return {80, 24}; }
@@ -64,6 +72,7 @@ struct Harness {
         session.saveFile = dir / "save.json";
         session.scripts = &game::shippedScripts();
         session.seed = 7;
+        session.world = &shippedWorld();
     }
 
     void startAtTitle() { app.emplace(io, renderer, std::make_unique<TitleScreen>(session)); }
@@ -110,6 +119,13 @@ struct Harness {
 const KeyEvent kEnter{Key::Enter};
 const KeyEvent kEsc{Key::Escape};
 inline KeyEvent ch(char c) { return {Key::Char, c}; }
+// The Hub's number shortcuts.
+const KeyEvent kHubExplore = ch('1');
+const KeyEvent kHubTraining = ch('2');
+const KeyEvent kHubMission = ch('3');
+const KeyEvent kHubTown = ch('4');
+const KeyEvent kHubSave = ch('5');
+const KeyEvent kHubQuit = ch('6');
 
 inline game::GameState freshGame() {
     return game::newGame(game::shippedContent(), "Aria", "fighter", 7);

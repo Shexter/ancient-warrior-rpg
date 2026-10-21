@@ -31,7 +31,7 @@ void withLargeArt(Harness& h, ArtStyle art = ArtStyle::Glyph) {
 // Hub -> Mission -> Medusa (the bonus, '4') -> Yes.
 void enterMedusa(Harness& h) {
     h.startAtHub(levelTwenty());
-    ASSERT_TRUE(h.press({ch('2'), ch('4'), kEnter, kEnter, ch('y')}));
+    ASSERT_TRUE(h.press({kHubMission, ch('4'), kEnter, kEnter, ch('y')}));
     ASSERT_TRUE(frameContains(h.frame(), "MEDUSA LAIR"));
 }
 
@@ -137,7 +137,7 @@ TEST(LargeLayout, HubPlacesTheLargeHeroAndMenu) {
     h.session.lastMessage = "Welcome back.";
     const Framebuffer frame = h.frame(kLargeCanvas);
     EXPECT_EQ(frame.at(119, 0).glyph, U'┐'); // the status panel spans 120 columns
-    EXPECT_EQ(cellText(frame, 60, 12, 10), "▶ Training");
+    EXPECT_EQ(cellText(frame, 60, 12, 9), "▶ Explore");
     const auto [x, y, c] = firstGlyph(shippedLargeSprites().glyphs.at("hero_fighter.sprite"));
     EXPECT_EQ(frame.at(4 + x, 7 + y).glyph, static_cast<char32_t>(c));
     EXPECT_NE(rowText(frame, 38).find("Welcome back."), std::string::npos);
@@ -164,7 +164,7 @@ TEST(LargeLayout, TrainingPlaybackIsLargeButTheTotalsAreNot) {
     Harness h("large_training");
     withLargeArt(h);
     h.startAtHub(freshGame());
-    ASSERT_TRUE(h.press({ch('1'), ch('1'), kEnter}));
+    ASSERT_TRUE(h.press({kHubTraining, ch('1'), kEnter}));
     EXPECT_EQ(h.app->canvasSize(kBigTerminal), kLargeCanvas);
     const Framebuffer frame = h.frame(kLargeCanvas);
     EXPECT_NE(rowText(frame, 1).find("THE CATACOMBS · Level 1"), std::string::npos);

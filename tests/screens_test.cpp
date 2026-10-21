@@ -49,7 +49,7 @@ TEST(NewGame, CreatesTheHeroWithTheSeedAndReachesTheHub) {
     EXPECT_TRUE(h.session.dirty);
     const Framebuffer frame = h.frame();
     EXPECT_NE(rowText(frame, 1).find("ARIA  Hunter Lv 1"), std::string::npos);
-    EXPECT_NE(rowText(frame, 7).find("▶ Training"), std::string::npos);
+    EXPECT_NE(rowText(frame, 7).find("▶ Explore"), std::string::npos);
     EXPECT_TRUE(frameContains(frame, "Welcome, Aria the Hunter."));
 }
 
@@ -75,7 +75,7 @@ TEST(Hub, SaveThenContinueRestoresTheSameGame) {
     Harness h("save_continue");
     h.startAtHub(freshGame());
     h.session.dirty = true;
-    ASSERT_TRUE(h.press({ch('4')}));
+    ASSERT_TRUE(h.press({kHubSave}));
     EXPECT_TRUE(frameContains(h.frame(), "Game saved."));
     EXPECT_FALSE(h.session.dirty);
     EXPECT_TRUE(h.session.saveOwned);
@@ -95,14 +95,14 @@ TEST(Hub, SavingOverAFileThisSessionDidNotLoadAsksFirst) {
     Harness h("replace");
     std::ofstream(h.session.saveFile) << "someone else's save";
     h.startAtHub(freshGame());
-    ASSERT_TRUE(h.press({ch('4')}));
+    ASSERT_TRUE(h.press({kHubSave}));
     EXPECT_TRUE(frameContains(h.frame(), "Replace the existing save?"));
     ASSERT_TRUE(h.press({ch('n')}));
     EXPECT_EQ(readFile(h.session.saveFile), "someone else's save");
 
-    ASSERT_TRUE(h.press({ch('4'), ch('y')}));
+    ASSERT_TRUE(h.press({kHubSave, ch('y')}));
     EXPECT_TRUE(game::loadGame(h.session.saveFile, game::shippedContent()).has_value());
-    ASSERT_TRUE(h.press({kEnter, ch('4')})); // owned now: no question the second time
+    ASSERT_TRUE(h.press({kEnter, kHubSave})); // owned now: no question the second time
     EXPECT_FALSE(frameContains(h.frame(), "Replace the existing save?"));
 }
 
@@ -110,7 +110,7 @@ TEST(Hub, QuitAsksOnlyWithUnsavedChanges) {
     Harness h("quit");
     h.startAtHub(freshGame());
     h.session.dirty = true;
-    ASSERT_TRUE(h.press({ch('5')}));
+    ASSERT_TRUE(h.press({kHubQuit}));
     EXPECT_TRUE(frameContains(h.frame(), "Quit without saving?"));
     ASSERT_TRUE(h.press({ch('n'), kEsc})); // No keeps playing; Esc asks again
     EXPECT_TRUE(frameContains(h.frame(), "Quit without saving?"));
@@ -118,7 +118,7 @@ TEST(Hub, QuitAsksOnlyWithUnsavedChanges) {
 
     Harness saved("quit_saved");
     saved.startAtHub(freshGame());
-    EXPECT_FALSE(saved.press({ch('5')})); // nothing unsaved: quits at once
+    EXPECT_FALSE(saved.press({kHubQuit})); // nothing unsaved: quits at once
 }
 
 TEST(Hub, ShowsTheNextLineInEveryLayoutAndRefreshesOnStateChange) {
@@ -139,11 +139,12 @@ TEST(Hub, AdventureOptionsExplainWhyTheyAreDisabled) {
     game::GameState state = freshGame();
     h.startAtHub(state);
     ASSERT_TRUE(h.press({}));
-    EXPECT_NE(rowText(h.frame(), 8).find("Requires Lv 15"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 9).find("Requires Lv 15"), std::string::npos);
 
     h.session.state->hero.hp = 0;
     ASSERT_TRUE(h.press({ch('x')})); // any step refreshes the menu
-    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Prior"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 7).find("Fallen: visit the Prior"), std::string::npos); // Explore
+    EXPECT_NE(rowText(h.frame(), 8).find("Fallen: visit the Prior"), std::string::npos);
 
     h.session.state->hero.hp = 100;
     h.session.state->hero.weapon.reset();
@@ -213,7 +214,7 @@ TEST(Taps, TappingAHubRowOpensIt) {
     Harness h("tap_hub");
     h.startAtHub(freshGame());
     (void)h.frame(); // the menu is tappable where it was drawn
-    ASSERT_TRUE(h.press({{Key::Click, 0, 40, 9}})); // the Town row
+    ASSERT_TRUE(h.press({{Key::Click, 0, 40, 10}})); // the Town row
     EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
 }
 
@@ -222,7 +223,7 @@ TEST(Taps, QuitIsConfirmedByTappingYes) {
     h.startAtHub(freshGame());
     h.session.dirty = true;
     (void)h.frame();
-    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 11}})); // Quit
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 12}})); // Quit
     const Framebuffer frame = h.frame();
     ASSERT_TRUE(frameContains(frame, "Quit without saving?"));
     int fx = -1, fy = -1;
@@ -236,7 +237,7 @@ TEST(Taps, QuitIsConfirmedByTappingYes) {
     ASSERT_GE(fx, 0);
     ASSERT_TRUE(h.press({{Key::Click, 0, fx + 1, fy}})); // [N]o keeps playing
     (void)h.frame();
-    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 11}}));
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 12}}));
     (void)h.frame(); // the loop draws every frame; the harness draws on request
     EXPECT_FALSE(h.press({{Key::Click, 0, fx - 6, fy}})); // [Y]es quits
 }

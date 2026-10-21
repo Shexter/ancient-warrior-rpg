@@ -51,7 +51,7 @@ struct ViewFixture {
 void enterBattle(Harness& h, game::GameState state, char mission = '4',
                  std::string_view location = "MEDUSA LAIR") {
     h.startAtHub(std::move(state));
-    ASSERT_TRUE(h.press({ch('2'), ch(mission)}));
+    ASSERT_TRUE(h.press({kHubMission, ch(mission)}));
     ASSERT_TRUE(frameContains(h.frame(), std::string(location)));
     ASSERT_TRUE(h.press({kEnter, kEnter})); // reveal the story, then finish it
     ASSERT_TRUE(frameContains(h.frame(), "Enter the lair?"));
@@ -142,7 +142,7 @@ TEST(MissionSelect, ListsComingSoonAndDisablesClearedMissions) {
     game::GameState state = levelTwenty();
     state.hero.completedMissions.insert("the_gorgon");
     h.startAtHub(state);
-    ASSERT_TRUE(h.press({ch('2')}));
+    ASSERT_TRUE(h.press({kHubMission}));
     const Framebuffer frame = h.frame();
     EXPECT_NE(rowText(frame, 7).find("Act I: \"Avaritia\""), std::string::npos);
     EXPECT_NE(rowText(frame, 8).find("Act I: \"Gula\""), std::string::npos);
@@ -263,7 +263,7 @@ TEST(Vocabulary, NoScreenShowsAnMpLabel) {
     hub.startAtHub(state);
     EXPECT_TRUE(frameContains(hub.frame(), "FV "));
     EXPECT_FALSE(showsMp(hub.frame())) << "Hub";
-    ASSERT_TRUE(hub.press({ch('3'), ch('3'), ch('3')})); // Town, Prior, Build Charisma
+    ASSERT_TRUE(hub.press({kHubTown, ch('3'), ch('3')})); // Town, Prior, Build Charisma
     EXPECT_TRUE(frameContains(hub.frame(), "Max Fervor"));
     EXPECT_FALSE(showsMp(hub.frame())) << "Prior";
 
@@ -280,11 +280,11 @@ TEST(Avaritia, MissionUnlocksAtLevel15) {
     state.hero.level = 14;
     h.startAtHub(state);
     ASSERT_TRUE(h.press({}));
-    EXPECT_NE(rowText(h.frame(), 8).find("Requires Lv 15"), std::string::npos);
+    EXPECT_NE(rowText(h.frame(), 9).find("Requires Lv 15"), std::string::npos);
     h.session.state->hero.level = 15;
     ASSERT_TRUE(h.press({ch('x')})); // refresh
-    EXPECT_EQ(rowText(h.frame(), 8).find("Requires"), std::string::npos);
-    ASSERT_TRUE(h.press({ch('2')}));
+    EXPECT_EQ(rowText(h.frame(), 9).find("Requires"), std::string::npos);
+    ASSERT_TRUE(h.press({kHubMission}));
     EXPECT_TRUE(frameContains(h.frame(), "Act I: \"Avaritia\""));
     EXPECT_TRUE(frameContains(h.frame(), "Requires Lv 20")); // the Medusa bonus still waits
 }

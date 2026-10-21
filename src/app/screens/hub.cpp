@@ -3,6 +3,7 @@
 
 #include "app/app.hpp"
 #include "app/screens/mission.hpp"
+#include "app/screens/overworld.hpp"
 #include "app/screens/town.hpp"
 #include "app/screens/training.hpp"
 #include "game/estimate.hpp"
@@ -17,7 +18,7 @@ namespace heroes::app {
 
 namespace {
 
-enum Choice { kTraining, kMission, kTown, kSave, kQuit };
+enum Choice { kExplore, kTraining, kMission, kTown, kSave, kQuit };
 
 } // namespace
 
@@ -42,7 +43,14 @@ std::vector<Menu::Item> HubScreen::menuItems() const {
     else if (missionNote.empty() && hero.level < lowest->minLevel)
         missionNote = std::format("Requires Lv {}", lowest->minLevel);
 
-    return {{"Training", adventureNote.empty(), adventureNote},
+    std::string exploreNote = adventureNote;
+    if (exploreNote.empty() && portrait_)
+        exploreNote = "Needs an 80×24 screen";
+    else if (exploreNote.empty() && !session_.world)
+        exploreNote = "No world loaded";
+
+    return {{"Explore", exploreNote.empty(), exploreNote},
+            {"Training", adventureNote.empty(), adventureNote},
             {"Mission", missionNote.empty(), missionNote},
             {"Town"},
             {"Save"},
@@ -108,6 +116,8 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
             if (Transition next = quit(); !std::holds_alternative<Stay>(next))
                 return next;
             break;
+        case kExplore:
+            return Push{std::make_unique<OverworldScreen>(session_)};
         case kTraining:
             return Push{std::make_unique<TrainingSetupScreen>(session_)};
         case kMission:
@@ -143,7 +153,8 @@ void HubScreen::drawPortrait(engine::Framebuffer& frame) const {
 
 void HubScreen::draw(engine::Framebuffer& frame) const {
     frame.clear(palette::kBg);
-    if (isPortrait(frame)) {
+    portrait_ = isPortrait(frame);
+    if (portrait_) {
         drawPortrait(frame);
         if (message_)
             message_->draw(frame);

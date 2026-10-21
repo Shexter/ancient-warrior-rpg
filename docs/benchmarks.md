@@ -132,3 +132,14 @@ Re-tuning notes:
 - Smite (3x ATK through armor on a charge) made the 4.3 stats trivial: Gula at 4300 HP fell to 98–100% and Ira at 25000 to 49–100%. Gula is now 5400 HP, Ira 29000 HP / 325 ATK.
 - Results are cliffy in boss HP: Gula flips from ~99% to ~70% between 5200 and 5400 HP and to ~34% (Hunter) by 5600. Ira jumps from ~100% to a ~50% plateau between 28000 and 29000 HP. Ira's Knight gap to attack-only is 30.9 points, the narrowest in the band, and 50.02% sits on the lower edge; any further Ira change should re-measure all three paths.
 - Pinned by `ActOneBalance.ShippedBossesStayInTheBand` (now with per-boss skill lists) on a 4,000-battle prefix.
+
+## Overworld scroll bytes (add-free-roam-overworld task 3.3, 2026-10-21)
+
+The largest diff the renderer writes for one step while the hero walks right across a 400×200 mixed grass and tall-grass map, scrolling the view one column per tile at the dead-zone edge. It uses truecolor, and the first full frame is excluded. Byte counts don't depend on the machine.
+
+```
+./heroes_tests --gtest_filter=Overworld.ScrollingStaysInsideTheByteBudget
+overworld scroll bytes: 200x60 232929, 120x40 93328
+```
+
+Both are under the design's 300 KB budget for a 200×60 scroll, so the camera keeps scrolling one column at a time (D9; the 4-tile jump fallback is not needed). At the 8 tiles/s walking pace a continuous scroll at 200×60 is about 1.9 MB/s, which is fine locally and the thing to watch over SSH. The test fails if a 200×60 scroll goes over 300 KB.

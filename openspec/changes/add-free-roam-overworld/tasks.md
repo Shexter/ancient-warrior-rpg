@@ -17,11 +17,11 @@
 
 ## 3. Overworld screen
 
-- [ ] 3.1 Add `OverworldScreen`. It opts into key actions, turns keys into `WorldInput` through `HeldKeys`, and sizes its canvas as `clamp(terminal, 80×24, 200×60)` (80×24 under `--layout compact`). It draws terrain from per-type ramps chosen by position hash, the hero `@`, and the dead-zone camera clamped to the map (D9). Verify with screen tests for Overworld fills the terminal, Very large terminal, Map edge, Stable terrain, and a golden frame of the first map.
-- [ ] 3.2 Add the Hub's first entry, Explore. It is disabled with the Training reason when the hero can't adventure, and on the phone layout with "Needs an 80×24 screen". Esc returns to the Hub, and re-entering starts at spawn. Verify with Hub tests for Entering the world, Dead hero, Re-entering starts at spawn, and that the number shortcuts and existing Hub tests are updated for the new first entry.
-- [ ] 3.3 Measure the bytes written per scroll step at 200×60 and 120×40 with the diff renderer, and record them in `docs/benchmarks.md`. If a 200×60 scroll is over 300 KB, switch the camera to 4-tile jumps. Verify that the recorded numbers and the camera rule match.
-- [ ] 3.4 Update SimpleDocs (`app.md`, plus a new `overworld.md` for the world data and simulation). Verify that they match the code.
-- [ ] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Add `OverworldScreen`. It opts into key actions, turns keys into `WorldInput` through `HeldKeys`, and sizes its canvas as `clamp(terminal, 80×24, 200×60)` (80×24 under `--layout compact`). It draws terrain from per-type ramps chosen by position hash, the hero `@`, and the dead-zone camera clamped to the map (D9). Verify with screen tests for Overworld fills the terminal, Very large terminal, Map edge, Stable terrain, and a golden frame of the first map.
+- [x] 3.2 Add the Hub's first entry, Explore. It is disabled with the Training reason when the hero can't adventure, and on the phone layout with "Needs an 80×24 screen". Esc returns to the Hub, and re-entering starts at spawn. Verify with Hub tests for Entering the world, Dead hero, Re-entering starts at spawn, and that the number shortcuts and existing Hub tests are updated for the new first entry.
+- [x] 3.3 Measure the bytes written per scroll step at 200×60 and 120×40 with the diff renderer, and record them in `docs/benchmarks.md`. If a 200×60 scroll is over 300 KB, switch the camera to 4-tile jumps. Verify that the recorded numbers and the camera rule match.
+- [x] 3.4 Update SimpleDocs (`app.md`, plus a new `overworld.md` for the world data and simulation). Verify that they match the code.
+- [x] 3.5 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Landmarks and HUD
 

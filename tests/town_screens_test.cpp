@@ -20,7 +20,7 @@ const KeyEvent kTab{Key::Tab};
 // Hub -> Town -> the NPC at `npc` ('1' Merchant, '2' Blacksmith, '3' Guildmaster, '4' Bank).
 void enterNpc(Harness& h, game::GameState state, char npc) {
     h.startAtHub(std::move(state));
-    ASSERT_TRUE(h.press({ch('3')}));
+    ASSERT_TRUE(h.press({kHubTown}));
     ASSERT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
     ASSERT_TRUE(h.press({ch(npc)}));
 }

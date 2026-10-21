@@ -7,7 +7,7 @@
 
 namespace heroes::app {
 
-// Status panel, hero sprite and Training / Mission / Town / Save / Quit. Requires a game state.
+// Status panel, hero sprite and Explore / Training / Mission / Town / Save / Quit. Requires a game state.
 class HubScreen final : public Screen {
   public:
     explicit HubScreen(Session& session);
@@ -36,6 +36,7 @@ class HubScreen final : public Screen {
     void refreshGoal();
     std::optional<game::GameState> goalState_;
     std::string goal_;
+    mutable bool portrait_ = false; // the last frame drawn was the phone layout
 };
 
 } // namespace heroes::app

@@ -13,21 +13,4 @@ Skills have `effect` or `script`, and enemies `behavior` (only `basic`, an attac
 
 The JSON reading helpers (`Fields`, `readEnum`, `convert`) live in `src/game/json_fields.hpp` so the world loader shares them.
 
-## World (`data/world/`, `src/game/world/`)
-
-The Overworld is loaded at startup, after content and before sprites, by `world::loadWorld(dataDir, content)`. It reads three files and parses them with `parseWorld(map, worldJson, fieldJson, content)`. Errors are `ContentError`s named `world/overworld.txt`, `world/world.json` or `world/field.json`. Any error prints every problem and exits with code 2 before the terminal changes.
-- **`overworld.txt`:** one character per tile, every row as long as the first (at most 1024×1024). A `\r` before each newline is ignored, and a final newline adds no row. Map errors carry the entry `line N` (1-based): a ragged row, or a character not in the legend (the first such character per line).
-- **`world.json`:**
-  - `legend`: one printable non-space character → `{terrain, walkable}`. The terrains are `grass`, `tall_grass`, `tree`, `water`, `path`, `sand`, `rock`, `wall` and `floor`.
-  - `spawn`: `{x, y}`.
-  - `landmarks`: `{name, x, y, opens}`, where `opens` holds exactly one of `service` (`almonry`, `forge`, `prior`, `thesaurus`), `training: true`, or `mission` (a mission id).
-  - `zones`: `{name, x, y, w, h, level 1–30, count 1–50}`.
-  - Placement checks run only when everything parsed. Spawn and landmarks must be on walkable tiles inside the map, zones inside the map, and every landmark reachable from spawn on foot (four directions).
-- **`field.json`:** `heroStepMs` (1–10000), the time to walk one tile. It is converted to the nearest whole tick at 60 ticks per second, at least 1 (125 ms → 8 ticks).
-
-The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14), the Almonry, Forge, Prior and Thesaurus at the four building doors, the Catacombs (training) at the cave mouth to the north, the level 1 Glyphwick Meadow zone to the east, and the Lair of Avaritia inside it.
-
-`world::World(def, state)` is the simulation. It starts the hero on spawn facing down, and forks `state.rng` once. `step(WorldInput)` advances one tick:
-- Once the current move has finished, a held or requested direction turns the hero that way.
-- If the next tile is walkable and inside the map, the hero moves there at once and emits `HeroMoved{from, to}`. The next move can start `ticksPerTile` ticks later.
-- A refused move still turns the hero.
+The Overworld's world files are described in `overworld.md`.

@@ -33,7 +33,7 @@ void startTraining(Harness& h, int cave, int hp = -1) {
     if (hp >= 0)
         state.hero.hp = hp;
     h.startAtHub(std::move(state));
-    ASSERT_TRUE(h.press({ch('1')}));
+    ASSERT_TRUE(h.press({kHubTraining}));
     ASSERT_TRUE(h.type(std::to_string(cave)));
     ASSERT_TRUE(h.press({kEnter}));
 }
@@ -43,7 +43,7 @@ void startTraining(Harness& h, int cave, int hp = -1) {
 TEST(TrainingScreen, CaveListShowsTheOddsAndRejectsOutOfRangeNumbers) {
     Harness h("training_setup");
     h.startAtHub(freshGame());
-    ASSERT_TRUE(h.press({ch('1')}));
+    ASSERT_TRUE(h.press({kHubTraining}));
     const Framebuffer frame = h.frame();
     EXPECT_TRUE(frameContains(frame, "Cave level (1–30):"));
     EXPECT_TRUE(frameContains(frame, "Cave  1  ≈100%"));
