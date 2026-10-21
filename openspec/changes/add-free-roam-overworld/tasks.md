@@ -46,7 +46,7 @@
 - [x] 6.3 Hotbar on the bottom row (key, name, cost, a dimmed cooldown countdown, the flash on refusal, the potion key), plus the bolt, the Nova ring and the wind-up warning color drawn. Verify with screen tests for Ability recharging, and golden frames of a wind-up and a Nova.
 - [x] 6.4 Add a headless field bot (step away during wind-ups, swing when facing a monster, potion below 30% HP). Add a test that a hero at each starter path's intended level clears a zone of that level without falling in at least 8 of 10 seeds, and tune `field.json` until it passes. Record the numbers in `docs/benchmarks.md`. Verify that the test passes and the numbers are recorded.
 - [x] 6.5 Update SimpleDocs `overworld.md`. Verify that it matches the code.
-- [ ] 6.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 6.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 7. The full world
 
