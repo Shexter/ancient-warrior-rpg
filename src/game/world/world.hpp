@@ -4,6 +4,7 @@
 #include "game/rng.hpp"
 #include "game/world/world_def.hpp"
 
+#include <cstddef>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -13,6 +14,7 @@ namespace heroes::game::world {
 // What the player asks for during one tick.
 struct WorldInput {
     std::optional<Dir> move; // a movement key is held, or was pressed or repeated this tick
+    bool interact = false;   // E was pressed this tick
 };
 
 namespace wev {
@@ -20,8 +22,12 @@ struct HeroMoved {
     Tile from, to;
     bool operator==(const HeroMoved&) const = default;
 };
+struct Interact { // E next to a landmark
+    std::size_t landmark; // index into WorldDef::landmarks
+    bool operator==(const Interact&) const = default;
+};
 } // namespace wev
-using WorldEvent = std::variant<wev::HeroMoved>;
+using WorldEvent = std::variant<wev::HeroMoved, wev::Interact>;
 
 // The Overworld simulation: inputs in, events out, one fixed 1/60 s tick per step(). No I/O.
 class World {
@@ -33,6 +39,9 @@ class World {
 
     Tile hero() const { return hero_; }
     Dir facing() const { return facing_; }
+    // The landmark on or next to the hero (diagonals count), the closest first; ties go to the
+    // one listed first.
+    std::optional<std::size_t> nearbyLandmark() const;
 
   private:
     const WorldDef* def_;

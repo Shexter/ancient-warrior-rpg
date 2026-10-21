@@ -32,6 +32,8 @@ void enterWorld(Harness& h, game::GameState state = freshGame()) {
     ASSERT_EQ(h.app->depth(), 2u);
 }
 
+constexpr int kHudRows = 2; // the status and goal rows over the top of an 80x24 view
+
 bool isTreeGlyph(char32_t c) { return c == U'Y' || c == U'T' || c == U'^'; }
 
 } // namespace
@@ -43,8 +45,8 @@ TEST(Overworld, ExploreOpensTheWorldAtSpawn) {
     // A 72-wide map in an 80-wide view is centred (4 columns of margin). The camera starts with
     // spawn (35, 14) in the middle: map rows 2-25.
     EXPECT_EQ(heroAt(frame), (std::pair{4 + 35, 12}));
-    EXPECT_EQ(frame.at(0, 0).bg, palette::kBg);
-    EXPECT_EQ(frame.at(0, 0).glyph, U' ');
+    EXPECT_EQ(frame.at(0, 5).bg, palette::kBg); // the margin, below the two HUD rows
+    EXPECT_EQ(frame.at(0, 5).glyph, U' ');
 }
 
 TEST(Overworld, ExploreIsDisabledForAFallenHeroAndOnThePhone) {
@@ -109,11 +111,11 @@ TEST(Overworld, TheViewStopsAtTheMapEdge) {
     ASSERT_TRUE(h.press({ch('w')}));
     ASSERT_TRUE(h.wait(3)); // up the path to the cave mouth at (35, 2)
     const Framebuffer frame = h.frame();
-    EXPECT_EQ(heroAt(frame), (std::pair{4 + 35, 2}));
-    for (int x = 4; x < 4 + 72; ++x) // the top row is the map's first row: all trees
-        EXPECT_TRUE(isTreeGlyph(frame.at(x, 0).glyph)) << x;
-    for (int x : {0, 3, 76, 79}) // nothing is drawn beyond the map
-        EXPECT_EQ(frame.at(x, 0).glyph, U' ') << x;
+    EXPECT_EQ(heroAt(frame), (std::pair{4 + 35, 2})); // the view's top row is map row 0
+    for (int y = 2; y < frame.height(); ++y) { // under the HUD: the map's tree border, then nothing
+        EXPECT_TRUE(isTreeGlyph(frame.at(4, y).glyph)) << y;
+        EXPECT_EQ(frame.at(3, y).glyph, U' ') << y;
+    }
 }
 
 TEST(Overworld, TerrainLooksTheSameWhenRevisited) {
@@ -135,9 +137,9 @@ TEST(Overworld, TerrainLooksTheSameWhenRevisited) {
     ASSERT_EQ(ax, bx);
     ASSERT_NE(ay, by); // the camera did move
     int compared = 0;  // every map row on screen in both frames matches, wherever it is drawn
-    for (int y = 0; y < before.height(); ++y) {
+    for (int y = kHudRows; y < before.height(); ++y) {
         const int y2 = y + ay - by;
-        if (y2 < 0 || y2 >= after.height())
+        if (y2 < kHudRows || y2 >= after.height())
             continue;
         for (int x = 0; x < before.width(); ++x, ++compared)
             EXPECT_EQ(before.at(x, y), after.at(x, y2)) << x << "," << y;
@@ -149,11 +151,11 @@ TEST(Overworld, GoldenFrameAtSpawn) {
     Harness h("world_golden");
     enterWorld(h);
     const Framebuffer frame = h.frame();
-    // The first map at spawn in 80x24: the centred plaza with the Forge and Almonry buildings,
-    // and the meadow's tall grass to the east.
+    // The first map at spawn in 80x24: the status and goal rows, the centred plaza with its four
+    // service letters at the building doors, and the meadow's tall grass with the lair's ! east.
     const std::vector<std::string> expected = {
-        "    T....,',.''.`..,,.,.`.,'``AA^^AAn^n:n^n^nnA^n^'.''`...,..,`....`...`.,.T    ",
-        "    Y...'....,`....`'...`.,`''An^A^A^^^:^nn^^nn^^n...,.'`,,'...,.,``.`'`,.'Y    ",
+        " ARIA Lv 1  HP ██████████ 350/350  FV ██████ 50/50  $20000  !x0  Sword          ",
+        " » Next: train to Lv 15 for Act I: \"Avaritia\"                                   ",
         "    T..'.'`...'.''.'.'Y.,...,.',.,'`,`,:`,``.,,`'..`.`,.Y'`.'`,..'.',.,,.`,Y    ",
         "    ^``..,`...Y'.`....'.`.'`','.`'..'...'.'.,'...`'....'...,`.,.'`.'`.'.''.Y    ",
         "    T.,...'`.,,`'..,',`..,,....'.`,.,.`..'`.,,..``.'.,.`.`,...;:;:v;Ylv:vv'Y    ",
@@ -163,10 +165,10 @@ TEST(Overworld, GoldenFrameAtSpawn) {
         "    Y,,'`.`.,''',,`,....,`.,.##===#.:..:.:..:====##:.''.'..`'`:;;vv:l;l:YY'^    ",
         "    ^'......Y,...`.,.'.''..`:==####:....:....#=##==:'.`.,`',,.ivYilliv;lvY.T    ",
         "    Y...','.``..`'`'.',..,...####=#.:::::...:=====#...,'.,'...lv:;:l:vvvi;.T    ",
-        "    T`,....,,..'`.`'.''...',.:......:...:...:..:.:...''..',``,:vi:;;vi.,.Y,Y    ",
-        "    ^,'..',,'..'.'...'.'...'..:::::::::@....::::::::.:.::.....vl;l;il:.,:;`Y    ",
+        "    T`,....,,..'`.`'.''...',.:..A...:...:...:..:F:...''..',``,:vi:;;vi.,.Y,Y    ",
+        "    ^,'..',,'..'.'...'.'...'..:::::::::@....::::::::.:.::.....vl;l;il:.!:;`Y    ",
         "    T,''``.,..``'`..'`.,..``:::::.:......::.....:..:'`'...``,.;lv;:Yil.:,;`^    ",
-        "    Y..''`,.,...`..''`.'.,.`:.:.:..:..:...::.:..:::..,.,...''.Y;l;iv;:Y:;:`^    ",
+        "    Y..''`,.,...`..''`.'.,.`:.:.P..:..:...::.:..T::..,.,...''.Y;l;iv;:Y:;:`^    ",
         "    Y.,....'.',,,.'',.`..```:###=#=::.::..::.=###=#:.'..'.,.`.;:YYYlvivliY.^    ",
         "    Y...,,'~~--~-~~...`...`,.#=====..:.....::#==#==.,.`'......Yv:lY:ll;;il`Y    ",
         "    ^,..,~=--~~-~=--=.''..,.:=#==##:..:..:...###=##:.....,',..;YvYil;ilYlv.T    ",
@@ -234,4 +236,179 @@ TEST(Overworld, ScrollingStaysInsideTheByteBudget) {
     std::printf("overworld scroll bytes: 200x60 %zu, 120x40 %zu\n", large, medium);
     EXPECT_LE(large, 300u * 1024u);
     EXPECT_LT(medium, large);
+}
+
+namespace {
+
+// Walks `tiles` tiles, one press each (a plain terminal), drawing every step like the loop does.
+void walk(Harness& h, char key, int tiles, engine::Size view = engine::kCompactCanvas) {
+    for (int i = 0; i < tiles; ++i) {
+        ASSERT_TRUE(h.press({ch(key)}));
+        ASSERT_TRUE(h.wait(0.15));
+        (void)h.frame(view);
+    }
+}
+
+// From spawn (35, 14) east along row 14 to (66, 14), next to the Lair of Avaritia at (67, 14).
+void walkToLair(Harness& h) { walk(h, 'd', 31); }
+
+game::GameState levelFifteen() {
+    game::GameState state = freshGame();
+    state.hero.level = 15;
+    return state;
+}
+
+bool hasPanelAt(const Framebuffer& frame, int x, int y) { return frame.at(x, y).glyph == U'┌'; }
+
+} // namespace
+
+TEST(Overworld, VisitingTheForgeAndComingBack) {
+    Harness h("world_forge");
+    enterWorld(h);
+    walk(h, 'd', 9); // (44, 14), below the Forge at (44, 13)
+    const Framebuffer outside = h.frame();
+    EXPECT_NE(rowText(outside, 1).find("» Forge — press E"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('e')}));
+    EXPECT_EQ(h.app->depth(), 3u);
+    EXPECT_TRUE(frameContains(h.frame(), "FORGE OF THE ORDER"));
+    ASSERT_TRUE(h.press({kEsc}));
+    EXPECT_EQ(h.app->depth(), 2u);
+    EXPECT_EQ(heroAt(h.frame()), heroAt(outside));
+}
+
+TEST(Overworld, TheCatacombsOpenTraining) {
+    Harness h("world_catacombs");
+    enterWorld(h);
+    walk(h, 'w', 11); // up the path to (35, 3), below the cave mouth
+    EXPECT_NE(rowText(h.frame(), 1).find("» Catacombs — press E"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('E')}));
+    EXPECT_TRUE(frameContains(h.frame(), "THE CATACOMBS"));
+}
+
+TEST(Overworld, ALockedLairOnlyRepeatsItsNote) {
+    Harness h("world_locked");
+    game::GameState state = freshGame();
+    state.hero.level = 12;
+    enterWorld(h, state);
+    walkToLair(h);
+    EXPECT_NE(rowText(h.frame(), 1).find("» Lair of Avaritia — Requires Lv 15"),
+              std::string::npos);
+    ASSERT_TRUE(h.press({ch('e')}));
+    EXPECT_EQ(h.app->depth(), 2u); // no battle
+    EXPECT_NE(rowText(h.frame(), 1).find("Requires Lv 15"), std::string::npos);
+}
+
+TEST(Overworld, AClearedLairSaysSo) {
+    Harness h("world_cleared");
+    game::GameState state = levelFifteen();
+    state.hero.completedMissions.insert("avaritia");
+    enterWorld(h, state);
+    walkToLair(h);
+    EXPECT_NE(rowText(h.frame(), 1).find("» Lair of Avaritia — Cleared"), std::string::npos);
+    ASSERT_TRUE(h.press({ch('e')}));
+    EXPECT_EQ(h.app->depth(), 2u);
+}
+
+TEST(Overworld, BackingOutOfALairReturnsToTheWorld) {
+    Harness h("world_lair_back");
+    enterWorld(h, levelFifteen());
+    walkToLair(h);
+    const auto at = heroAt(h.frame());
+    ASSERT_TRUE(h.press({ch('e')}));
+    EXPECT_EQ(h.app->depth(), 3u);
+    ASSERT_TRUE(h.press({kEsc})); // not to Mission Select
+    EXPECT_EQ(h.app->depth(), 2u);
+    EXPECT_EQ(heroAt(h.frame()), at);
+}
+
+TEST(Overworld, AWonMissionsResultReturnsToTheWorld) {
+    Harness h("world_lair_win");
+    game::GameState state = levelFifteen();
+    state.hero.atk = 100000; // ends the fight in the hero's favor
+    enterWorld(h, state);
+    walkToLair(h);
+    ASSERT_TRUE(h.press({ch('e'), kEnter, kEnter, ch('y')}));
+    for (int i = 0; i < 2000 && !frameContains(h.frame(), "Enter return to the Hub"); ++i)
+        ASSERT_TRUE(h.press({ch('1')})); // until the Result screen
+    ASSERT_TRUE(frameContains(h.frame(), "VICTORY"));
+    ASSERT_TRUE(h.press({kEnter}));
+    EXPECT_EQ(h.app->depth(), 2u);
+    ASSERT_TRUE(h.wait(1.0 / 60));
+    EXPECT_EQ(h.app->depth(), 2u); // still in the world
+    EXPECT_NE(rowText(h.frame(), 1).find("Lair of Avaritia — Cleared"), std::string::npos);
+}
+
+TEST(Overworld, ALostMissionReturnsToTheHub) {
+    Harness h("world_lair_loss");
+    game::GameState state = levelFifteen();
+    state.hero.hp = 1;
+    enterWorld(h, state);
+    walkToLair(h);
+    ASSERT_TRUE(h.press({ch('e'), kEnter, kEnter, ch('y')}));
+    for (int i = 0; i < 2000 && !frameContains(h.frame(), "All equipment destroyed!"); ++i)
+        ASSERT_TRUE(h.press({ch('1')})); // the Result screen's line, not the battle log's
+    ASSERT_TRUE(frameContains(h.frame(), "All equipment destroyed!"));
+    ASSERT_TRUE(h.press({kEnter}));
+    ASSERT_TRUE(h.wait(1.0 / 60)); // the Overworld sees the hero can't adventure and closes
+    EXPECT_EQ(h.app->depth(), 1u);
+    EXPECT_TRUE(frameContains(h.frame(), "Defeated. All equipment destroyed."));
+}
+
+TEST(Overworld, MTogglesTheMinimapWhichIsOnByDefaultOnlyWhenWide) {
+    Harness h("world_minimap");
+    enterWorld(h);
+    const engine::Size big{150, 45};
+    EXPECT_TRUE(hasPanelAt(h.frame(big), 1, 45 - 16 - 1));
+    ASSERT_TRUE(h.press({ch('m')}));
+    EXPECT_FALSE(hasPanelAt(h.frame(big), 1, 45 - 16 - 1));
+    ASSERT_TRUE(h.press({ch('M')}));
+    EXPECT_TRUE(hasPanelAt(h.frame(big), 1, 45 - 16 - 1));
+
+    Harness small("world_minimap_small");
+    enterWorld(small);
+    EXPECT_FALSE(hasPanelAt(small.frame(), 1, 24 - 12 - 1));
+    (void)small.frame();
+    ASSERT_TRUE(small.press({ch('m')}));
+    EXPECT_TRUE(hasPanelAt(small.frame(), 1, 24 - 12 - 1));
+}
+
+TEST(Overworld, GoldenHudAt150x45) {
+    Harness h("world_golden_large");
+    enterWorld(h);
+    const Framebuffer frame = h.frame({150, 45});
+    std::vector<std::string> rows; // the status and goal panels, then the minimap
+    for (int y = 1; y <= 11; ++y)
+        rows.push_back(cellText(frame, 0, y, 44));
+    for (int y = 28; y <= 43; ++y)
+        rows.push_back(cellText(frame, 0, y, 36));
+    const std::vector<std::string> expected = {
+        " ┌──────────────────────────────────────┐   ",
+        " │ ARIA Lv 1                            │   ",
+        " │ HP  ████████████████████ 350/350     │   ",
+        " │ FV  ████████████████████ 50/50       │   ",
+        " │ XP  ░░░░░░░░░░░░░░░░░░░░ 0/100       │   ",
+        " │ $20000  !x0  Sword                   │   ",
+        " └──────────────────────────────────────┘TT^",
+        "                                       T...`",
+        " ┌──────────────────────────────────────────",
+        " │ » Next: train to Lv 15 for Act I: \"Avarit",
+        " └──────────────────────────────────────────",
+        " ┌────────────────────────────────┐ ",
+        " │###############C################│ ",
+        " │#...........#########...........│ ",
+        " │#.......#.......................│ ",
+        " │#...............................│ ",
+        " │#...............................│ ",
+        " │#...........##.....##...........│ ",
+        " │#...........A#.@...F#........!..│ ",
+        " │#...........P......T............│ ",
+        " │#...........##.....##...........│ ",
+        " │#..~~~~~....##.....##...........│ ",
+        " │#..~~~~~........................│ ",
+        " │#..~~~~~........................│ ",
+        " │#........#......................│ ",
+        " │#...............................│ ",
+        " └────────────────────────────────┘ ",
+    };
+    EXPECT_EQ(rows, expected);
 }

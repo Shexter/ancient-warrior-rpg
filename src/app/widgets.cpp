@@ -84,6 +84,14 @@ std::string adventureBlocker(const game::Hero& hero) {
     return {};
 }
 
+std::string missionBlocker(const game::Hero& hero, const game::MissionDef& mission) {
+    if (!mission.repeatable && hero.completedMissions.contains(mission.id))
+        return "Cleared";
+    if (hero.level < mission.minLevel)
+        return std::format("Requires Lv {}", mission.minLevel);
+    return adventureBlocker(hero);
+}
+
 int drawText(Framebuffer& frame, int x, int y, std::string_view utf8, Rgb fg, int maxWidth) {
     int drawn = 0;
     for (std::size_t i = 0; i < utf8.size() && drawn < maxWidth; ++drawn)

@@ -291,3 +291,42 @@ TEST(World, ReplayIsDeterministic) {
     EXPECT_EQ(play(a), play(b));
     EXPECT_EQ(a, b);
 }
+
+namespace {
+
+// Spawn (1, 1); the Forge at (3, 1) and the Catacombs at (2, 2).
+WorldDef landmarkWorld() {
+    auto world = parse(openMap(), worldJson(R"({"x": 1, "y": 1})",
+                                            R"([{"name": "Forge", "x": 3, "y": 1, "opens": {"service": "forge"}},
+                                                {"name": "Catacombs", "x": 2, "y": 2, "opens": {"training": true}}])",
+                                            "[]"));
+    EXPECT_TRUE(world.has_value());
+    return std::move(*world);
+}
+
+} // namespace
+
+TEST(World, NearbyLandmarkCountsDiagonalsAndPrefersTheClosest) {
+    const WorldDef def = landmarkWorld();
+    GameState state = freshState();
+    World w(def, state);
+    EXPECT_EQ(w.nearbyLandmark(), std::optional<std::size_t>(1)); // Catacombs diagonally
+    run(w, Dir::Right, 1);                                          // (2, 1): both adjacent
+    EXPECT_EQ(w.nearbyLandmark(), std::optional<std::size_t>(0));   // a tie: listed first
+    run(w, std::nullopt, 8);
+    run(w, Dir::Left, 9);
+    run(w, Dir::Left, 1); // (0, 1): two tiles from the nearest
+    EXPECT_EQ(w.hero(), (Tile{0, 1}));
+    EXPECT_EQ(w.nearbyLandmark(), std::nullopt);
+}
+
+TEST(World, InteractEmitsOnlyNextToALandmark) {
+    const WorldDef def = landmarkWorld();
+    GameState state = freshState();
+    World w(def, state);
+    EXPECT_EQ(w.step({std::nullopt, true}),
+              (std::vector<WorldEvent>{wev::Interact{1}}));
+    run(w, Dir::Left, 1); // (0, 1)
+    run(w, std::nullopt, 8);
+    EXPECT_TRUE(w.step({std::nullopt, true}).empty());
+}

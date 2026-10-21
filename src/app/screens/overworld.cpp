@@ -1,10 +1,20 @@
 #include "app/screens/overworld.hpp"
 
+#include "app/art.hpp"
+#include "app/screens/mission.hpp"
+#include "app/screens/town.hpp"
+#include "app/screens/training.hpp"
 #include "app/widgets.hpp"
+#include "game/estimate.hpp"
+#include "game/hero.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <format>
+#include <string>
+#include <utility>
+#include <variant>
 #include <string_view>
 
 namespace heroes::app {
@@ -83,18 +93,106 @@ int followAxis(int camera, int hero, int view, int map) {
     return std::clamp(camera, 0, map - view);
 }
 
+// The status bar's numbers: how many HP-restoring consumables the bag holds.
+int potionCount(const game::Hero& hero, const game::Content& content) {
+    int count = 0;
+    for (const game::Inventory::Slot& slot : hero.bag.slots()) {
+        if (!slot)
+            continue;
+        const game::ItemDef& item = content.item(slot->first);
+        if (item.consumable && (item.consumable->restoreHp > 0 || item.consumable->fullRestore))
+            count += slot->second;
+    }
+    return count;
+}
+
+// A landmark's mark: a lair is a light ! on red, anything else its name's first letter on the
+// accent color, inverted so it can't be mistaken for terrain (the Thesaurus's T is not a tree).
+engine::Cell landmarkMark(const game::world::Landmark& landmark) {
+    if (std::holds_alternative<game::world::OpensMission>(landmark.opens))
+        return {U'!', palette::kText, palette::kDmg};
+    return {static_cast<char32_t>(landmark.name.empty() ? '?' : landmark.name[0]), palette::kBg,
+            palette::kAccent};
+}
+
+// A line of the panel background across `w` cells.
+void fillRow(engine::Framebuffer& frame, int x, int y, int w) {
+    frame.fillRect(x, y, w, 1, {U' ', palette::kText, palette::kPanel});
+}
+
 } // namespace
 
 OverworldScreen::OverworldScreen(Session& session)
-    : session_(session), world_(*session.world, *session.state) {}
+    : session_(session), world_(*session.world, *session.state),
+      goal_(game::nextGoal(*session.state, session.content, session.scripts)) {}
 
 Transition OverworldScreen::update(std::span<const engine::KeyEvent> keys, double) {
-    for (const engine::KeyEvent& key : keys)
-        if (key.key == engine::Key::Escape && key.action == engine::KeyAction::Press)
+    if (!game::canAdventure(session_.state->hero))
+        return Pop{}; // fell in a mission or training round opened from here
+    if (refreshGoal_) {
+        goal_ = game::nextGoal(*session_.state, session_.content, session_.scripts);
+        refreshGoal_ = false;
+    }
+    bool interact = false;
+    for (const engine::KeyEvent& key : keys) {
+        if (key.action != engine::KeyAction::Press)
+            continue;
+        if (key.key == engine::Key::Escape)
             return Pop{};
+        if (key.key != engine::Key::Char)
+            continue;
+        if (key.ch == 'e' || key.ch == 'E')
+            interact = true;
+        else if (key.ch == 'm' || key.ch == 'M')
+            minimap_ = !minimapShown(lastCanvasWidth_);
+    }
     held_.update(keys);
-    world_.step({held_.direction()});
+    for (const game::world::WorldEvent& event : world_.step({held_.direction(), interact}))
+        if (const auto* use = std::get_if<game::world::wev::Interact>(&event))
+            if (auto next = open(session_.world->landmarks[use->landmark])) {
+                refreshGoal_ = true;
+                return Push{std::move(next)};
+            }
     return Stay{};
+}
+
+std::unique_ptr<Screen> OverworldScreen::open(const game::world::Landmark& landmark) {
+    using namespace game::world;
+    if (const auto* service = std::get_if<OpensService>(&landmark.opens)) {
+        switch (service->service) {
+        case Service::Almonry:
+            return std::make_unique<MerchantScreen>(session_);
+        case Service::Forge:
+            return std::make_unique<BlacksmithScreen>(session_);
+        case Service::Prior:
+            return std::make_unique<GuildmasterScreen>(session_);
+        case Service::Thesaurus:
+            return std::make_unique<BankScreen>(session_);
+        }
+    }
+    if (std::holds_alternative<OpensTraining>(landmark.opens))
+        return std::make_unique<TrainingSetupScreen>(session_);
+    const std::string& id = std::get<OpensMission>(landmark.opens).missionId;
+    if (!missionBlocker(session_.state->hero, session_.content.mission(id)).empty())
+        return nullptr; // the prompt already says why
+    return std::make_unique<MissionIntroScreen>(session_, id, /*fromWorld=*/true);
+}
+
+std::string OverworldScreen::landmarkPrompt() const {
+    const auto index = world_.nearbyLandmark();
+    if (!index)
+        return {};
+    const game::world::Landmark& landmark = session_.world->landmarks[*index];
+    if (const auto* lair = std::get_if<game::world::OpensMission>(&landmark.opens))
+        if (std::string why =
+                missionBlocker(session_.state->hero, session_.content.mission(lair->missionId));
+            !why.empty())
+            return std::format("{} — {}", landmark.name, why);
+    return std::format("{} — press E", landmark.name);
+}
+
+bool OverworldScreen::minimapShown(int canvasWidth) const {
+    return minimap_.value_or(canvasWidth >= kLargeCanvas.width);
 }
 
 engine::Size OverworldScreen::canvasSize(engine::Size terminal) const {
@@ -105,6 +203,14 @@ engine::Size OverworldScreen::canvasSize(engine::Size terminal) const {
 }
 
 void OverworldScreen::draw(engine::Framebuffer& frame) const {
+    lastCanvasWidth_ = frame.width();
+    drawTerrain(frame);
+    drawHud(frame);
+    if (minimapShown(frame.width()))
+        drawMinimap(frame);
+}
+
+void OverworldScreen::drawTerrain(engine::Framebuffer& frame) const {
     const game::world::WorldDef& map = *session_.world;
     const Tile hero = world_.hero();
     const Tile start = camera_.value_or(
@@ -117,9 +223,106 @@ void OverworldScreen::draw(engine::Framebuffer& frame) const {
         for (int x = 0; x < frame.width(); ++x)
             if (const Tile t{camera_->x + x, camera_->y + y}; map.inBounds(t))
                 frame.set(x, y, terrainCell(map, t));
+    for (const game::world::Landmark& landmark : map.landmarks) {
+        const int x = landmark.at.x - camera_->x, y = landmark.at.y - camera_->y;
+        if (x >= 0 && y >= 0 && x < frame.width() && y < frame.height())
+            frame.set(x, y, landmarkMark(landmark));
+    }
     engine::Cell& heroCell = frame.at(hero.x - camera_->x, hero.y - camera_->y);
     heroCell.glyph = U'@';
     heroCell.fg = palette::kAccent;
+}
+
+void OverworldScreen::drawHud(engine::Framebuffer& frame) const {
+    const game::Hero& hero = session_.state->hero;
+    const game::Content& content = session_.content;
+    const std::string weapon = hero.weapon ? content.item(hero.weapon->itemId).name : "—";
+    const int potions = potionCount(hero, content);
+    const std::string prompt = landmarkPrompt();
+    const std::string goalLine = "» " + (prompt.empty() ? goal_ : prompt);
+    const engine::Rgb goalColor = prompt.empty() ? palette::kText : palette::kAccent;
+
+    if (frame.width() < kLargeCanvas.width) { // two rows across the top
+        fillRow(frame, 0, 0, frame.width());
+        fillRow(frame, 0, 1, frame.width());
+        int x = 1;
+        const auto add = [&](std::string_view text, engine::Rgb fg) {
+            x += drawText(frame, x, 0, text, fg, std::max(0, frame.width() - 1 - x));
+        };
+        const auto bar = [&](int width, int value, int max, engine::Rgb color) {
+            if (x + width < frame.width()) {
+                drawBar(frame, x, 0, width, value, max, color);
+                x += width;
+            }
+        };
+        add(upper(hero.name), palette::kAccent);
+        add(std::format(" Lv {}  HP ", hero.level), palette::kText);
+        bar(10, hero.hp, hero.maxHp, hpColor(hero.hp, hero.maxHp));
+        add(std::format(" {}/{}  FV ", hero.hp, hero.maxHp), palette::kText);
+        bar(6, hero.mp, hero.maxMp, palette::kMp);
+        add(std::format(" {}/{}  ", hero.mp, hero.maxMp), palette::kText);
+        add(std::format("${}", hero.gold), palette::kGold);
+        add(std::format("  !x{}  {}", potions, weapon), palette::kText);
+        drawText(frame, 1, 1, goalLine, goalColor, frame.width() - 2);
+        return;
+    }
+
+    constexpr int kPanelWidth = 40;
+    drawPanel(frame, 1, 1, kPanelWidth, 7);
+    drawText(frame, 3, 2, upper(hero.name), palette::kAccent);
+    drawText(frame, 3 + textWidth(upper(hero.name)) + 1, 2, std::format("Lv {}", hero.level),
+             palette::kDim);
+    const auto statRow = [&](int y, std::string_view label, int value, int max, engine::Rgb color) {
+        drawText(frame, 3, y, label, color);
+        drawBar(frame, 7, y, 20, value, max, color);
+        drawText(frame, 28, y, std::format("{}/{}", value, max), color);
+    };
+    statRow(3, "HP", hero.hp, hero.maxHp, hpColor(hero.hp, hero.maxHp));
+    statRow(4, "FV", hero.mp, hero.maxMp, palette::kMp);
+    const int expShown = static_cast<int>(std::min<std::int64_t>(hero.exp, hero.expToNext));
+    drawText(frame, 3, 5, "XP", palette::kDim);
+    drawBar(frame, 7, 5, 20, expShown, static_cast<int>(std::max<std::int64_t>(1, hero.expToNext)),
+            palette::kDim);
+    drawText(frame, 28, 5, std::format("{}/{}", hero.exp, hero.expToNext), palette::kDim,
+             kPanelWidth - 28);
+    int x = 3;
+    x += drawText(frame, x, 6, std::format("${}", hero.gold), palette::kGold);
+    x += drawText(frame, x, 6, std::format("  !x{}  ", potions), palette::kHpLow);
+    drawText(frame, x, 6, weapon, palette::kText, kPanelWidth - 1 - x);
+
+    const int goalWidth = std::min(frame.width() - 2, std::max(kPanelWidth, textWidth(goalLine) + 4));
+    drawPanel(frame, 1, 9, goalWidth, 3);
+    drawText(frame, 3, 10, goalLine, goalColor, goalWidth - 4);
+}
+
+void OverworldScreen::drawMinimap(engine::Framebuffer& frame) const {
+    const game::world::WorldDef& map = *session_.world;
+    const bool large = frame.width() >= kLargeCanvas.width;
+    const int w = large ? 34 : 26, h = large ? 16 : 12;
+    const int left = 1, top = frame.height() - h - 1;
+    drawPanel(frame, left, top, w, h);
+    const int innerW = w - 2, innerH = h - 2;
+    const auto cellOf = [&](Tile t) {
+        return std::pair{left + 1 + t.x * innerW / map.width, top + 1 + t.y * innerH / map.height};
+    };
+    for (int cy = 0; cy < innerH; ++cy)
+        for (int cx = 0; cx < innerW; ++cx) {
+            const Tile t{cx * map.width / innerW, cy * map.height / innerH};
+            if (!map.inBounds(t))
+                continue;
+            const game::world::TileType& type = map.at(t);
+            const char32_t glyph = type.terrain == Terrain::Water ? U'~'
+                                   : type.walkable                ? U'.'
+                                                                  : U'#';
+            frame.set(left + 1 + cx, top + 1 + cy,
+                      {glyph, scaled(styleOf(type.terrain).fg, 80), palette::kPanel});
+        }
+    for (const game::world::Landmark& landmark : map.landmarks) {
+        const auto [x, y] = cellOf(landmark.at);
+        frame.set(x, y, landmarkMark(landmark));
+    }
+    const auto [hx, hy] = cellOf(world_.hero());
+    frame.set(hx, hy, {U'@', palette::kAccent, palette::kPanel});
 }
 
 } // namespace heroes::app

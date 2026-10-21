@@ -42,6 +42,9 @@ std::string upper(std::string_view s);
 // Why the hero can't train or take missions ("Fallen: visit the Guildmaster", "Equip a weapon
 // and armor"), or empty if they can.
 std::string adventureBlocker(const game::Hero& hero);
+// Why the hero can't start this mission ("Cleared", "Requires Lv 15", or adventureBlocker), or
+// empty if they can.
+std::string missionBlocker(const game::Hero& hero, const game::MissionDef& mission);
 
 // Draws UTF-8 text (one cell per code point; only single-width glyphs are used), keeping the
 // background. Stops after `maxWidth` cells. Returns the number of cells drawn.

@@ -69,13 +69,7 @@ MissionSelectScreen::MissionSelectScreen(Session& session) : session_(session), 
     const game::Hero& hero = session_.state->hero;
     std::vector<Menu::Item> rows;
     for (const game::MissionDef& mission : session_.content.missions()) {
-        std::string why;
-        if (!mission.repeatable && hero.completedMissions.contains(mission.id))
-            why = "Cleared";
-        else if (hero.level < mission.minLevel)
-            why = std::format("Requires Lv {}", mission.minLevel);
-        else
-            why = adventureBlocker(hero);
+        std::string why = missionBlocker(hero, mission);
         rows.emplace_back(mission.name, why.empty(), why);
     }
     rows.emplace_back("Coming Soon", false);
@@ -122,9 +116,15 @@ void MissionSelectScreen::draw(Framebuffer& frame) const {
 
 // ---- Mission Intro -----------------------------------------------------------------------
 
-MissionIntroScreen::MissionIntroScreen(Session& session, std::string missionId)
-    : session_(session), missionId_(std::move(missionId)),
+MissionIntroScreen::MissionIntroScreen(Session& session, std::string missionId, bool fromWorld)
+    : session_(session), missionId_(std::move(missionId)), fromWorld_(fromWorld),
       story_(session.content.mission(missionId_).story, 60) {}
+
+Transition MissionIntroScreen::back() const {
+    if (fromWorld_)
+        return Pop{};
+    return Replace{std::make_unique<MissionSelectScreen>(session_)};
+}
 
 Transition MissionIntroScreen::update(std::span<const KeyEvent> keys, double dtSeconds) {
     story_.tick(dtSeconds);
@@ -140,7 +140,7 @@ Transition MissionIntroScreen::update(std::span<const KeyEvent> keys, double dtS
                 continue;
             confirm_.reset();
             if (!*answer)
-                return Replace{std::make_unique<MissionSelectScreen>(session_)};
+                return back();
             auto battle = game::startMission(*session_.state, session_.content, missionId_,
                                              session_.scripts);
             if (!battle) {
@@ -152,7 +152,7 @@ Transition MissionIntroScreen::update(std::span<const KeyEvent> keys, double dtS
                 std::make_unique<BattleScreen>(session_, missionId_, std::move(*battle))};
         }
         if (key.key == Key::Escape)
-            return Replace{std::make_unique<MissionSelectScreen>(session_)};
+            return back();
         if (story_.handle(key))
             confirm_.emplace("Enter the lair?");
     }

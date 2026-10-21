@@ -25,10 +25,10 @@
 
 ## 4. Landmarks and HUD
 
-- [ ] 4.1 Landmark interaction in `World`: emit the nearest landmark within one tile, and E emits `Interact`. The Overworld pushes the Almonry, Forge, Prior, Thesaurus, Training setup or Mission intro screen (D8). `MissionIntroScreen` gains a from-world flag so its back `Pop`s. On regaining the top, the Overworld pops to the Hub if `canAdventure` is false. Verify with tests for Visiting the Forge (Esc returns with the hero in the same tile), Locked lair ("Requires Lv 15", no battle), a cleared lair, a started mission's result returning to the Overworld, and a lost mission returning to the Hub.
-- [ ] 4.2 HUD: the status panel (name, level, HP, Fervor and EXP bars, gold, potions, weapon), the goal panel (`nextGoal`, or the landmark prompt), and the minimap with M (hidden by default under 120 columns), in both width bands. Verify with screen tests for Toggling the minimap, the landmark prompt replacing the goal line, and golden HUD frames at 80×24 and 150×45.
-- [ ] 4.3 Update SimpleDocs `overworld.md` and `app.md`. Verify that they match the screens.
-- [ ] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Landmark interaction in `World`: emit the nearest landmark within one tile, and E emits `Interact`. The Overworld pushes the Almonry, Forge, Prior, Thesaurus, Training setup or Mission intro screen (D8). `MissionIntroScreen` gains a from-world flag so its back `Pop`s. On regaining the top, the Overworld pops to the Hub if `canAdventure` is false. Verify with tests for Visiting the Forge (Esc returns with the hero in the same tile), Locked lair ("Requires Lv 15", no battle), a cleared lair, a started mission's result returning to the Overworld, and a lost mission returning to the Hub.
+- [x] 4.2 HUD: the status panel (name, level, HP, Fervor and EXP bars, gold, potions, weapon), the goal panel (`nextGoal`, or the landmark prompt), and the minimap with M (hidden by default under 120 columns), in both width bands. Verify with screen tests for Toggling the minimap, the landmark prompt replacing the goal line, and golden HUD frames at 80×24 and 150×45.
+- [x] 4.3 Update SimpleDocs `overworld.md` and `app.md`. Verify that they match the screens.
+- [x] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Field monsters and defeat
 

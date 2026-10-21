@@ -18,6 +18,8 @@ The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14
 - Once the current move has finished, a held or requested direction turns the hero that way.
 - If the next tile is walkable and inside the map, the hero moves there at once and emits `HeroMoved{from, to}`. The next move can start `ticksPerTile` ticks later.
 - A refused move still turns the hero.
+- `nearbyLandmark()` is the landmark on or next to the hero, diagonals included. The smallest `|dx| + |dy|` wins, and a tie goes to the one listed first.
+- `WorldInput::interact` (E this tick) emits `Interact{landmark index}` when there is one.
 
 ## Screen (`OverworldScreen`)
 
@@ -39,5 +41,22 @@ The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14
   | wall | `#=` |
   | floor | `.:` |
 
+- **Landmarks** are drawn inverted so they can't pass for terrain: a lair is a light `!` on red, and any other landmark is its name's first letter on the accent color (A, F, P, T and C on the first map).
 - **The hero** is `@` in the accent color over its tile's background.
+- **Each step**, in order:
+  - If the hero can't adventure (they fell in a mission or a training round opened from here) the screen pops to the Hub, which shows that screen's last message.
+  - If a landmark's screen has just closed, the goal line is worked out again.
+  - Then key presses are read: Esc pops; E (any case) interacts; M (any case) shows or hides the minimap.
+- **Interacting** pushes the landmark's screen: the Almonry (`MerchantScreen`), Forge (`BlacksmithScreen`), Prior (`GuildmasterScreen`), Thesaurus (`BankScreen`), the Catacombs (`TrainingSetupScreen`), or a lair's `MissionIntroScreen` opened with `fromWorld`.
+  - Those screens' Esc and their results `Pop` back here, with the hero where they stood. The Training and mission Result screens still say "Enter return to the Hub".
+  - Backing out of a lair's intro (Esc, or No to "Enter the lair?") pops back here instead of replacing itself with Mission Select.
+  - A lair whose mission `missionBlocker` refuses ("Cleared", "Requires Lv N") opens nothing.
+- **HUD below 120 columns:** two rows over the top of the map, on the panel color.
+  - Row 0: name, `Lv`, an HP bar (10 cells) with numbers, a Fervor bar (6) with numbers, gold, `!xN` (HP-restoring consumables in the bag) and the weapon name.
+  - Row 1: `» ` followed by the landmark prompt in the accent color ("Forge — press E", or "Lair of Avaritia — Requires Lv 15" / "— Cleared"), or the Hub's "Next:" line when no landmark is near.
+- **HUD from 120 columns:** a 40×7 status panel at (1, 1) (name and level; HP, FV and XP bars of 20 with numbers, XP being `exp` of `expToNext`; gold, potions and weapon). Below it, at (1, 9), a goal panel at least 40 wide, holding the same line.
+- **The goal line** is `nextGoal`. It is computed when the screen opens and again after any landmark screen closes, never per frame.
+- **Minimap:** a 26×12 panel (34×16 from 120 columns) in the bottom-left corner, one row up from the bottom.
+  - It samples the map evenly: `~` water, `.` walkable, `#` blocked, each in its terrain color at 80%. Landmarks use their map marks, and the hero is `@`.
+  - It shows by default only from 120 columns. M sets an explicit choice: the opposite of what the last frame showed.
 - **Scroll cost:** see `docs/benchmarks.md` (at most about 233 KB per step at 200×60).

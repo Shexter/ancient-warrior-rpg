@@ -27,18 +27,24 @@ class MissionSelectScreen final : public Screen {
     Menu menu_;
 };
 
-// The mission's story on a typewriter, then "Enter the lair?". Yes starts the battle.
+// The mission's story on a typewriter, then "Enter the lair?". Yes starts the battle; No or Esc
+// goes back.
 class MissionIntroScreen final : public Screen {
   public:
-    MissionIntroScreen(Session& session, std::string missionId);
+    // `fromWorld`: opened from a lair on the Overworld, so backing out returns there instead of
+    // to Mission Select.
+    MissionIntroScreen(Session& session, std::string missionId, bool fromWorld = false);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
     // The phone layout when the terminal is narrow (see portraitOr), else 80x24.
     engine::Size canvasSize(engine::Size terminal) const override;
 
   private:
+    Transition back() const;
+
     Session& session_;
     std::string missionId_;
+    bool fromWorld_;
     Typewriter story_;
     std::optional<ConfirmBox> confirm_;
     std::optional<MessageBox> message_; // a refused start
