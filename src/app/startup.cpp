@@ -54,6 +54,12 @@ StartupResult loadStartup(const StartupInputs& in) {
             lines.push_back(game::formatError(error));
         return result;
     }
+    auto narrator = game::narration::loadNarrator(dataDir);
+    if (!narrator) {
+        for (const game::ContentError& error : narrator.error())
+            lines.push_back(game::formatError(error));
+        return result;
+    }
     const auto spriteDir = dataDir / ".." / "assets" / "sprites";
     auto sprites = loadSprites(*content, spriteDir);
     if (!sprites)
@@ -66,7 +72,7 @@ StartupResult loadStartup(const StartupInputs& in) {
                                 in.program));
 
     result.startup.emplace(Startup{std::move(*options), std::move(*content), std::move(*world),
-                                   std::move(*dungeon), std::move(*sprites), std::move(*large), *in.saveFile});
+                                   std::move(*dungeon), std::move(*narrator), std::move(*sprites), std::move(*large), *in.saveFile});
     return result;
 }
 

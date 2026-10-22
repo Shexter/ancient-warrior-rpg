@@ -4,6 +4,7 @@
 #include "app/screen.hpp"
 #include "game/content.hpp"
 #include "game/dungeon/dungeon_def.hpp"
+#include "game/narration/templates.hpp"
 #include "game/world/world_def.hpp"
 
 #include <filesystem>
@@ -31,6 +32,7 @@ struct Startup {
     game::Content content;
     game::world::WorldDef world;
     game::dungeon::DungeonDef dungeon;
+    game::narration::NarratorDef narrator;
     SpriteBank sprites;
     LargeSprites large;
     std::filesystem::path saveFile;

@@ -7,6 +7,8 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 - `loadNarrator(dataDir)` reads it and `parseNarrator` validates it, reporting every error in the file "narrator.json" with the key as the entry: provider default models (Anthropic `claude-opus-5-5`, Gemini `gemini-3.5-flash-lite`), limits, the narrator and NPC system prompts, a user prompt per kind, the four town NPCs (name and persona), and offline template lines.
 - Every one of the 15 template keys (`BossIntro`, `BattleMoment.skill`, `BattleMoment.low_hp.hero` / `.foe`, `BattleMoment.status`, `BattleEnd.victory` / `.defeat` / `.fled` / `.draw`, `FloorEnter`, `NpcGreeting.<npc>`, `NpcTalk`) must have at least one line; the shipped file has three each. A missing key, an unknown key, or a placeholder other than `{hero} {foe} {location} {detail} {floor} {npcName} {turns}` is an error.
 - `fillTemplate(def, key, values, rng)` picks one line with the given RNG (callers use their own stream, never the game's) and fills each placeholder from `values`.
+- `narrateOffline(def, request, rng)` is the built-in line for a request: the template key from its kind (`BattleMoment.<moment>`, `.low_hp.<side>`, `BattleEnd.<result>`, `NpcGreeting.<npc>`), with the summary's values (and the NPC's name) filled in.
+- Startup loads `narrator.json` after the dungeon (an error stops startup with exit 2) and puts it on the Session.
 
 ## Battle summaries (`summary.*`)
 
@@ -45,3 +47,11 @@ Each provider builds an HTTP request from a narration request and reads the repl
 - **OpenAI-compatible:** `POST <base>/chat/completions` (OpenAI's base by default, `http://localhost:11434/v1` for Local), `authorization: Bearer <key>` only when there is a key. OpenAI gets `max_completion_tokens` and Local gets `max_tokens`. A `content_filter` finish is Refused.
 - An empty reply, malformed JSON, or a field of the wrong type is BadResponse. The timeout comes from `narrator.json`.
 - `tests/providers_test.cpp` compares each built request with `tests/fixtures/llm/<provider>_request.json` (written by hand from the documented shapes), and checks talk requests, each kind of refusal, Anthropic's thinking-then-text replies, and the status mapping.
+
+## In battle (narrator Off)
+
+With a narrator on the Session (the real game always has one), the battle screen narrates with built-in lines, drawing from `Rng::stream(seed, 0xA11CE)`, never the game's RNG:
+- A mission opens with the boss's introduction (`{foe}`, `{location}`).
+- After each action, `summarizeBattleChunk` gives at most one request. Its line waits until the events before it have played, then types itself out in the accent colour on the log box's top two rows (the log keeps the rest). A new line replaces the old.
+- At the end, the screen stays until the ending line has typed out and a further second has passed, then moves on as before.
+- Without a narrator (most screen tests) nothing changes. `BattleScreen.WithTheNarratorOffBuiltInLinesNarrateTheFight` checks the intro and an ending line in a Medusa fight.

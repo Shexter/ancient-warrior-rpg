@@ -36,3 +36,8 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 - Shapes rechecked on 2026-10-22: Gemini from https://ai.google.dev/api/generate-content and the models page (default model `gemini-3.5-flash-lite`, the docs' fastest, cheapest stable Flash-Lite). OpenAI's API reference needs a sign-in, so it couldn't be read; search results quote it marking `max_tokens` deprecated in favour of `max_completion_tokens`. Anthropic follows the reference as written. The sources are recorded in `providers.cpp`.
 - SPEC DRIFT: OpenAI requests send `max_completion_tokens` while Local keeps `max_tokens` (Ollama-style servers), against the reference's `max_tokens` for both.
 - **3.2 stays unticked** until the request shapes have been seen working against the real services, which needs 3.1 (libcurl, CI) and keys; the fixtures are hand-written from the docs.
+
+## Task 1.3, battle part
+
+- The battle screen narrates with built-in lines (boss intro, moments, the ending) in the log box's top two rows, as the task describes. The ending line holds the screen for a second after it has typed out, otherwise the result screen replaced it in the same frame.
+- **Not done:** the NPC screens' greeting rows (20–21), and the task's "verify by playing", so 1.3 stays unticked.

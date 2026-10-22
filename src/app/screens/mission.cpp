@@ -192,6 +192,24 @@ BattleScreen::BattleScreen(Session& session, std::string missionId, game::Battle
       battle_(std::move(battle)), view_(session.content, battle_.hero(), battle_.enemy()),
       actions_({{"Attack"}, {"Skill"}, {"Item"}, {"Defend"}, {"Flee"}}, Menu::Layout::Horizontal) {
     view_.push(battle_.start(), battle_.hero(), battle_.enemy());
+    startNarration(true);
+}
+
+void BattleScreen::startNarration(bool bossIntro) {
+    if (!session_.narrator)
+        return;
+    narrationRng_ = game::Rng::stream(session_.state->seed, 0xA11CE); // never the game's own stream
+    const game::Combatant& hero = battle_.hero();
+    const game::Combatant& enemy = battle_.enemy();
+    narrationCtx_ = game::narration::BattleContext{&session_.content, hero.name, enemy.name, hero.hp, hero.maxHp,
+                                                   enemy.hp, enemy.maxHp, false, false, {}};
+    if (!bossIntro)
+        return;
+    const game::narration::NarrationRequest intro{
+        game::narration::NarrationKind::BossIntro,
+        {{"hero", hero.name}, {"foe", enemy.name}, {"location", location_}, {"level", session_.state->hero.level}},
+        {}, {}, {}};
+    narration_.show(game::narration::narrateOffline(*session_.narrator, intro, narrationRng_));
 }
 
 BattleScreen::BattleScreen(Session& session, game::Battle battle, std::string location,
@@ -201,6 +219,7 @@ BattleScreen::BattleScreen(Session& session, game::Battle battle, std::string lo
       view_(session.content, battle_.hero(), battle_.enemy()),
       actions_({{"Attack"}, {"Skill"}, {"Item"}, {"Defend"}, {"Flee"}}, Menu::Layout::Horizontal) {
     view_.push(battle_.start(), battle_.hero(), battle_.enemy());
+    startNarration(false);
 }
 
 BattleScreen::Overlay BattleScreen::skillOverlay() const {
@@ -241,6 +260,9 @@ void BattleScreen::act(const game::PlayerAction& action) {
         view_.log(std::string(describe(events.error())));
         return;
     }
+    if (narrationCtx_)
+        if (const auto request = game::narration::summarizeBattleChunk(*events, *narrationCtx_))
+            narrationNext_ = game::narration::narrateOffline(*session_.narrator, *request, narrationRng_);
     view_.push(std::move(*events), battle_.hero(), battle_.enemy());
     if (!battle_.over())
         return;
@@ -301,7 +323,12 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
         }
     }
     view_.tick(dtSeconds);
-    if (view_.ended() && !view_.busy()) {
+    if (narrationNext_ && !view_.busy()) // after the events it describes have played
+        narration_.show(*std::exchange(narrationNext_, std::nullopt));
+    narration_.tick(dtSeconds);
+    if (view_.ended() && !view_.busy() && narration_.revealed()) // let the last line be read
+        endHold_ += dtSeconds;
+    if (view_.ended() && !view_.busy() && (narration_.empty() || endHold_ >= 1.0)) {
         if (result_)
             return Replace{std::make_unique<ResultScreen>(session_, std::move(*result_))};
         return Pop{};
@@ -354,12 +381,18 @@ void BattleScreen::draw(Framebuffer& frame) const {
     const std::string turn = std::format("Turn {}", turnNumber);
     drawText(frame, frame.width() - 1 - textWidth(turn), 0, turn, palette::kText);
 
+    // With narration, it takes the log box's top two rows and the log keeps the rest.
+    BattleLayout layout = large ? kLargeBattle : kCompactBattle;
+    const int narrationRow = layout.logRow;
+    if (!narration_.empty()) {
+        layout.logRow += 2;
+        layout.logRows -= 2;
+    }
     if (large)
-        view_.draw(frame, largeArt(session_, heroFile()), largeArt(session_, enemyFile()),
-                   kLargeBattle);
+        view_.draw(frame, largeArt(session_, heroFile()), largeArt(session_, enemyFile()), layout);
     else
-        view_.draw(frame, compactArt(session_, heroFile()), compactArt(session_, enemyFile()),
-                   kCompactBattle);
+        view_.draw(frame, compactArt(session_, heroFile()), compactArt(session_, enemyFile()), layout);
+    narration_.draw(frame, 1, narrationRow);
 
     actions_.draw(frame, 1, frame.height() - 2, !view_.busy() && !overlay_ && !battle_.over());
     drawCentered(frame, frame.height() - 1,

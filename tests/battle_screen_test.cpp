@@ -412,3 +412,55 @@ TEST(BattleView, ChargingShowsATagAndAWarning) {
     EXPECT_TRUE(frameContains(f.frame(), "[CHARGE]"));
     EXPECT_TRUE(frameContains(f.frame(), "MEDUSA is gathering its strength!"));
 }
+
+namespace {
+
+const game::narration::NarratorDef& shippedNarrator() {
+    static const auto def = game::narration::loadNarrator(fs::path(HEROES_SOURCE_DIR) / "data").value();
+    return def;
+}
+
+// The narration rows: the log box's top two, in the accent colour.
+std::string narrationRows(const Framebuffer& f) {
+    std::string out;
+    for (int y = kCompactBattle.logRow; y < kCompactBattle.logRow + 2; ++y)
+        for (int x = 1; x < f.width(); ++x)
+            if (f.at(x, y).fg == palette::kAccent)
+                out += f.at(x, y).glyph < 0x80 ? static_cast<char>(f.at(x, y).glyph) : '?';
+    return out;
+}
+
+} // namespace
+
+TEST(BattleScreen, WithTheNarratorOffBuiltInLinesNarrateTheFight) {
+    Harness h("battle_narrated");
+    h.session.narrator = &shippedNarrator();
+    enterBattle(h, levelTwenty());
+    ASSERT_TRUE(h.wait(3)); // the boss's introduction types itself out
+    const std::string intro = narrationRows(h.frame());
+    EXPECT_NE(intro.find("Medusa"), std::string::npos) << intro;
+    // Fight until it ends; an attack is a moment only when it brings a side low, so play on.
+    // Attack, then watch each frame for the ending line (it stays a second before the result).
+    const auto ending = [](const std::string& rows) {
+        for (const char* word : {"falls", "Darkness", "lowers", "light fades", "After", "escapes", "runs", "Neither"})
+            if (rows.find(word) != std::string::npos)
+                return true;
+        return false;
+    };
+    for (int i = 0; i < 60 && dynamic_cast<const BattleScreen*>(h.app->top()); ++i) {
+        ASSERT_TRUE(h.press({ch('1')}));
+        for (int f = 0; f < 600 && dynamic_cast<const BattleScreen*>(h.app->top()); ++f) {
+            if (const std::string rows = narrationRows(h.frame()); rows != intro && ending(rows))
+                return; // the ending was narrated
+            ASSERT_TRUE(h.wait(kStep));
+        }
+    }
+    FAIL() << "no ending line was narrated";
+}
+
+TEST(BattleScreen, WithoutANarratorTheLogKeepsAllItsRows) {
+    Harness h("battle_unnarrated");
+    enterBattle(h, levelTwenty());
+    ASSERT_TRUE(h.wait(3));
+    EXPECT_EQ(narrationRows(h.frame()), "");
+}

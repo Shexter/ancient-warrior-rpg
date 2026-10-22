@@ -59,7 +59,7 @@ target_link_libraries(heroes-sim PRIVATE heroes_simlib heroes_warnings)
 target_compile_definitions(heroes-sim PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screens/title.cpp
-    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp src/app/settings.cpp
+    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp src/app/settings.cpp src/app/narration_panel.cpp
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
     src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
     src/app/screens/mission.cpp src/app/battle_view.cpp src/app/art.cpp

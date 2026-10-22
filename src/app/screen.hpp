@@ -6,6 +6,7 @@
 #include "engine/sprite.hpp"
 #include "game/content.hpp"
 #include "game/dungeon/dungeon_def.hpp"
+#include "game/narration/templates.hpp"
 #include "game/game_state.hpp"
 #include "game/script/script_host.hpp"
 #include "game/world/world_def.hpp"
@@ -52,6 +53,7 @@ struct Session {
     game::script::ScriptHost* scripts = nullptr; // the game thread's script sandbox
     const game::world::WorldDef* world = nullptr; // the Overworld map, loaded at startup
     const game::dungeon::DungeonDef* dungeon = nullptr; // the expedition's rules, loaded at startup
+    const game::narration::NarratorDef* narrator = nullptr; // narration lines; none shows no narration
 };
 
 class Screen;

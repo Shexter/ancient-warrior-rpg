@@ -43,4 +43,9 @@ std::expected<NarratorDef, std::vector<ContentError>> loadNarrator(const std::fi
 std::string fillTemplate(const NarratorDef& def, std::string_view key,
                          const std::map<std::string, std::string, std::less<>>& values, Rng& rng);
 
+// The built-in line for `request` (narrator Off, or while waiting on a reply): its kind's template
+// with the summary's values filled in, picked with `rng`.
+struct NarrationRequest;
+std::string narrateOffline(const NarratorDef& def, const NarrationRequest& request, Rng& rng);
+
 } // namespace heroes::game::narration

@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
         app::Session session{s.content, s.sprites, s.saveFile, s.options.seed};
         session.world = &s.world;
         session.dungeon = &s.dungeon;
+        session.narrator = &s.narrator;
         session.layout = s.options.layout;
         session.art = s.options.art;
         session.large = s.large;

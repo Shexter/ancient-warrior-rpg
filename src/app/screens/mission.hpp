@@ -1,9 +1,11 @@
 #pragma once
 
 #include "app/battle_view.hpp"
+#include "app/narration_panel.hpp"
 #include "app/screen.hpp"
 #include "app/widgets.hpp"
 #include "game/battle.hpp"
+#include "game/narration/summary.hpp"
 #include "game/town.hpp"
 
 #include <functional>
@@ -79,6 +81,8 @@ class BattleScreen final : public Screen {
     };
 
     void act(const game::PlayerAction& action);
+    // Starts narrating (with the boss's introduction for a mission); nothing without a narrator.
+    void startNarration(bool bossIntro);
     Overlay skillOverlay() const;
     std::optional<Overlay> itemOverlay() const; // none when the stock is empty
 
@@ -91,6 +95,12 @@ class BattleScreen final : public Screen {
     Menu actions_;
     std::optional<Overlay> overlay_; // while open
     std::optional<game::MissionResult> result_;
+    // Narration: built-in lines for the battle's moments, shown once the events before them play.
+    std::optional<game::narration::BattleContext> narrationCtx_;
+    game::Rng narrationRng_ = game::Rng::stream(0, 0xA11CE);
+    std::optional<std::string> narrationNext_;
+    NarrationPanel narration_{78};
+    double endHold_ = 0; // seconds the ending line has been fully shown
 };
 
 class ResultScreen final : public Screen {

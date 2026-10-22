@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
         app::Session session{s.content, s.sprites, s.saveFile, s.options.seed};
         session.world = &s.world;
         session.dungeon = &s.dungeon;
+        session.narrator = &s.narrator;
         session.art = s.options.art;
         session.large = s.large;
         game::script::ScriptHost scripts(s.content);

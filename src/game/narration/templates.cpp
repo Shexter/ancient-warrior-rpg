@@ -1,6 +1,7 @@
 #include "game/narration/templates.hpp"
 
 #include "game/json_fields.hpp"
+#include "game/narration/summary.hpp"
 
 #include <algorithm>
 #include <array>
@@ -143,6 +144,41 @@ std::string fillTemplate(const NarratorDef& def, std::string_view key,
     });
     out.append(line, from);
     return out;
+}
+
+std::string narrateOffline(const NarratorDef& def, const NarrationRequest& request, Rng& rng) {
+    const nlohmann::json& s = request.summary;
+    std::map<std::string, std::string, std::less<>> values;
+    for (const auto& [key, value] : s.items())
+        values[key] = value.is_string() ? value.get<std::string>() : value.dump();
+    if (const auto npc = def.npcs.find(request.npcId); npc != def.npcs.end())
+        values["npcName"] = npc->second.name;
+    std::string key;
+    switch (request.kind) {
+    case NarrationKind::BossIntro:
+        key = "BossIntro";
+        break;
+    case NarrationKind::BattleMoment:
+        key = "BattleMoment." + s.value("moment", "status");
+        if (key == "BattleMoment.low_hp")
+            key += "." + s.value("detail", "hero");
+        break;
+    case NarrationKind::BattleEnd:
+        key = "BattleEnd." + s.value("result", "draw");
+        break;
+    case NarrationKind::FloorEnter:
+        key = "FloorEnter";
+        break;
+    case NarrationKind::NpcGreeting:
+        key = "NpcGreeting." + request.npcId;
+        break;
+    case NarrationKind::NpcTalk:
+        key = "NpcTalk";
+        break;
+    }
+    if (!def.templates.contains(key))
+        return {};
+    return fillTemplate(def, key, values, rng);
 }
 
 } // namespace heroes::game::narration
