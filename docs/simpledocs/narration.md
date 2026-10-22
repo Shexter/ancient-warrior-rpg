@@ -1,6 +1,6 @@
 # Narration (`src/game/narration/`)
 
-The LLM game master is being built (OpenSpec `add-llm-game-master`). So far there's the data, the deterministic offline half, and the narrator's request pipeline with an injected transport; nothing on screen uses it yet, and there's no HTTP library, so nothing talks to a network.
+The LLM game master is being built (OpenSpec `add-llm-game-master`). Built so far: the data, the offline lines in battles and town, the request pipeline, the direct providers over libcurl, the settings with their consent and Settings screens. Hosted mode (the relay) isn't built yet.
 
 ## Data (`data/narrator.json`, `templates.*`)
 
@@ -35,12 +35,12 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 - `saveSettings` writes a temporary file, makes it readable only by the owner on POSIX, then renames it over the old one.
 - `mask(key)` shows `••••` and the last 4 characters (just `••••` under 8). `resolveKey` takes the provider's environment variable (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) over the file's key, and the variable is never written to the file.
 - `validBaseUrl` wants `http(s)://host[:port]/path`, with plain http only for `localhost`, `127.0.0.1` or `::1`. `newInstallId` is 32 lowercase hex characters from `std::random_device`.
-- `kConsentText` is the first-run disclosure. Nothing shows it yet, and nothing builds a narrator from the settings until real providers exist.
+- `kConsentText` is the first-run disclosure (below).
 - `tests/settings_test.cpp` covers the defaults, a round trip with the 0600 mode, a damaged file, masking, the env var winning and never being written, a save holding no key, the URL rule, and install ids.
 
 ## Providers (`src/net/providers.*`)
 
-Each provider builds an HTTP request from a narration request and reads the reply; both are pure, and nothing here sends anything (there's no HTTP library yet).
+Each provider builds an HTTP request from a narration request and reads the reply; both are pure.
 - **Messages:** the system prompt is the narrator prompt, or for an NPC the NPC prompt with its name and persona filled in. The user text is the kind's prompt with `{summary}` (compact JSON) and `{input}` filled in. A talk's history goes first as alternating turns, the player's wrapped in `<player>` tags.
 - **Anthropic:** `POST https://api.anthropic.com/v1/messages` with `x-api-key`, `anthropic-version: 2023-06-01` and the fallback beta header; `max_tokens` 2048, low effort. A `refusal` stop reason is Refused; otherwise the text blocks are joined, skipping any thinking blocks.
 - **Gemini:** `POST …/v1beta/models/<model>:generateContent` with `x-goog-api-key`; the history's replies have the role `model`. A prompt block reason or a SAFETY finish is Refused; otherwise the first candidate's parts are joined.
@@ -59,3 +59,16 @@ With a narrator on the Session (the real game always has one), the battle screen
 ## NPC greetings (narrator Off)
 
 With a narrator on the Session, the Almonry (merchant), the Forge (blacksmith), the Prior (guildmaster) and the Thesaurus (bank) each greet the hero on entry with one of their built-in lines, typed out in the accent colour on rows 20–21, above the hint. The line is picked from `Rng::stream(seed ^ gold, 0xA11CE)`, so visits vary without touching the game's RNG. The phone layout shows no greeting. `Town.EachNpcGreetsTheHeroWithItsOwnLine` checks three of them, and that nothing shows without a narrator.
+
+## Sending (`src/net/http.*`)
+
+`curlTransport()` is the only place libcurl is used (the system's on macOS, `libcurl4-openssl-dev` on Linux, vcpkg's on Windows). It POSTs the request's body with its headers, leaves TLS verification on, follows no redirects, connects within 3 s and gives up after the request's timeout (8 s from `narrator.json`). A timeout is Timeout and any other failure to get a response is Unreachable. An integer `retry-after` header is passed back. `curl_global_init` runs once.
+
+## Consent, settings and live replies
+
+- **Startup:** both mains read `settings.json` beside the save, give the Session the environment lookup and the curl transport, and build a narrator only when consent was given (`makeNarrator`). `firstScreen` is the consent screen until the file records a choice, then the Title.
+- **Consent screen:** the disclosure text and Off, Hosted (disabled, "Not available in this build", without a relay URL), Own key, Local. A choice is saved and the Title follows. Nothing is sent before a mode other than Off is chosen and set up.
+- **`makeNarrator`** gives none before consent, when Off, for Hosted (no relay client yet), or when `settingsProblem` says something is missing: a key for Own key; a model, and a valid base URL if one is set, for Local ("Set a model name (the one you pulled, e.g. with `ollama pull`)."). Otherwise it's Anthropic, Gemini or OpenAI for Own key, or the OpenAI-compatible provider pointed at the local server.
+- **Settings** (a Hub row before Quit when the game has a settings file): Mode cycles Off → (Hosted) → Own key → Local; Provider cycles anthropic → gemini → openai (and clears the model); Model, Base URL and API key are typed in. The key shows masked while typed and after; a disallowed base URL is refused with a message. Every change is saved and the narrator rebuilt. The screen notes that keys stay in `settings.json`, readable only by the player, and that an environment variable wins.
+- **Live replies:** `NarrationPanel::ask` shows the built-in line at once and sends the request when there is a narrator; the reply replaces the line if it comes back within the timeout. Battles ask when a line is shown; town NPCs ask on entry. A one-time notice goes to the battle log or the Hub's message row.
+- `tests/narrator_setup_test.cpp`: no narrator before consent (and none for Off or an incomplete Local), the first-run consent flow, the Settings screen (masked key, saved key, base URL rules), and a reply from a fake Claude transport replacing the built-in line in a Medusa battle. Tests give no transport unless they bring a fake one, so none reach the network.

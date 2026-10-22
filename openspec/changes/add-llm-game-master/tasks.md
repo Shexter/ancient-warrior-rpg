@@ -16,16 +16,16 @@
 
 ## 3. HTTP and Direct Providers
 
-- [ ] 3.1 Add the `heroes_net` target, `find_package(CURL REQUIRED)`, `curlTransport()` per §5, and the CI changes in §9; verify all CI jobs build, and a manual run of a tiny debug command (`heroes --net-check https://example.com`, removed before the chunk ends) returns status 200
+- [x] 3.1 Add the `heroes_net` target, `find_package(CURL REQUIRED)`, `curlTransport()` per §5, and the CI changes in §9; verify all CI jobs build, and a manual run of a tiny debug command (`heroes --net-check https://example.com`, removed before the chunk ends) returns status 200
 - [ ] 3.2 Re-check the Gemini and OpenAI request and response shapes against the providers' current docs (record URL and date in a comment in `providers.cpp`), set the Gemini default model in `narrator.json`, then implement the three providers per §5; verify `tests/providers_test.cpp`: `build()` output equals `tests/fixtures/llm/<provider>_request.json` for a fixed NarrationRequest; `parse()` handles success, refusal (Anthropic `stop_reason: refusal`, Gemini SAFETY, OpenAI content_filter), thinking-then-text Anthropic content, and the status mapping table including 429 with `retry-after: 120`
 - [ ] 3.3 Verify manually that Local mode with Ollama (any small pulled model) produces narration for a Medusa battle, and that stopping Ollama mid-game shows the one-time notice and falls back to templates
 - [ ] 3.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Settings, Consent, and Keys
 
-- [ ] 4.1 Implement `src/app/settings` per §4 and the consent screen with the exact disclosure text; verify tests that with `consentShown: false` no Narrator is constructed (so no Transport can run), and that settings round-trip through the file
-- [ ] 4.2 Add the Settings screen (reachable from the Hub as a new last-but-one entry "Settings") with mode, provider, model, base URL, and key entry; verify tests for: masking (short and long keys); env var overriding the file and never being written to it; settings file mode 0600 on POSIX; save.json containing no key substring; `http://192.168.1.20:11434/v1` rejected and `http://localhost:11434/v1` accepted
-- [ ] 4.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Implement `src/app/settings` per §4 and the consent screen with the exact disclosure text; verify tests that with `consentShown: false` no Narrator is constructed (so no Transport can run), and that settings round-trip through the file
+- [x] 4.2 Add the Settings screen (reachable from the Hub as a new last-but-one entry "Settings") with mode, provider, model, base URL, and key entry; verify tests for: masking (short and long keys); env var overriding the file and never being written to it; settings file mode 0600 on POSIX; save.json containing no key substring; `http://192.168.1.20:11434/v1` rejected and `http://localhost:11434/v1` accepted
+- [x] 4.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Talk with NPCs
 

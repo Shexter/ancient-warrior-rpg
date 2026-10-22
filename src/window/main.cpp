@@ -1,6 +1,8 @@
+#include "app/screens/narrator_setup.hpp"
 #include "app/screens/title.hpp"
 #include "app/startup.hpp"
 #include "game/script/script_host.hpp"
+#include "net/http.hpp"
 #include "platform/env.hpp"
 #include "platform/paths.hpp"
 #include "window/models.hpp"
@@ -49,11 +51,18 @@ int main(int argc, char** argv) {
         session.world = &s.world;
         session.dungeon = &s.dungeon;
         session.narrator = &s.narrator;
+        // The narrator's settings sit beside the save; nothing is sent before the player consents.
+        session.settingsFile = s.saveFile.parent_path() / "settings.json";
+        session.settings = app::loadSettings(session.settingsFile);
+        session.env = platform::getEnv;
+        session.transport = net::curlTransport();
+        if (session.settings.consentShown)
+            session.liveNarrator = app::makeNarrator(session.settings, s.narrator, session.env, session.transport);
         session.art = s.options.art;
         session.large = s.large;
         game::script::ScriptHost scripts(s.content);
         session.scripts = &scripts;
-        return window::run(session, std::make_unique<app::TitleScreen>(session), fontFile,
+        return window::run(session, app::firstScreen(session), fontFile,
                            std::move(*models));
     } catch (const std::exception& e) {
         std::cerr << "heroes-window: error: " << e.what() << '\n';

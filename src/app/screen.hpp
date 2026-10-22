@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/settings.hpp"
 #include "engine/framebuffer.hpp"
 #include "engine/input.hpp"
 #include "engine/loop.hpp"
@@ -54,6 +55,15 @@ struct Session {
     const game::world::WorldDef* world = nullptr; // the Overworld map, loaded at startup
     const game::dungeon::DungeonDef* dungeon = nullptr; // the expedition's rules, loaded at startup
     const game::narration::NarratorDef* narrator = nullptr; // narration lines; none shows no narration
+    // Narrator settings and their file; an empty path means no settings (no consent screen, no
+    // Settings entry), as in tests.
+    Settings settings{};
+    std::filesystem::path settingsFile{};
+    std::shared_ptr<net::Narrator> liveNarrator{}; // set only after consent, from `settings`
+    // Set by the mains: the environment lookup (API keys) and the HTTP transport. Without a
+    // transport no narrator is built, so tests never reach the network.
+    std::function<std::optional<std::string>(const char*)> env{};
+    net::Transport transport{};
 };
 
 class Screen;

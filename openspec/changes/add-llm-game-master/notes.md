@@ -42,3 +42,10 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 - The battle screen narrates with built-in lines (boss intro, moments, the ending) in the log box's top two rows, as the task describes. The ending line holds the screen for a second after it has typed out, otherwise the result screen replaced it in the same frame.
 - The NPC screens greet on rows 20–21 above the hint (not on the phone layout).
 - **Still to do:** the task's "verify by playing", so 1.3 stays unticked until someone plays a battle and the town with the narrator Off.
+
+## Tasks 3.1 and 4.x (user: "go ahead with task 3.1 ... then continue with the consent and Settings screens")
+
+- **3.1:** `heroes_net` links libcurl (`find_package(CURL REQUIRED)`), and `curlTransport` follows §5. CI: `libcurl4-openssl-dev` on both Ubuntu jobs, `vcpkg install curl:x64-windows` with the vcpkg toolchain on Windows, and a key-leak check (`strings` on `heroes` and `heroes-window`) on Linux. The relay job waits for chunk 6.
+- The manual network check was a throwaway program in the scratchpad, not a `--net-check` flag, so there was nothing to remove. It POSTed `{}` to https://example.com over TLS and got **405** (example.com refuses POSTs, so 200 isn't possible with a POST), proving the TLS path. A closed local port came back Unreachable.
+- **4.1/4.2:** consent screen, Settings screen and `makeNarrator`, as described in `docs/simpledocs/narration.md`. SPEC DRIFT: Settings appears only when the game has a settings file (the real game always does), so screen tests without one keep the old Hub rows. Hosted stays disabled ("Not available in this build") until the relay exists.
+- Live replies now replace built-in lines in battles and town (the §6 UI contract). Talk (5.1) is next.

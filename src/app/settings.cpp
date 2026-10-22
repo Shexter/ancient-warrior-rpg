@@ -159,6 +159,46 @@ bool validBaseUrl(std::string_view url) {
     return https || host == "localhost" || host == "127.0.0.1" || host == "::1";
 }
 
+bool hostedAvailable() { return std::string_view(HEROES_RELAY_URL).size() > 0; }
+
+std::string settingsProblem(const Settings& s,
+                            const std::function<std::optional<std::string>(const char*)>& getEnv) {
+    switch (s.mode) {
+    case Settings::Mode::Off:
+        return {};
+    case Settings::Mode::Hosted:
+        return hostedAvailable() ? "Hosted narration isn't built into this version yet."
+                                 : "Not available in this build.";
+    case Settings::Mode::Byok:
+        return resolveKey(s, getEnv).empty() ? "Enter an API key (or set the provider's environment variable)." : "";
+    case Settings::Mode::Local:
+        if (!s.baseUrl.empty() && !validBaseUrl(s.baseUrl))
+            return "The base URL must be http(s)://host[:port]/path, with plain http only on this machine.";
+        return s.model.empty() ? "Set a model name (the one you pulled, e.g. with `ollama pull`)." : "";
+    }
+    return {};
+}
+
+std::shared_ptr<net::Narrator> makeNarrator(const Settings& s, const game::narration::NarratorDef& def,
+                                            const std::function<std::optional<std::string>(const char*)>& getEnv,
+                                            net::Transport transport) {
+    if (!s.consentShown || s.mode == Settings::Mode::Off || s.mode == Settings::Mode::Hosted ||
+        !settingsProblem(s, getEnv).empty())
+        return nullptr;
+    const net::ProviderConfig config{s.model, resolveKey(s, getEnv), s.baseUrl};
+    std::unique_ptr<net::Provider> provider;
+    if (s.mode == Settings::Mode::Local)
+        provider = net::openAiProvider(def, config, true);
+    else if (s.provider == "gemini")
+        provider = net::geminiProvider(def, config);
+    else if (s.provider == "openai")
+        provider = net::openAiProvider(def, config, false);
+    else
+        provider = net::anthropicProvider(def, config);
+    return std::make_shared<net::Narrator>(std::move(provider), std::move(transport),
+                                           net::Narrator::Options{def.limits.narrationChars, s.mode == Settings::Mode::Local});
+}
+
 std::string newInstallId() {
     std::random_device device;
     const auto draw = [&] { return (static_cast<std::uint64_t>(device()) << 32) | device(); };

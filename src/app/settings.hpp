@@ -1,7 +1,11 @@
 #pragma once
 
+#include "game/narration/templates.hpp"
+#include "net/narrator.hpp"
+
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -39,5 +43,18 @@ std::string resolveKey(const Settings& settings,
 bool validBaseUrl(std::string_view url);
 // 32 lowercase hex characters from the system's random source.
 std::string newInstallId();
+
+// Whether this build has a relay for Hosted mode (HEROES_RELAY_URL set at configure time).
+bool hostedAvailable();
+// Why the settings can't narrate yet ("Set a model name ..."), or empty when they can (or are Off).
+std::string settingsProblem(const Settings& settings,
+                            const std::function<std::optional<std::string>(const char*)>& getEnv);
+
+// The narrator the settings ask for, sending through `transport`; none before consent, when Off,
+// when the mode lacks what it needs (settingsProblem), or for Hosted (no relay client yet). No
+// request can leave the game without one.
+std::shared_ptr<net::Narrator> makeNarrator(const Settings& settings, const game::narration::NarratorDef& def,
+                                            const std::function<std::optional<std::string>(const char*)>& getEnv,
+                                            net::Transport transport);
 
 } // namespace heroes::app

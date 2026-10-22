@@ -4,6 +4,7 @@
 #include "app/app.hpp"
 #include "app/screens/expedition.hpp"
 #include "app/screens/mission.hpp"
+#include "app/screens/narrator_setup.hpp"
 #include "app/screens/overworld.hpp"
 #include "app/screens/town.hpp"
 #include "app/screens/training.hpp"
@@ -19,11 +20,11 @@ namespace heroes::app {
 
 namespace {
 
-enum Choice { kExplore, kTraining, kMission, kExpedition, kTown, kSave, kQuit };
+enum Choice { kExplore, kTraining, kMission, kExpedition, kTown, kSave, kSettings, kQuit };
 
 } // namespace
 
-HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItems()) { refreshGoal(); }
+HubScreen::HubScreen(Session& session) : session_(session), menu_(menuItemsWithSettings()) { refreshGoal(); }
 
 void HubScreen::refreshGoal() {
     if (goalState_ == session_.state)
@@ -66,6 +67,13 @@ std::vector<Menu::Item> HubScreen::menuItems() const {
             {"Quit"}};
 }
 
+std::vector<Menu::Item> HubScreen::menuItemsWithSettings() const {
+    std::vector<Menu::Item> items = menuItems();
+    if (!session_.settingsFile.empty()) // the game always has settings; tests usually don't
+        items.insert(items.end() - 1, Menu::Item{"Settings"});
+    return items;
+}
+
 void HubScreen::save() {
     if (auto saved = game::saveGame(*session_.state, session_.saveFile, session_.content.mods())) {
         session_.dirty = false;
@@ -86,7 +94,7 @@ Transition HubScreen::quit() {
 }
 
 Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
-    menu_.setItems(menuItems());
+    menu_.setItems(menuItemsWithSettings());
     refreshGoal();
     for (const engine::KeyEvent& key : keys) {
         if (message_) {
@@ -110,7 +118,12 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
                 return next;
             continue;
         }
-        switch (menu_.handle(key).value_or(-1)) {
+        int choice = menu_.handle(key).value_or(-1);
+        if (session_.settingsFile.empty() && choice == kSettings)
+            choice = kQuit; // no Settings row: the last row is Quit
+        switch (choice) {
+        case kSettings:
+            return Push{std::make_unique<SettingsScreen>(session_)};
         case kSave: {
             std::error_code ec;
             if (!session_.saveOwned && std::filesystem::exists(session_.saveFile, ec)) {

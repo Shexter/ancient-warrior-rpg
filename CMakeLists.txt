@@ -21,10 +21,12 @@ target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json
     PRIVATE heroes_warnings lua_static sol2::sol2)
 target_compile_definitions(heroes_game PRIVATE SOL_ALL_SAFETIES_ON=1)
 
-# The narrator's network side (openspec add-llm-game-master); no HTTP library yet.
-add_library(heroes_net STATIC src/net/providers.cpp src/net/narrator.cpp)
+# The narrator's network side (openspec add-llm-game-master). libcurl: the system's on macOS,
+# libcurl4-openssl-dev on Linux, vcpkg's on Windows.
+find_package(CURL REQUIRED)
+add_library(heroes_net STATIC src/net/providers.cpp src/net/narrator.cpp src/net/http.cpp)
 target_include_directories(heroes_net PUBLIC src)
-target_link_libraries(heroes_net PUBLIC heroes_game Threads::Threads PRIVATE heroes_warnings)
+target_link_libraries(heroes_net PUBLIC heroes_game Threads::Threads PRIVATE CURL::libcurl heroes_warnings)
 
 add_library(heroes_engine STATIC src/engine/color.cpp src/engine/framebuffer.cpp
     src/engine/renderer.cpp src/engine/input.cpp src/engine/loop.cpp src/engine/sprite.cpp)
@@ -59,14 +61,17 @@ target_link_libraries(heroes-sim PRIVATE heroes_simlib heroes_warnings)
 target_compile_definitions(heroes-sim PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screens/title.cpp
-    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp src/app/settings.cpp src/app/narration_panel.cpp
+    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp src/app/settings.cpp src/app/narration_panel.cpp src/app/screens/narrator_setup.cpp
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
     src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
     src/app/screens/mission.cpp src/app/battle_view.cpp src/app/art.cpp
     src/app/held_keys.cpp src/app/screens/overworld.cpp src/app/startup.cpp
     src/app/screens/quit_prompt.cpp)
 target_include_directories(heroes_app PUBLIC src)
-target_link_libraries(heroes_app PUBLIC heroes_game heroes_engine PRIVATE heroes_warnings)
+target_link_libraries(heroes_app PUBLIC heroes_game heroes_engine heroes_net PRIVATE heroes_warnings)
+# The Hosted narrator's relay; empty means Hosted is shown as unavailable.
+set(HEROES_RELAY_URL "" CACHE STRING "Narration relay base URL for Hosted mode")
+target_compile_definitions(heroes_app PRIVATE HEROES_RELAY_URL="${HEROES_RELAY_URL}")
 
 add_executable(heroes src/app/main.cpp)
 target_link_libraries(heroes PRIVATE heroes_app heroes_platform heroes_warnings)
@@ -86,7 +91,7 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
     tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp
     tests/dungeon_gen_test.cpp tests/fov_test.cpp tests/expedition_test.cpp tests/expedition_screen_test.cpp
-    tests/narration_summary_test.cpp tests/narrator_test.cpp tests/settings_test.cpp tests/providers_test.cpp)
+    tests/narration_summary_test.cpp tests/narrator_test.cpp tests/settings_test.cpp tests/providers_test.cpp tests/narrator_setup_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app heroes_net
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.

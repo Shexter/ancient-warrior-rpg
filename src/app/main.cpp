@@ -1,7 +1,9 @@
 #include "app/app.hpp"
+#include "app/screens/narrator_setup.hpp"
 #include "app/screens/title.hpp"
 #include "app/startup.hpp"
 #include "game/script/script_host.hpp"
+#include "net/http.hpp"
 #include "platform/env.hpp"
 #include "platform/paths.hpp"
 #include "platform/terminal.hpp"
@@ -35,12 +37,19 @@ int main(int argc, char** argv) {
         session.world = &s.world;
         session.dungeon = &s.dungeon;
         session.narrator = &s.narrator;
+        // The narrator's settings sit beside the save; nothing is sent before the player consents.
+        session.settingsFile = s.saveFile.parent_path() / "settings.json";
+        session.settings = app::loadSettings(session.settingsFile);
+        session.env = platform::getEnv;
+        session.transport = net::curlTransport();
+        if (session.settings.consentShown)
+            session.liveNarrator = app::makeNarrator(session.settings, s.narrator, session.env, session.transport);
         session.layout = s.options.layout;
         session.art = s.options.art;
         session.large = s.large;
         game::script::ScriptHost scripts(s.content); // content validation checked every script
         session.scripts = &scripts;
-        app::App game(terminal, renderer, std::make_unique<app::TitleScreen>(session));
+        app::App game(terminal, renderer, app::firstScreen(session));
         return game.run();
     } catch (const std::exception& e) {
         std::cerr << "heroes: error: " << e.what() << '\n';

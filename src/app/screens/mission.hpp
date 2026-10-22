@@ -98,7 +98,7 @@ class BattleScreen final : public Screen {
     // Narration: built-in lines for the battle's moments, shown once the events before them play.
     std::optional<game::narration::BattleContext> narrationCtx_;
     game::Rng narrationRng_ = game::Rng::stream(0, 0xA11CE);
-    std::optional<std::string> narrationNext_;
+    std::optional<std::pair<game::narration::NarrationRequest, std::string>> narrationNext_; // request, built-in line
     NarrationPanel narration_{78};
     double endHold_ = 0; // seconds the ending line has been fully shown
 };

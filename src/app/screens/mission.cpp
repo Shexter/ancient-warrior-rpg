@@ -209,7 +209,8 @@ void BattleScreen::startNarration(bool bossIntro) {
         game::narration::NarrationKind::BossIntro,
         {{"hero", hero.name}, {"foe", enemy.name}, {"location", location_}, {"level", session_.state->hero.level}},
         {}, {}, {}};
-    narration_.show(game::narration::narrateOffline(*session_.narrator, intro, narrationRng_));
+    narration_.ask(session_.liveNarrator, intro, game::narration::narrateOffline(*session_.narrator, intro, narrationRng_),
+                   session_.narrator->limits.timeoutMs);
 }
 
 BattleScreen::BattleScreen(Session& session, game::Battle battle, std::string location,
@@ -262,7 +263,7 @@ void BattleScreen::act(const game::PlayerAction& action) {
     }
     if (narrationCtx_)
         if (const auto request = game::narration::summarizeBattleChunk(*events, *narrationCtx_))
-            narrationNext_ = game::narration::narrateOffline(*session_.narrator, *request, narrationRng_);
+            narrationNext_.emplace(*request, game::narration::narrateOffline(*session_.narrator, *request, narrationRng_));
     view_.push(std::move(*events), battle_.hero(), battle_.enemy());
     if (!battle_.over())
         return;
@@ -323,9 +324,12 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
         }
     }
     view_.tick(dtSeconds);
-    if (narrationNext_ && !view_.busy()) // after the events it describes have played
-        narration_.show(*std::exchange(narrationNext_, std::nullopt));
-    narration_.tick(dtSeconds);
+    if (narrationNext_ && !view_.busy()) { // after the events it describes have played
+        auto [request, line] = std::move(*std::exchange(narrationNext_, std::nullopt));
+        narration_.ask(session_.liveNarrator, std::move(request), line, session_.narrator->limits.timeoutMs);
+    }
+    if (const auto notice = narration_.tick(dtSeconds))
+        view_.log(*notice);
     if (view_.ended() && !view_.busy() && narration_.revealed()) // let the last line be read
         endHold_ += dtSeconds;
     if (view_.ended() && !view_.busy() && (narration_.empty() || endHold_ >= 1.0)) {

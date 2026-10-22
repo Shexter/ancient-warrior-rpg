@@ -23,6 +23,7 @@ class HubScreen final : public Screen {
     enum class Asking { ReplaceSave, QuitUnsaved };
 
     std::vector<Menu::Item> menuItems() const;
+    std::vector<Menu::Item> menuItemsWithSettings() const; // with Settings before Quit when there are settings
     void save();
     Transition quit();
 

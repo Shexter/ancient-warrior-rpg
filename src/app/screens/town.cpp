@@ -179,7 +179,8 @@ TownScreen::TownScreen(Session& session, std::string title)
 Transition TownScreen::update(std::span<const KeyEvent> keys, double dtSeconds) {
     refresh();
     modal_.tick(dtSeconds);
-    greeting_.tick(dtSeconds);
+    if (const auto notice = greeting_.tick(dtSeconds))
+        session_.lastMessage = *notice;
     onTick(dtSeconds);
     for (const KeyEvent& key : keys) {
         if (leave_)
@@ -226,7 +227,8 @@ void TownScreen::greet(std::string_view npc) {
         std::string(npc), {}, {}};
     // Its own stream, varied by the hero's gold so visits differ; never the game's RNG.
     game::Rng rng = game::Rng::stream(state().seed ^ static_cast<std::uint64_t>(h.gold), 0xA11CE);
-    greeting_.show(game::narration::narrateOffline(*session_.narrator, request, rng));
+    greeting_.ask(session_.liveNarrator, request, game::narration::narrateOffline(*session_.narrator, request, rng),
+                  session_.narrator->limits.timeoutMs);
 }
 
 std::vector<Menu::Item> slotItems(const game::Inventory& inventory, const game::Content& content) {

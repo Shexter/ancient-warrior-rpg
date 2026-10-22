@@ -14,13 +14,22 @@ jobs:
         with:
           path: build/ci/_deps
           key: deps-${{ matrix.os }}-${{ hashFiles('cmake/Dependencies.cmake') }}
-      # raylib (heroes-window) builds against X11 and OpenGL on Linux.
+      # raylib (heroes-window) builds against X11 and OpenGL on Linux; the narrator uses libcurl.
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
-      - run: cmake --preset ci
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libcurl4-openssl-dev
+      # libcurl on Windows comes from vcpkg (macOS has the system's).
+      - if: runner.os == 'Windows'
+        run: vcpkg install curl:x64-windows
+      - if: runner.os == 'Windows'
+        run: cmake --preset ci "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+      - if: runner.os != 'Windows'
+        run: cmake --preset ci
       - run: cmake --build --preset ci
       # Runners have no display: the window-display tests run locally only.
       - run: ctest --preset ci -LE window-display
+      # No API key may be compiled into the game.
+      - if: runner.os == 'Linux'
+        run: "! strings build/ci/heroes build/ci/heroes-window | grep -E 'AIza|sk-ant-|sk-proj-'"
 
   asan:
     runs-on: ubuntu-24.04
@@ -30,9 +39,9 @@ jobs:
         with:
           path: build/asan/_deps
           key: deps-asan-${{ hashFiles('cmake/Dependencies.cmake') }}
-      # raylib (heroes-window) builds against X11 and OpenGL on Linux.
+      # raylib (heroes-window) builds against X11 and OpenGL on Linux; the narrator uses libcurl.
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libcurl4-openssl-dev
       - run: cmake --preset asan
       - run: cmake --build --preset asan
       - run: ctest --preset asan -LE window-display
