@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync-prompts.mjs",
     "pretest": "node scripts/sync-prompts.mjs",
-    "test": "node --test test/",
+    "test": "node --test \"test/*.test.ts\"",
     "predeploy": "node scripts/sync-prompts.mjs",
     "deploy": "npx wrangler deploy"
   },
