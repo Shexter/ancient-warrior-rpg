@@ -170,7 +170,15 @@ TEST_P(BadSave, IsRejectedAndFileUntouched) {
 INSTANTIATE_TEST_SUITE_P(
     Cases, BadSave,
     testing::Values(
-        BadCase{"version4", MUT(j["version"] = 4), SaveError::NewerVersion}, // newer than this game
+        BadCase{"version5", MUT(j["version"] = 5), SaveError::NewerVersion}, // newer than this game
+        BadCase{"expeditionMissing", MUT(j.erase("expedition")), SaveError::Corrupt},
+        BadCase{"expeditionUnknownEnemy", MUT(j["expedition"] = R"({"seed": "0x0000000000000005", "floor": 1, "hero": [1, 1],
+            "rng": {"state": "0x0000000000000001", "inc": "0x0000000000000003"}, "explored": "00",
+            "enemies": [{"id": "dragon", "pos": [2, 1], "awake": false, "sleepTurns": 0, "elite": false}],
+            "chestsOpened": []})"_json), SaveError::Corrupt},
+        BadCase{"expeditionBadBits", MUT(j["expedition"] = R"({"seed": "0x0000000000000005", "floor": 1, "hero": [1, 1],
+            "rng": {"state": "0x0000000000000001", "inc": "0x0000000000000003"}, "explored": "0g",
+            "enemies": [], "chestsOpened": []})"_json), SaveError::Corrupt},
         BadCase{"missing_blessings", MUT(j["hero"].erase("blessings")), SaveError::Corrupt},
         BadCase{"negative_blessings", MUT(j["hero"]["blessings"] = -1), SaveError::Corrupt},
         BadCase{"modsNotList", MUT(j["mods"] = "cyclops"), SaveError::Corrupt},
@@ -264,6 +272,7 @@ TEST(SaveMods, AVersion1SaveHasNoMods) {
     const auto loaded = loadGame(old, shippedContent());
     ASSERT_TRUE(loaded.has_value());
     EXPECT_EQ(loaded->hero.blessings, 2); // level 3, saved before blessings existed
+    EXPECT_FALSE(loaded->expedition); // saved before expeditions existed
 }
 
 TEST(SaveBlessings, APreBlessingSaveGetsLevelMinusOnePoints) {

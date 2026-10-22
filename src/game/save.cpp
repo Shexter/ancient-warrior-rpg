@@ -10,7 +10,10 @@
 #include <vector>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <system_error>
+#include <tuple>
+#include <utility>
 
 namespace heroes::game {
 
@@ -21,7 +24,7 @@ using Json = nlohmann::json;
 
 // 2 added "mods" (add-lua-scripting), 3 added "blessings" (fun-pass). Older saves still load:
 // no mods before 2, and `level - 1` blessing points before 3.
-constexpr int kVersion = 3;
+constexpr int kVersion = 4;
 constexpr int kOldestVersion = 1;
 constexpr std::uintmax_t kMaxSaveBytes = 1 << 20; // a real save is a few KB
 
@@ -140,6 +143,97 @@ std::set<std::string> idSet(const Json& obj, const char* key, Lookup known) {
     return out;
 }
 
+// Packed bits, row-major, least significant bit first, as lowercase hex.
+std::string bitsToHex(const std::vector<bool>& bits) {
+    std::string out;
+    for (std::size_t i = 0; i < bits.size(); i += 8) {
+        unsigned byte = 0;
+        for (std::size_t b = 0; b < 8 && i + b < bits.size(); ++b)
+            byte |= static_cast<unsigned>(bits[i + b]) << b;
+        out += std::format("{:02x}", byte);
+    }
+    return out;
+}
+
+// Eight bits per hex byte (the caller trims to the tiles it knows).
+std::vector<bool> bitsFromHex(const std::string& hex) {
+    if (hex.size() % 2 != 0 || hex.size() > 2 * 1024 * 1024)
+        bad();
+    std::vector<bool> bits;
+    for (std::size_t i = 0; i < hex.size(); i += 2) {
+        unsigned byte = 0;
+        const auto [end, ec] = std::from_chars(hex.data() + i, hex.data() + i + 2, byte, 16);
+        if (ec != std::errc{} || end != hex.data() + i + 2)
+            bad();
+        for (int b = 0; b < 8; ++b)
+            bits.push_back(((byte >> b) & 1) != 0);
+    }
+    return bits;
+}
+
+Json expeditionToJson(const ExpeditionSave& e) {
+    Json enemies = Json::array();
+    for (const ExpeditionSave::Enemy& m : e.enemies)
+        enemies.push_back({{"id", m.id}, {"pos", {m.x, m.y}}, {"awake", m.awake},
+                           {"sleepTurns", m.sleepTurns}, {"elite", m.elite}});
+    return Json{{"seed", hex64(e.seed)},
+                {"floor", e.floor},
+                {"hero", {e.heroX, e.heroY}},
+                {"rng", {{"state", hex64(e.rng.state)}, {"inc", hex64(e.rng.inc)}}},
+                {"explored", bitsToHex(e.explored)},
+                {"enemies", std::move(enemies)},
+                {"chestsOpened", e.chestsOpened}};
+}
+
+bool flag(const Json& obj, const char* key) {
+    const Json& v = field(obj, key);
+    if (!v.is_boolean())
+        bad();
+    return v.get<bool>();
+}
+
+// A pair [x, y] of map coordinates.
+std::pair<int, int> point(const Json& v) {
+    if (!v.is_array() || v.size() != 2 || !v[0].is_number_integer() || !v[1].is_number_integer())
+        bad();
+    const auto x = v[0].get<std::int64_t>(), y = v[1].get<std::int64_t>();
+    if (x < 0 || y < 0 || x > 1024 || y > 1024)
+        bad();
+    return {static_cast<int>(x), static_cast<int>(y)};
+}
+
+// Shape and ids only; whether it fits the dungeon is dungeon::fromSave's to say.
+ExpeditionSave expeditionFromJson(const Json& j, const Content& content) {
+    ExpeditionSave e{};
+    e.seed = parseHex64(j, "seed");
+    e.floor = smallInt(j, "floor", 1, 100);
+    std::tie(e.heroX, e.heroY) = point(field(j, "hero"));
+    const Json& rng = field(j, "rng");
+    e.rng = {parseHex64(rng, "state"), parseHex64(rng, "inc")};
+    if ((e.rng.inc & 1) == 0)
+        bad();
+    e.explored = bitsFromHex(text(j, "explored"));
+    const Json& enemies = field(j, "enemies");
+    if (!enemies.is_array() || enemies.size() > 1000)
+        bad();
+    for (const Json& m : enemies) {
+        ExpeditionSave::Enemy enemy{text(m, "id"), 0, 0, flag(m, "awake"), smallInt(m, "sleepTurns", 0, 100), flag(m, "elite")};
+        if (!content.findEnemy(enemy.id))
+            bad();
+        std::tie(enemy.x, enemy.y) = point(field(m, "pos"));
+        e.enemies.push_back(std::move(enemy));
+    }
+    const Json& chests = field(j, "chestsOpened");
+    if (!chests.is_array() || chests.size() > 1000)
+        bad();
+    for (const Json& c : chests) {
+        if (!c.is_boolean())
+            bad();
+        e.chestsOpened.push_back(c.get<bool>());
+    }
+    return e;
+}
+
 Json toJson(const GameState& state, std::span<const ModRef> mods) {
     const Hero& h = state.hero;
     Json hero{{"name", h.name},
@@ -171,7 +265,8 @@ Json toJson(const GameState& state, std::span<const ModRef> mods) {
                 {"mods", std::move(modList)},
                 {"seed", hex64(state.seed)},
                 {"rng", {{"state", hex64(rng.state)}, {"inc", hex64(rng.inc)}}},
-                {"hero", std::move(hero)}};
+                {"hero", std::move(hero)},
+                {"expedition", state.expedition ? expeditionToJson(*state.expedition) : Json(nullptr)}};
 }
 
 GameState fromJson(const Json& root, const Content& content) {
@@ -219,7 +314,11 @@ GameState fromJson(const Json& root, const Content& content) {
     hero.completedMissions = idSet(h, "completedMissions", [&](const std::string& id) {
         return content.findMission(id) != nullptr;
     });
-    return GameState{std::move(hero), Rng::fromState(rngState), seed};
+    std::optional<ExpeditionSave> expedition;
+    if (root.at("version").get<std::int64_t>() >= 4)
+        if (const Json& e = field(root, "expedition"); !e.is_null())
+            expedition = expeditionFromJson(e, content);
+    return GameState{std::move(hero), Rng::fromState(rngState), seed, std::move(expedition)};
 }
 
 } // namespace

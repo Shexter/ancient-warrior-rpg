@@ -18,3 +18,14 @@ Verification: clang debug, asan (UBSan clean) and ci 605/605; window-off 570/570
 
 - `computeFov` follows §5 exactly. The pillar fixture was worked out with an independent Python version of Ford's published algorithm using exact `Fraction`s (not the C++ under test), then checked by hand: the pillar shades only the tiles straight behind it, and the tiles beside the shadow sit exactly on the ±1/6 slope boundaries, which symmetric shadowcasting counts as visible.
 - Verification: clang debug, asan (UBSan clean) and ci 610/610; window-off 575/575; GCC 14 Release `-Werror` 610/610 (after fixing a range-loop copy it flagged); mingw syntax check clean.
+
+## Chunks 3 and 4: expedition rules, encounters and saves
+
+SPEC DRIFT:
+- **`step` and `startExpedition` take the `DungeonDef`** (it holds the floor rules, sight radius and chest tables), and `startExpedition` doesn't need `Content`.
+- **`encounterEnemy` returns the scaled `EnemyDef`** instead of `encounterCombatant` returning a `Combatant`: the Battle is built from an `EnemyDef` (reference §6 says so too), and `enemyCombatant` turns one into a Combatant when needed.
+- **Saves were already at version 3** (blessings), so the expedition makes them **version 4**: versions 1–3 load with no expedition, and 5 or higher is `NewerVersion` (the reference said 2 and 3).
+- **The save holds the expedition as plain data** (`GameState::expedition`, an `ExpeditionSave`), not the live `Expedition`, so the save code doesn't depend on the dungeon code. `dungeon::fromSave` rebuilds the live one and returns nothing when it doesn't fit the dungeon (unknown floor, wrong map size, positions off the open tiles, a different number of chests).
+- Messages: "You found {qty} {item name}.", "Your bag is full: you leave {qty} {name} behind.", "You go down to floor {n}.", "There are no stairs here.", "You defeated the {name}."
+
+Verification: clang debug, asan (UBSan clean) and ci 628/628; window-off 593/593; GCC 14 Release `-Werror` 628/628; mingw syntax check clean.

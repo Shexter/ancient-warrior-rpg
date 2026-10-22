@@ -19,16 +19,16 @@ The reference is `reference/dungeon-interfaces.md` (abbreviated "ref" below). Th
 
 ## 3. Expedition Movement and Pursuit
 
-- [ ] 3.1 Implement `Expedition`, `startExpedition`, and `step()` for moves, wall bumps, wait, FOV update, and explored memory (ref §6); verify tests that a wall bump passes no turn (enemy positions unchanged) and that explored only grows
-- [ ] 3.2 Implement the enemy phase (wake on sight, sleepTurns, adjacency encounter, BFS step with N/E/S/W tie order, occupied tiles blocking); verify tests on a hand-built `Floor`: an enemy 5 steps away around a corner is adjacent after the hero waits 4 turns and triggers an encounter on the 5th; an enemy with no path stays put; two enemies in a corridor don't overlap
-- [ ] 3.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 3.1 Implement `Expedition`, `startExpedition`, and `step()` for moves, wall bumps, wait, FOV update, and explored memory (ref §6); verify tests that a wall bump passes no turn (enemy positions unchanged) and that explored only grows
+- [x] 3.2 Implement the enemy phase (wake on sight, sleepTurns, adjacency encounter, BFS step with N/E/S/W tie order, occupied tiles blocking); verify tests on a hand-built `Floor`: an enemy 5 steps away around a corner is adjacent after the hero waits 4 turns and triggers an encounter on the 5th; an enemy with no path stays put; two enemies in a corridor don't overlap
+- [x] 3.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 4. Encounters, Loot, Floors, and Saves
 
-- [ ] 4.1 Implement chest opening (weighted pick + qty from `Expedition::rng`), `UseStairs` (descend, leave on floor 1, the no-stairs message), and the dead-hero gate; verify tests: leaving with loot keeps the items; a full bag reports `lostBagFull`; descending lands on the next floor's entry; a dead hero cannot start
-- [ ] 4.2 Implement `encounterCombatant` and `resolveEncounter` for all four outcomes; verify tests: hero bump and enemy approach both produce `encounterEnemy`; victory removes the enemy and grants scaled rewards; defeat sets HP 0, reduces exp, and keeps gear; flee puts the enemy to sleep for 3 turns
-- [ ] 4.3 Implement save v2 (ref §8); verify a round trip mid-floor-2 (position, explored, moved enemies, an opened chest, rng) compares equal, a checked-in v1 fixture still loads with no expedition, and `"version": 3` returns `NewerVersion`
-- [ ] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 4.1 Implement chest opening (weighted pick + qty from `Expedition::rng`), `UseStairs` (descend, leave on floor 1, the no-stairs message), and the dead-hero gate; verify tests: leaving with loot keeps the items; a full bag reports `lostBagFull`; descending lands on the next floor's entry; a dead hero cannot start
+- [x] 4.2 Implement `encounterCombatant` and `resolveEncounter` for all four outcomes; verify tests: hero bump and enemy approach both produce `encounterEnemy`; victory removes the enemy and grants scaled rewards; defeat sets HP 0, reduces exp, and keeps gear; flee puts the enemy to sleep for 3 turns
+- [x] 4.3 Implement save v2 (ref §8); verify a round trip mid-floor-2 (position, explored, moved enemies, an opened chest, rng) compares equal, a checked-in v1 fixture still loads with no expedition, and `"version": 3` returns `NewerVersion`
+- [x] 4.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 5. Expedition Screen
 
