@@ -44,6 +44,8 @@ class FixedStepper {
   public:
     int advance(double dtSeconds);
     void reset() { accumulator_ = 0; }
+    // How far into the next step the leftover time is, 0 to 1.
+    double alpha() const { return accumulator_ / kStepSeconds; }
 
   private:
     double accumulator_ = 0;

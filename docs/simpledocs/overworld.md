@@ -36,8 +36,9 @@ The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14
 - If the next tile is walkable and inside the map, the hero moves there at once and emits `HeroMoved{from, to}`. The next move can start `ticksPerTile` ticks later.
 - A refused move still turns the hero.
 - Monsters block the hero, and the hero blocks monsters.
+- **Motion, for drawing:** `heroMotion()`, `motionOf(monster)` and `motionOf(bolt)` give `Motion{from, to, progress, perTick}`. The hero's is its last move over `heroStepMs`. A monster's is its last step over that step's timer (wander or chase), and it keeps counting through a wind-up. A bolt's runs from its tile toward the next over `boltStepMs`. Nothing in the simulation reads them.
 - **Regen:** every `lifeRegenMs` the hero regains Life HP (base plus equipment, up to max HP; nothing at Life 0, e.g. a Fighter). Every `fervorRegenMs` the hero regains 1 Fervor, up to the maximum. Both counters start full on entry.
-- **Monsters** (`Monster`: zone, `TrainingMonster` stats, HP, tile, mode, target, timer):
+- **Monsters** (`Monster`: zone, `TrainingMonster` stats, HP, tile, mode, target, timer, a spawn serial `id` that is never reused, and for drawing only the tile its last step left and that step's length and elapsed ticks):
   - A new monster takes a random free walkable tile of its zone at least `respawnDistance` (Chebyshev) from the hero, then rolls its stats with `rollTrainingMonster` at the zone's level. The draw order is the tile, then atk, def and gold.
   - On entry each zone fills up to its count. A zone below its count gets one back every `respawnMs` while a tile qualifies; with none, it waits (an empty zone near spawn on a small map fills only once the hero walks away).
   - **Wander:** every `monsterWanderMs` it picks one of the four directions or stays (`rng.below(5)`), moving only onto a free walkable tile in its zone.

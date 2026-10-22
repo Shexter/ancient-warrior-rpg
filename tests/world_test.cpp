@@ -760,3 +760,64 @@ TEST(Field, QDrinksTheFirstHealingPotion) {
     EXPECT_EQ(state.hero.hp, expected.hero.hp);
     EXPECT_EQ(state.hero.bag.count("health_potion"), 0);
 }
+
+TEST(World, HalfwayThroughAStep) {
+    const WorldDef def = movementWorld();
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    EXPECT_EQ(w.heroMotion().progress, 1.0f); // standing
+    run(w, Dir::Down, 1);                    // an 8-tick move to (1, 2)
+    run(w, std::nullopt, 4);
+    const Motion m = w.heroMotion();
+    EXPECT_EQ(m.from, (Tile{1, 1}));
+    EXPECT_EQ(m.to, (Tile{1, 2}));
+    EXPECT_FLOAT_EQ(m.progress, 0.5f);
+    EXPECT_FLOAT_EQ(m.perTick, 1.0f / 8);
+    run(w, std::nullopt, 4);
+    EXPECT_EQ(w.heroMotion().progress, 1.0f);
+}
+
+TEST(Field, AMonsterIsHalfwayThroughItsStep) {
+    const WorldDef def = fieldWorld(
+        R"([{"name": "Meadow", "x": 6, "y": 6, "w": 4, "h": 4, "level": 1, "count": 1}])");
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    ASSERT_EQ(w.monsters().size(), 1U);
+    const Tile start = w.monsters()[0].at;
+    until(w, [&] { return w.monsters()[0].at != start; });
+    ASSERT_NE(w.monsters()[0].at, start);
+    EXPECT_EQ(World::motionOf(w.monsters()[0]).progress, 0.0f);
+    run(w, std::nullopt, 15); // half of a 30-tick wander step
+    const Motion m = World::motionOf(w.monsters()[0]);
+    EXPECT_EQ(m.from, start);
+    EXPECT_EQ(m.to, w.monsters()[0].at);
+    EXPECT_FLOAT_EQ(m.progress, 0.5f);
+}
+
+TEST(Field, AMonsterRespawnedAfterAKillGetsAFreshId) {
+    const WorldDef def = pinnedMonster({3, 1}, openMap(), 0); // refills right next to the hero
+    GameState state = freshState();
+    state.hero.atk = 100000;
+    World w(def, state, shippedContent());
+    ASSERT_EQ(w.monsters().size(), 1U);
+    EXPECT_EQ(w.monsters()[0].id, 0);
+    run(w, Dir::Right, 9); // (2, 1), facing the monster at (3, 1)
+    ASSERT_NE(find<wev::MonsterDefeated>(act(w, {.swing = true})), nullptr);
+    run(w, std::nullopt, 61); // the zone refills after 1 s
+    ASSERT_EQ(w.monsters().size(), 1U);
+    EXPECT_EQ(w.monsters()[0].id, 1);
+}
+
+TEST(Field, ABoltIsDrawnTowardItsNextTile) {
+    const WorldDef def = pinnedMonster({8, 1});
+    GameState state = freshState();
+    World w(def, state, shippedContent());
+    run(w, Dir::Right, 9);      // facing right
+    const Tile hero = w.hero();
+    act(w, {.firebolt = true}); // flies one tile at once, then a tile every 3 ticks
+    w.step({});
+    const Motion m = w.motionOf(w.bolts()[0]);
+    EXPECT_EQ(m.from, (Tile{hero.x + 1, hero.y}));
+    EXPECT_EQ(m.to, (Tile{hero.x + 2, hero.y}));
+    EXPECT_FLOAT_EQ(m.progress, 1.0f / 3);
+}

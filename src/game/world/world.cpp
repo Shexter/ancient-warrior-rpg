@@ -29,7 +29,7 @@ bool expired(int& timer) { return timer <= 0 || --timer == 0; }
 
 World::World(const WorldDef& def, GameState& state, const Content& content)
     : def_(&def), state_(&state), content_(&content), rng_(state.rng.fork()), hero_(def.spawn),
-      lifeTicks_(def.field.lifeRegenTicks), fervorTicks_(def.field.fervorRegenTicks),
+      heroFrom_(def.spawn), lifeTicks_(def.field.lifeRegenTicks), fervorTicks_(def.field.fervorRegenTicks),
       respawnTicks_(def.zones.size(), def.field.respawnTicks) {
     const int reach = 2 * def.field.noticeRadius;
     distances_.reserve(static_cast<std::size_t>((2 * reach + 1) * (2 * reach + 1)));
@@ -83,8 +83,30 @@ void World::moveHero(const WorldInput& input, std::vector<WorldEvent>& events) {
     if (!def_->walkable(to) || occupied(to))
         return;
     events.push_back(wev::HeroMoved{hero_, to});
+    heroFrom_ = hero_;
     hero_ = to;
     moveTicksLeft_ = def_->field.ticksPerTile;
+}
+
+namespace {
+Motion motion(Tile from, Tile to, int ticksLeft, int ticks) {
+    if (ticks <= 0)
+        return {to, to, 1, 0};
+    const float left = static_cast<float>(std::clamp(ticksLeft, 0, ticks));
+    return {from, to, 1 - left / static_cast<float>(ticks), 1 / static_cast<float>(ticks)};
+}
+} // namespace
+
+Motion World::heroMotion() const {
+    return motion(heroFrom_, hero_, moveTicksLeft_, def_->field.ticksPerTile);
+}
+
+Motion World::motionOf(const Monster& m) {
+    return motion(m.from, m.at, m.stepTicks - m.sinceStep, m.stepTicks);
+}
+
+Motion World::motionOf(const Bolt& b) const {
+    return motion(b.at, neighbor(b.at, b.dir), b.timer, def_->field.boltTicksPerTile);
 }
 
 void World::useAbilities(const WorldInput& input, std::vector<WorldEvent>& events) {
@@ -202,6 +224,7 @@ void World::regenerate() {
 
 void World::updateMonster(Monster& m, std::vector<WorldEvent>& events) {
     const FieldTuning& field = def_->field;
+    m.sinceStep = std::min(m.sinceStep + 1, m.stepTicks);
     switch (m.mode) {
     case Monster::Mode::WindUp:
         if (!expired(m.timer))
@@ -234,8 +257,12 @@ void World::updateMonster(Monster& m, std::vector<WorldEvent>& events) {
     if (!expired(m.timer))
         return;
     m.timer = chasing ? field.chaseTicks : field.wanderTicks;
-    if (const auto next = chasing ? chaseStep(m) : wanderStep(m))
+    if (const auto next = chasing ? chaseStep(m) : wanderStep(m)) {
+        m.from = m.at;
         m.at = *next;
+        m.stepTicks = m.timer;
+        m.sinceStep = 0;
+    }
 }
 
 std::optional<Tile> World::chaseStep(const Monster& m) const {
@@ -323,8 +350,8 @@ bool World::spawnOne(std::size_t zone) {
     const Tile at = candidates_[rng_.below(static_cast<std::uint32_t>(candidates_.size()))];
     TrainingMonster stats = rollTrainingMonster(rng_, z.level);
     const int hp = stats.maxHp;
-    monsters_.push_back(
-        {zone, std::move(stats), hp, at, Monster::Mode::Wander, {}, def_->field.wanderTicks});
+    monsters_.push_back({zone, std::move(stats), hp, at, Monster::Mode::Wander, {},
+                         def_->field.wanderTicks, nextMonsterId_++, at});
     return true;
 }
 

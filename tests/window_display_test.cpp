@@ -87,7 +87,7 @@ double renderOverworld(const OverworldScreen& screen, const Font& font, int w, i
     for (int i = 0; i < frames; ++i) {
         BeginTextureMode(target);
         ClearBackground({4, 6, 9, 255});
-        heroes::window::drawOverworld(screen, hud, scene, font, static_cast<float>(i) / 60, w, h);
+        heroes::window::drawOverworld(screen, hud, scene, font, static_cast<float>(i) / 60, 1.0f / 60, 0, w, h);
         EndTextureMode();
         BeginDrawing(); // a swap per frame, so the GPU keeps up with the timing
         EndDrawing();

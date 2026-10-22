@@ -109,17 +109,28 @@ void drawScene(const Scene& scene, const Font& font, View view, float zoom) {
 }
 
 void drawOverworld(const app::OverworldScreen& screen, engine::Framebuffer& hud, Scene& scene,
-                   const Font& font, float time, int w, int h) {
+                   const Font& font, float time, float dt, float alpha, int w, int h) {
     const float zoom = sceneZoom(h);
     const float viewW = static_cast<float>(w) / zoom, viewH = static_cast<float>(h) / zoom;
     screen.drawHud(hud, {static_cast<int>(std::ceil(viewW / kTilePx)),
                          static_cast<int>(std::ceil(viewH / kTilePx))});
     const app::OverworldScreen::SceneView sv = screen.sceneView();
-    const View view{static_cast<float>(sv.camera.x) * kTilePx,
-                    static_cast<float>(sv.camera.y) * kTilePx, viewW, viewH};
-    buildScene(scene, sv, time, view);
+    const Scene::Point target{static_cast<float>(sv.camera.x) * kTilePx,
+                              static_cast<float>(sv.camera.y) * kTilePx};
+    const float ease = scene.camera ? 1 - std::exp(-12 * dt) : 1; // most of the way in 0.2 s
+    const Scene::Point from = scene.camera.value_or(target);
+    scene.camera = {from.x + (target.x - from.x) * ease, from.y + (target.y - from.y) * ease};
+    const View view{scene.camera->x, scene.camera->y, viewW, viewH};
+    buildScene(scene, sv, time, view, alpha);
     drawScene(scene, font, view, zoom);
     drawGrid(hud, layoutFor({hud.width(), hud.height()}, w, h), font, /*skipEmpty=*/true);
+}
+
+game::world::Tile sceneTileAt(const Scene& scene, int x, int y, int windowH) {
+    const float zoom = sceneZoom(windowH);
+    const Scene::Point camera = scene.camera.value_or(Scene::Point{0, 0});
+    return {static_cast<int>(std::floor((camera.x + static_cast<float>(x) / zoom) / kTilePx)),
+            static_cast<int>(std::floor((camera.y + static_cast<float>(y) / zoom) / kTilePx))};
 }
 
 } // namespace heroes::window

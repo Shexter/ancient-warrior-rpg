@@ -85,7 +85,18 @@ struct Monster {
     Mode mode = Mode::Wander;
     Tile target{}; // WindUp: the tile its hit lands on
     int timer = 0; // ticks to the next step (Wander, Chase), the hit (WindUp), or Cooldown's end
+    int id = 0;    // a serial number given at spawn, never reused
+    // For drawing only: the tile its last step left, and how long that step lasts and has run.
+    Tile from{};
+    int stepTicks = 0, sinceStep = 0;
     bool operator==(const Monster&) const = default;
+};
+
+// Where a thing is drawn between two tiles: `from` moving to `to`, `progress` (0 to 1) of the
+// way, gaining `perTick` each tick until it arrives.
+struct Motion {
+    Tile from, to;
+    float progress, perTick;
 };
 
 // The Overworld simulation: inputs in, events out, one fixed 1/60 s tick per step(). No I/O.
@@ -101,6 +112,9 @@ class World {
     Dir facing() const { return facing_; }
     const std::vector<Monster>& monsters() const { return monsters_; }
     const std::vector<Bolt>& bolts() const { return bolts_; }
+    Motion heroMotion() const;
+    static Motion motionOf(const Monster& m);
+    Motion motionOf(const Bolt& b) const; // toward the tile it reaches next
     int cooldownLeft(Ability a) const { return cooldowns_[static_cast<std::size_t>(a)]; } // ticks
     bool fallen() const { return fallen_; }
     // The landmark on or next to the hero (diagonals count), the closest first; ties go to the
@@ -133,12 +147,13 @@ class World {
     GameState* state_;
     const Content* content_;
     Rng rng_;
-    Tile hero_;
+    Tile hero_, heroFrom_;
     Dir facing_ = Dir::Down;
     int moveTicksLeft_ = 0; // until the current tile's move finishes and another may start
     int lifeTicks_ = 0, fervorTicks_ = 0;
     bool fallen_ = false;
     std::vector<Monster> monsters_;
+    int nextMonsterId_ = 0;
     std::vector<Bolt> bolts_;
     std::array<int, kAbilityCount> cooldowns_{};
     std::vector<int> respawnTicks_; // per zone, counting down while the zone is below its count

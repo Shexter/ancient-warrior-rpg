@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 struct Font; // raylib
@@ -61,6 +62,9 @@ struct Scene {
         float x, y;
     };
     std::vector<Point> feet; // every creature's, for the grass to bend away from
+    // The drawn camera's top-left in scene units, easing after the screen's; none until the
+    // Overworld is first drawn.
+    std::optional<Point> camera;
 
     std::vector<Item>& operator[](Layer l) { return layers[static_cast<std::size_t>(l)]; }
     const std::vector<Item>& operator[](Layer l) const {
@@ -68,9 +72,11 @@ struct Scene {
     }
 };
 
-// Rebuilds `scene` for `view` at animation time `time` (seconds), reusing its buffers. Reads the
-// game; never changes it. Every look varies only by map position and time.
-void buildScene(Scene& scene, const app::OverworldScreen::SceneView& sv, float time, View view);
+// Rebuilds `scene` for `view` at animation time `time` (seconds), reusing its buffers, with
+// creatures and bolts drawn `alpha` (0 to 1) of a step past the game's state. Reads the game;
+// never changes it. Every look varies only by map position and time.
+void buildScene(Scene& scene, const app::OverworldScreen::SceneView& sv, float time, View view,
+                float alpha = 0);
 
 // Hands every layer to `out` bottom to top: out.layer(Layer), then out.item(item) for each item.
 template <class Out> void submit(const Scene& scene, Out& out) {
@@ -88,9 +94,13 @@ void drawScene(const Scene& scene, const Font& font, View view, float zoom);
 // Scene units per pixel for a window `windowH` pixels tall: every size shows as much map height.
 inline float sceneZoom(int windowH) { return static_cast<float>(windowH) / 720.0f; }
 
-// The Overworld in a w x h pixel window: its scene at animation time `time`, then the screen's
-// HUD drawn into `hud` and over the scene. Rebuilds `scene`.
+// The Overworld in a w x h pixel window: its scene at animation time `time`, `alpha` of a step
+// on, then the screen's HUD drawn into `hud` and over the scene. Rebuilds `scene`, and eases its
+// camera over the `dt` seconds since the last frame.
 void drawOverworld(const app::OverworldScreen& screen, engine::Framebuffer& hud, Scene& scene,
-                   const Font& font, float time, int w, int h);
+                   const Font& font, float time, float dt, float alpha, int w, int h);
+
+// The map tile under window pixel (x, y), as last drawn.
+game::world::Tile sceneTileAt(const Scene& scene, int x, int y, int windowH);
 
 } // namespace heroes::window

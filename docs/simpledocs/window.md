@@ -24,7 +24,7 @@
 - **Font:** loaded at 48 px over `atlasCodepoints()` (printable ASCII plus the non-ASCII code points used anywhere in `src/app` and `src/engine`), with bilinear filtering.
 - **App:** driven directly, with a do-nothing `LoopIo` and an unused terminal `Renderer`. `engine::Loop` isn't used.
 - **Each frame:**
-  1. **Keys are read** (`pollKeys`) and a left click becomes `Key::Click` at the canvas cell under the pointer (margin clicks are dropped). If the last frame drew the Overworld scene, a click is instead the map tile under the pointer, counted from the view's top-left tile (which is how the Overworld reads clicks). These are added to the pending keys.
+  1. **Keys are read** (`pollKeys`) and a left click becomes `Key::Click` at the canvas cell under the pointer (margin clicks are dropped). If the last frame drew the Overworld scene, a click is instead the map tile under the pointer as last drawn (`sceneTileAt`, through the drawn camera), counted from the screen's camera tile (which is how the Overworld reads clicks). These are added to the pending keys.
   2. **The close button:** with nothing unsaved the window closes. Otherwise it pushes `QuitPromptScreen` with a copy of the last frame, unless one is already on top.
   3. **Steps run:** `FixedStepper` runs 0–5 steps of 1/60 s. The pending keys go to the first step, and are kept if no step ran. A step that ends the app closes the window.
   4. **The frame is drawn:**
@@ -59,8 +59,10 @@ When the top screen is an `OverworldScreen`, the window draws the map as freely 
   - `drawHud(frame, viewTiles)` draws only the status panel, goal line, minimap and hotbar, exactly as the terminal does. Every other cell gets glyph `U'\0'`. It also moves the camera to keep the hero in a view of `viewTiles` map tiles.
   - `sceneView()` is plain data: the map, the `World`, the camera tile, the hero's and the monster's battle art (the large block sprite when loaded, else the 80×24 one), the hero's name, the step counter, the damage numbers and the Nova ring.
   - The terminal's `draw` is unchanged: the map, then the same HUD.
-- **Units and zoom:** a map tile is `kTilePx` = 26 scene units. The window shows 720 units of height at any size (`sceneZoom` = height / 720), so a 1280×720 window shows about 49×28 tiles. The view's top-left is the camera tile.
-- **Building:** `buildScene(scene, view, time, viewRect)` clears and refills the scene's per-layer item lists, keeping their capacity, so a warm scene allocates nothing.
+- **Units and zoom:** a map tile is `kTilePx` = 26 scene units. The window shows 720 units of height at any size (`sceneZoom` = height / 720), so a 1280×720 window shows about 49×28 tiles.
+- **Camera:** the view's top-left is the scene's drawn camera (`Scene::camera`), which eases toward the screen's camera tile each frame (`1 - e^(-12·dt)` of the way, so most of the way in 0.2 s) and so stays inside the map. It starts on the screen's camera when the Overworld is first drawn, and again after another screen was shown.
+- **Smooth movement:** the hero, monsters and bolts are drawn between tiles from the World's `Motion` (from, to, progress, progress per tick), plus `alpha`, the stepper's leftover fraction of a step (`FixedStepper::alpha`), capped at the destination. A bolt is drawn heading for the tile it reaches next. Grass bends away from the drawn feet.
+- **Building:** `buildScene(scene, view, time, viewRect, alpha)` clears and refills the scene's per-layer item lists, keeping their capacity, so a warm scene allocates nothing.
   - An item is a glyph (centred, or a blade standing on its foot, each with a size and a rotation), a rectangle, an ellipse, or a glow (a colour fading to clear).
   - Only tiles in view plus a 2–3 tile margin are visited, and items wholly outside that margin are dropped.
   - Every look comes from a hash of the map position and from `time`. Nothing reads or changes the game's random stream or state.

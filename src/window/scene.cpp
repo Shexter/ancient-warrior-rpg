@@ -63,6 +63,7 @@ struct Ctx {
     Scene& scene;
     const SceneView& sv;
     float t;
+    float alpha; // how far into its next step the game is
     View v;
     int tx0, ty0, tx1, ty1; // the map tiles in view, plus a margin
 
@@ -125,8 +126,21 @@ struct Ctx {
     }
 };
 
-// Where a creature on a tile stands.
-Scene::Point feetOf(Tile t) { return {(t.x + 0.5f) * T, (t.y + 0.6f) * T}; }
+// Where a moving thing is drawn, in tiles, `alpha` of a step on from its motion.
+Scene::Point drawnAt(const game::world::Motion& m, float alpha) {
+    const float p = std::min(1.0f, m.progress + alpha * m.perTick);
+    return {static_cast<float>(m.from.x) + static_cast<float>(m.to.x - m.from.x) * p,
+            static_cast<float>(m.from.y) + static_cast<float>(m.to.y - m.from.y) * p};
+}
+
+// Where a creature drawn at `tile` stands.
+Scene::Point feetOf(Scene::Point tile) { return {(tile.x + 0.5f) * T, (tile.y + 0.6f) * T}; }
+Scene::Point feetOf(const game::world::Monster& m, float alpha) {
+    return feetOf(drawnAt(game::world::World::motionOf(m), alpha));
+}
+Scene::Point heroFeet(const game::world::World& world, float alpha) {
+    return feetOf(drawnAt(world.heroMotion(), alpha));
+}
 
 // Houses: one per block of wall tiles, found from each block's top-left corner.
 void findHouses(Scene& scene, const game::world::WorldDef& map) {
@@ -365,13 +379,13 @@ void creatureLayer(const Ctx& c) {
             c.rect(Layer::Under, m.target.x * T, m.target.y * T, T, T, {150, 30, 45, 120});
             c.glow(Layer::Under, (m.target.x + 0.5f) * T, (m.target.y + 0.5f) * T, T, {255, 60, 70, 90});
         }
-        const Scene::Point feet = feetOf(m.at);
+        const Scene::Point feet = feetOf(m, c.alpha);
         const bool flash = m.mode == Mode::WindUp && (c.sv.ticks / 4) % 2 == 0;
         c.ellipse(Layer::Creatures, feet.x, feet.y + 1, 13, 4, {0, 0, 0, 170});
         drawCreature(c, c.sv.monster, feet, 2.6f, false, std::nullopt, true);
         drawCreature(c, c.sv.monster, feet, 2.6f, false, flash ? std::optional(accent) : std::nullopt, false);
     }
-    const Scene::Point feet = feetOf(c.sv.world.hero());
+    const Scene::Point feet = heroFeet(c.sv.world, c.alpha);
     const bool flip = c.sv.world.facing() == game::world::Dir::Left;
     c.ellipse(Layer::Creatures, feet.x, feet.y + 1, 19, 6, {0, 0, 0, 170});
     drawCreature(c, c.sv.hero, feet, 3.4f, flip, std::nullopt, true);
@@ -396,7 +410,8 @@ void effectLayer(const Ctx& c) {
             c.ellipse(Layer::Glow, x, y, 1.5f, 1.5f, withAlpha({235, 255, 215, 0}, 220 * pulse));
         }
     for (const game::world::Bolt& bolt : c.sv.world.bolts()) {
-        const float x = (bolt.at.x + 0.5f) * T, y = (bolt.at.y + 0.5f) * T;
+        const Scene::Point at = drawnAt(c.sv.world.motionOf(bolt), c.alpha);
+        const float x = (at.x + 0.5f) * T, y = (at.y + 0.5f) * T;
         c.glow(Layer::Glow, x, y, 18, {255, 170, 80, 220});
         c.glyph(Layer::Glow, x, y, 16, 0, U'*', {255, 230, 170, 255});
     }
@@ -417,18 +432,18 @@ void effectLayer(const Ctx& c) {
 
 } // namespace
 
-void buildScene(Scene& scene, const SceneView& sv, float time, View view) {
+void buildScene(Scene& scene, const SceneView& sv, float time, View view, float alpha) {
     for (std::vector<Item>& layer : scene.layers)
         layer.clear();
     if (scene.housesOf != &sv.map)
         findHouses(scene, sv.map);
     scene.feet.clear();
-    scene.feet.push_back(feetOf(sv.world.hero()));
+    scene.feet.push_back(heroFeet(sv.world, alpha));
     for (const game::world::Monster& m : sv.world.monsters())
-        scene.feet.push_back(feetOf(m.at));
+        scene.feet.push_back(feetOf(m, alpha));
 
     const auto tile = [](float px) { return static_cast<int>(std::floor(px / T)); };
-    const Ctx c{scene, sv, time, view,
+    const Ctx c{scene, sv, time, alpha, view,
                 std::max(0, tile(view.x) - 2), std::max(0, tile(view.y) - 2),
                 std::min(sv.map.width, tile(view.x + view.w) + 3),
                 std::min(sv.map.height, tile(view.y + view.h) + 3)};

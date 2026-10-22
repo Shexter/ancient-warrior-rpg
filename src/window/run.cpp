@@ -58,10 +58,11 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
         const std::vector<engine::KeyEvent> keys = pollKeys();
         pending.insert(pending.end(), keys.begin(), keys.end());
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if (sceneShown) { // the Overworld reads a click as a tile from its view's corner
-                const float tile = kTilePx * sceneZoom(GetScreenHeight());
-                pending.push_back({engine::Key::Click, 0, static_cast<int>(GetMouseX() / tile),
-                                   static_cast<int>(GetMouseY() / tile)});
+            const auto* overworld = sceneShown ? dynamic_cast<const app::OverworldScreen*>(game.top()) : nullptr;
+            if (overworld) { // the Overworld reads a click as a tile from its camera's corner
+                const game::world::Tile at = sceneTileAt(scene, GetMouseX(), GetMouseY(), GetScreenHeight());
+                const game::world::Tile camera = overworld->sceneView().camera;
+                pending.push_back({engine::Key::Click, 0, at.x - camera.x, at.y - camera.y});
             } else if (const auto cell = cellAt(layout, GetMouseX(), GetMouseY()))
                 pending.push_back({engine::Key::Click, 0, cell->first, cell->second});
         }
@@ -91,13 +92,16 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
         sceneTime += GetFrameTime();
         const auto* overworld = dynamic_cast<const app::OverworldScreen*>(game.top());
         sceneShown = overworld != nullptr;
+        if (!sceneShown)
+            scene.camera.reset(); // back in the Overworld, the camera starts on the hero
         if (!overworld)
             game.draw(frame);
 
         BeginDrawing();
         if (overworld) {
             ClearBackground({4, 6, 9, 255});
-            drawOverworld(*overworld, frame, scene, font, sceneTime, GetScreenWidth(), GetScreenHeight());
+            drawOverworld(*overworld, frame, scene, font, sceneTime, GetFrameTime(),
+                          static_cast<float>(stepper.alpha()), GetScreenWidth(), GetScreenHeight());
         } else {
             ClearBackground(toColor(frame.at(0, 0).bg));
             drawGrid(frame, layout, font);

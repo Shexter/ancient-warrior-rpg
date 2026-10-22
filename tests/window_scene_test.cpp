@@ -305,3 +305,25 @@ TEST(WindowScene, DrawingLeavesTheGameUntouched) {
     EXPECT_EQ(w.screen().world().monsters(), monsters);
     EXPECT_EQ(w.screen().world().hero(), hero);
 }
+
+TEST(WindowScene, TheHeroIsDrawnPartWayThroughAStep) {
+    const Tile spawn = shippedWorld().spawn;
+    const auto world = quietWorldAt(spawn);
+    InWorld w("scene_halfway", world);
+    ASSERT_TRUE(w.h.press({ch('d'), {Key::Char, 'd', 0, 0, engine::KeyAction::Release}})); // one 8-tick move right, started at once
+    ASSERT_TRUE(w.h.wait(3.0 / 60));             // 4 ticks in
+    ASSERT_EQ(w.screen().sceneView().world.hero(), (Tile{spawn.x + 1, spawn.y}));
+    Scene scene;
+    buildScene(scene, w.view(), 0.0f, wholeMap(world));
+    EXPECT_FLOAT_EQ(scene.feet[0].x, (static_cast<float>(spawn.x) + 0.5f + 0.5f) * T);
+    buildScene(scene, w.view(), 0.0f, wholeMap(world), 0.5f); // and half a tick more
+    EXPECT_FLOAT_EQ(scene.feet[0].x, (static_cast<float>(spawn.x) + 0.5f + 0.5f + 0.5f / 8) * T);
+}
+
+TEST(WindowScene, AClickReadsTheTileUnderTheDrawnCamera) {
+    Scene scene;
+    scene.camera = Scene::Point{10 * T + 13, 4 * T};
+    const Tile t = sceneTileAt(scene, 0, 0, 720); // zoom 1
+    EXPECT_EQ(t, (Tile{10, 4}));
+    EXPECT_EQ(sceneTileAt(scene, 14, 0, 720), (Tile{11, 4}));
+}
