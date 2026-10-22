@@ -47,3 +47,13 @@ python3 -I tools/art/to_sprite_png.py in.png green|magenta W H large.png
 ```
 
 The glyph ramp is stretched across each image's own brightness range and lifted by a square root. With the absolute scale, dark colors (the Knight's red tunic, Avaritia's robe) became `.` and `:` and the figures didn't read. That change was decided from a preview of the first bake on 2026-10-12.
+
+## Hero models
+
+`assets/models/hero_*.glb` come from the CC0 [KayKit Adventurers 1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0) pack (`addons/kaykit_character_pack_adventures/Characters/gltf/`). `prep_model.py` keeps one loadout of accessories, skins each to its bone so raylib animates it, and with `--hue` turns the cloth to the path's colour (needs Pillow and numpy):
+
+```
+python3 -I tools/art/prep_model.py Knight.glb assets/models/hero_fighter.glb 1H_Sword Badge_Shield Knight_Helmet Knight_Cape
+python3 -I tools/art/prep_model.py Rogue_Hooded.glb assets/models/hero_hunter.glb --hue 100:200:137 2H_Crossbow Rogue_Cape
+python3 -I tools/art/prep_model.py Rogue.glb assets/models/hero_rogue.glb --hue 100:200:275 Knife Knife_Offhand Rogue_Cape
+```

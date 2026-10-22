@@ -26,7 +26,7 @@ The user also said the prototype "exposes our bad character design, other parts 
 - **Smooth movement.** The world stays tile-based and deterministic. The window interpolates creatures between tiles over each move, and bolts in flight too.
 - **Native key events.** The window reports key press, repeat and release, so held keys work without the terminal fallback. Clicks map to world tiles.
 - **Characters as animated 3D models drawn in glyphs.** The user wants the characters to look "almost 3d" and move "so fluidly like elden ring"; hand-drawn frames per facing can't do that.
-  - Each hero path and field monster is a rigged glTF model with idle, walk, attack and hit clips, from CC0 packs (KayKit Adventurers, Quaternius animals), approved by the user before they're committed.
+  - Each hero path is a rigged glTF model with idle, walk, attack and hit clips, from the CC0 KayKit Adventurers pack, approved by the user before they're committed. Field monsters keep their battle sprites until CC0 models are found.
   - Each frame the window renders the models off screen and turns their pixels into coloured glyphs, so they face any direction, turn smoothly and blend between animations.
 - **A bundled open-licence monospace font** in `assets/fonts/`, so the build doesn't depend on a system font.
 
