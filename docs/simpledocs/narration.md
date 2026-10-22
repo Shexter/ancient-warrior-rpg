@@ -4,7 +4,7 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 
 ## Data (`data/narrator.json`, `templates.*`)
 
-- `loadNarrator(dataDir)` reads it and `parseNarrator` validates it, reporting every error in the file "narrator.json" with the key as the entry: provider default models (Anthropic `claude-opus-5-5`; Gemini's is left empty until the provider work), limits, the narrator and NPC system prompts, a user prompt per kind, the four town NPCs (name and persona), and offline template lines.
+- `loadNarrator(dataDir)` reads it and `parseNarrator` validates it, reporting every error in the file "narrator.json" with the key as the entry: provider default models (Anthropic `claude-opus-5-5`, Gemini `gemini-3.5-flash-lite`), limits, the narrator and NPC system prompts, a user prompt per kind, the four town NPCs (name and persona), and offline template lines.
 - Every one of the 15 template keys (`BossIntro`, `BattleMoment.skill`, `BattleMoment.low_hp.hero` / `.foe`, `BattleMoment.status`, `BattleEnd.victory` / `.defeat` / `.fled` / `.draw`, `FloorEnter`, `NpcGreeting.<npc>`, `NpcTalk`) must have at least one line; the shipped file has three each. A missing key, an unknown key, or a placeholder other than `{hero} {foe} {location} {detail} {floor} {npcName} {turns}` is an error.
 - `fillTemplate(def, key, values, rng)` picks one line with the given RNG (callers use their own stream, never the game's) and fills each placeholder from `values`.
 
@@ -35,3 +35,13 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 - `validBaseUrl` wants `http(s)://host[:port]/path`, with plain http only for `localhost`, `127.0.0.1` or `::1`. `newInstallId` is 32 lowercase hex characters from `std::random_device`.
 - `kConsentText` is the first-run disclosure. Nothing shows it yet, and nothing builds a narrator from the settings until real providers exist.
 - `tests/settings_test.cpp` covers the defaults, a round trip with the 0600 mode, a damaged file, masking, the env var winning and never being written, a save holding no key, the URL rule, and install ids.
+
+## Providers (`src/net/providers.*`)
+
+Each provider builds an HTTP request from a narration request and reads the reply; both are pure, and nothing here sends anything (there's no HTTP library yet).
+- **Messages:** the system prompt is the narrator prompt, or for an NPC the NPC prompt with its name and persona filled in. The user text is the kind's prompt with `{summary}` (compact JSON) and `{input}` filled in. A talk's history goes first as alternating turns, the player's wrapped in `<player>` tags.
+- **Anthropic:** `POST https://api.anthropic.com/v1/messages` with `x-api-key`, `anthropic-version: 2023-06-01` and the fallback beta header; `max_tokens` 2048, low effort. A `refusal` stop reason is Refused; otherwise the text blocks are joined, skipping any thinking blocks.
+- **Gemini:** `POST …/v1beta/models/<model>:generateContent` with `x-goog-api-key`; the history's replies have the role `model`. A prompt block reason or a SAFETY finish is Refused; otherwise the first candidate's parts are joined.
+- **OpenAI-compatible:** `POST <base>/chat/completions` (OpenAI's base by default, `http://localhost:11434/v1` for Local), `authorization: Bearer <key>` only when there is a key. OpenAI gets `max_completion_tokens` and Local gets `max_tokens`. A `content_filter` finish is Refused.
+- An empty reply, malformed JSON, or a field of the wrong type is BadResponse. The timeout comes from `narrator.json`.
+- `tests/providers_test.cpp` compares each built request with `tests/fixtures/llm/<provider>_request.json` (written by hand from the documented shapes), and checks talk requests, each kind of refusal, Anthropic's thinking-then-text replies, and the status mapping.

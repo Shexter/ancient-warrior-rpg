@@ -30,3 +30,9 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 - `src/app/settings.*` is built and tested: load/save (temp then rename, mode 0600 on POSIX), masking, env-var keys winning and never written, base URL validation, install ids, and the consent text. 4.2's masking, env-var, 0600, no-key-in-save and URL tests are among them.
 - **4.1 and 4.2 stay unticked:** the consent screen, the Settings screen and the "no Narrator without consent" check need a way to build a Narrator from settings, which needs real providers (3.2, after re-checking the providers' docs) and libcurl (3.1).
 - The window's font atlas gained `•` (U+2022), which the masked key uses.
+
+## Task 3.2: the three direct providers (pure build and parse)
+
+- Shapes rechecked on 2026-10-22: Gemini from https://ai.google.dev/api/generate-content and the models page (default model `gemini-3.5-flash-lite`, the docs' fastest, cheapest stable Flash-Lite). OpenAI's API reference needs a sign-in, so it couldn't be read; search results quote it marking `max_tokens` deprecated in favour of `max_completion_tokens`. Anthropic follows the reference as written. The sources are recorded in `providers.cpp`.
+- SPEC DRIFT: OpenAI requests send `max_completion_tokens` while Local keeps `max_tokens` (Ollama-style servers), against the reference's `max_tokens` for both.
+- **3.2 stays unticked** until the request shapes have been seen working against the real services, which needs 3.1 (libcurl, CI) and keys; the fixtures are hand-written from the docs.

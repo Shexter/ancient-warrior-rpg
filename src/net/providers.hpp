@@ -1,9 +1,11 @@
 #pragma once
 
 #include "game/narration/summary.hpp"
+#include "game/narration/templates.hpp"
 
 #include <expected>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -43,6 +45,20 @@ class Provider {
 // The error a status means, the same for every provider: 401/403 Auth, 404 UnknownModel, 429
 // RateLimited (retry-after, default 60 s), 5xx Server, other 4xx BadResponse; none for 2xx.
 std::optional<ProviderError> statusError(const HttpResponse& response);
+
+// Which model and key a provider uses. An empty model means the provider's default in
+// narrator.json; an empty base URL means OpenAI's for the OpenAI-compatible provider.
+struct ProviderConfig {
+    std::string model, apiKey, baseUrl;
+};
+
+// The direct providers (reference/llm-interfaces.md §5): the Claude Messages API, Gemini
+// generateContent, and OpenAI-compatible chat completions (`local`: a model server on this
+// machine, where the key is optional).
+std::unique_ptr<Provider> anthropicProvider(const game::narration::NarratorDef& def, ProviderConfig config);
+std::unique_ptr<Provider> geminiProvider(const game::narration::NarratorDef& def, ProviderConfig config);
+std::unique_ptr<Provider> openAiProvider(const game::narration::NarratorDef& def, ProviderConfig config,
+                                         bool local);
 
 // Builds, sends and parses one request.
 std::expected<std::string, ProviderError> complete(const Provider& provider, const Transport& transport,

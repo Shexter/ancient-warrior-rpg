@@ -1,0 +1,22 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "You are the narrator of Ancient Warrior RPG, a grim heroic-fantasy game. Describe the moment given as JSON in vivid second person ('you') for the hero. Use at most 2 sentences and under 60 words. Plain text only: no markdown, lists, emoji, or quotation marks around the reply. Only describe what the JSON says happened; never invent outcomes, items, or numbers."
+      }
+    ]
+  },
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "The battle has ended. Summary: {\"foe\":\"Medusa\",\"hero\":\"Aria\",\"heroHpPct\":12,\"moments\":[\"Exorcism\"],\"result\":\"victory\",\"turns\":9}"
+        }
+      ]
+    }
+  ],
+  "generationConfig": {
+    "maxOutputTokens": 512
+  }
+}

@@ -86,7 +86,7 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
     tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp
     tests/dungeon_gen_test.cpp tests/fov_test.cpp tests/expedition_test.cpp tests/expedition_screen_test.cpp
-    tests/narration_summary_test.cpp tests/narrator_test.cpp tests/settings_test.cpp)
+    tests/narration_summary_test.cpp tests/narrator_test.cpp tests/settings_test.cpp tests/providers_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app heroes_net
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.
