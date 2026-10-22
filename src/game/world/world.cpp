@@ -51,7 +51,7 @@ std::vector<WorldEvent> World::step(const WorldInput& input) {
     useAbilities(input, events);
     if (input.interact)
         if (const auto landmark = nearbyLandmark())
-            events.push_back(wev::Interact{*landmark});
+            events.emplace_back(std::in_place_type<wev::Interact>, *landmark); // in place: GCC 13 misreads a moved temporary as uninitialised
     regenerate();
     refreshDistances();
     advanceBolts(events);
