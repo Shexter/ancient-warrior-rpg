@@ -59,7 +59,7 @@ target_link_libraries(heroes-sim PRIVATE heroes_simlib heroes_warnings)
 target_compile_definitions(heroes-sim PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screens/title.cpp
-    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp
+    src/app/screens/new_game.cpp src/app/screens/hub.cpp src/app/screens/expedition.cpp src/app/settings.cpp
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
     src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
     src/app/screens/mission.cpp src/app/battle_view.cpp src/app/art.cpp
@@ -86,7 +86,7 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
     tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp
     tests/dungeon_gen_test.cpp tests/fov_test.cpp tests/expedition_test.cpp tests/expedition_screen_test.cpp
-    tests/narration_summary_test.cpp tests/narrator_test.cpp)
+    tests/narration_summary_test.cpp tests/narrator_test.cpp tests/settings_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app heroes_net
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.

@@ -26,3 +26,12 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 - **Notices:** `takeNotice()` gives one message the first time each of Auth, Unreachable (naming Ollama when the narrator is `local`) and UnknownModel is seen; refusals and other errors fall back to the template silently.
 - **Sanitizing** (in `poll`): control bytes and escape sequences go, newlines and tabs become spaces, runs of spaces collapse, and a reply over the limit (400 characters) is cut at the last space with `…`. A reply with nothing printable left becomes BadResponse.
 - `tests/narrator_test.cpp` uses a fake transport the test can hold shut: one in flight with the waiting request replaced, replies in ticket order, backoff sending nothing, each notice once, both Unreachable notices, sanitizing, and golden battle B giving identical events with a Narrator attached.
+
+## Settings (`src/app/settings.*`)
+
+- `settings.json` sits beside the save (the same `HEROES_SAVE_DIR` override) and never goes into it: `version`, `consentShown`, and the narrator's `mode` (off, hosted, byok, local), `provider` (gemini, anthropic, openai), `model`, `baseUrl`, `apiKey` and `installId`. A missing or damaged file gives the defaults: consent not shown, Off.
+- `saveSettings` writes a temporary file, makes it readable only by the owner on POSIX, then renames it over the old one.
+- `mask(key)` shows `••••` and the last 4 characters (just `••••` under 8). `resolveKey` takes the provider's environment variable (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) over the file's key, and the variable is never written to the file.
+- `validBaseUrl` wants `http(s)://host[:port]/path`, with plain http only for `localhost`, `127.0.0.1` or `::1`. `newInstallId` is 32 lowercase hex characters from `std::random_device`.
+- `kConsentText` is the first-run disclosure. Nothing shows it yet, and nothing builds a narrator from the settings until real providers exist.
+- `tests/settings_test.cpp` covers the defaults, a round trip with the 0600 mode, a damaged file, masking, the env var winning and never being written, a save holding no key, the URL rule, and install ids.

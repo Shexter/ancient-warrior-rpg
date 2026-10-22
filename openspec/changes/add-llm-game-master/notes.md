@@ -24,3 +24,9 @@ SPEC DRIFT:
 - Narrator tests were repeated 20 times under asan and GCC 14 without a failure. There's no ThreadSanitizer preset, so data races are checked by design (one mutex for all shared state), not by a tool.
 
 Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 645/645; window-off 610/610; mingw syntax check clean (jthread is available there).
+
+## Part of chunk 4: settings
+
+- `src/app/settings.*` is built and tested: load/save (temp then rename, mode 0600 on POSIX), masking, env-var keys winning and never written, base URL validation, install ids, and the consent text. 4.2's masking, env-var, 0600, no-key-in-save and URL tests are among them.
+- **4.1 and 4.2 stay unticked:** the consent screen, the Settings screen and the "no Narrator without consent" check need a way to build a Narrator from settings, which needs real providers (3.2, after re-checking the providers' docs) and libcurl (3.1).
+- The window's font atlas gained `•` (U+2022), which the masked key uses.
