@@ -7,7 +7,7 @@ See proposal.md for why. What the window builds on:
 - **`engine::FixedStepper`** gives 60 Hz fixed steps. `KeyEvent` already carries `KeyAction` (chunk 2 of `add-free-roam-overworld`), and screens opt in with `wantsKeyActions()`.
 - **`OverworldScreen`** owns a `world::World` (hero tile, facing, monsters, bolts, cooldowns), the camera, the HUD, damage numbers, the Nova ring and notices. It draws everything into one `Framebuffer`.
 - **Prototype v2** (scratchpad `proto/proto.cpp`, throwaway) proved the look and the layer order at 1280×720. It used 26 px tiles, about 15–25k glyph draws per frame, value-noise moonlight, Gaussian window pools and additive glows.
-- **The art pipeline** the user prefers is Draw Things CLI (FLUX.2 klein 4B), then a chroma key, then `sprite_bake`.
+- **The art pipeline** the user prefers for sprites is Draw Things CLI (FLUX.2 klein 4B), then a chroma key, then `sprite_bake`. Characters in the window use 3D models instead (D8).
 
 ## Goals / Non-Goals
 
@@ -52,7 +52,7 @@ The window checks whether the top screen is an `OverworldScreen` (one `dynamic_c
 ### D5. Move progress for interpolation
 `World` exposes per-creature `from`, `to` and `progress`:
 - the hero from `moveTicksLeft_` and `ticksPerTile`;
-- monsters gain `from` and `stepTicks` set when they step (chase or wander step time).
+- monsters gain `from` and `stepTicks` set when they step (chase or wander step time), and an `id`, a serial number given at spawn, so the window can keep each one's animation pose (D8) when others are removed.
 
 This is read-only and doesn't change the simulation. The window also interpolates within a step, by the stepper's leftover fraction (`alpha`), so motion is smooth at any refresh rate.
 
@@ -73,12 +73,18 @@ Randomness is a position hash only (the prototype's `hash`/`rnd`/`noise`), never
 - A wind-up draws a red tile-sized glow under its target and alternates the monster's tint every 4 ticks, matching the terminal behaviour.
 - Damage numbers, bolts and the Nova ring come from the same `OverworldScreen` state the terminal draws, so both front ends show the same events.
 
-### D8. World-scale character art
-`assets/sprites/world/hero_<path>_<facing>_<frame>.sprite`, with `facing` in `down|up|left|right` and `frame` in `0` (standing), `1`, `2`, plus `monster_<tier>.sprite` for Fox, Bat, Horse and Bull. Each is a 32×40 px half-block sprite.
-- **Generation:** a Draw Things prompt per path and facing, in the existing hero designs' colours (a top-down, three-quarter view game sprite on green chroma), then `sprite_bake` (chroma key, shrink, quantise).
-- **Approval:** prompts and seeds are recorded in `assets/sprites/world/PROMPTS.md`, and the user approves a contact sheet before anything is committed (same gate as fun-pass task 4.1).
-- **Drawing:** the window draws a world sprite as glyph cells on a dark silhouette, the same way prototype v2 drew the battle sprite, at about 3.4 px per sprite pixel.
-- **Walk frames:** frame 1 for the first half of each move and frame 2 for the second, alternating the start frame each tile.
+### D8. Characters as animated 3D models drawn in glyphs
+Hand-drawn frames per facing snap between 4 directions and a few poses; the user wants characters that look "almost 3d" and move fluidly. raylib 5.5 already loads glTF with skeletal animation (`LoadModel`, `LoadModelAnimations`, `UpdateModelAnimation`), so no new dependency is needed.
+- **Assets:** `assets/models/hero_<pathId>.glb` and `monster_<tier>.glb`, each with `idle`, `walk`, `attack` and `hit` clips, from CC0 packs: KayKit Adventurers (Knight for Fighter, Rogue, Ranger for Hunter) and Quaternius animals (Fox, Horse, Bull). Licences go in `assets/models/LICENSES.md`, checked when sourced. The user approves a turntable contact sheet (each model at 8 angles, mid-walk) before anything is committed. Bat has no CC0 match and keeps its battle sprite.
+- **Rendering:** every creature in view gets a slot in one shared render texture (48×64 px each). Its model is drawn into the slot with a fixed three-quarter top-down orthographic camera and a key light matching the moon, and the texture is read back once per frame.
+- **Glyphs:** a pure function `glyphsFromPixels(pixels, w, h, feet, scale)` turns every pixel with alpha into a glyph Item in the Creatures layer. The character comes from a brightness ramp (the colored glyph ramp the user liked), drawn in the pixel's own colour, on the existing dark silhouette at about 2.2 scene units per pixel. Shadows, reflections, name labels and grass bending keep working off the same Items and feet. It is a pure function, so it can be tested without a GPU.
+- **Pose:** a pure function `poseOf(previous pose, creature state, dt)` gives `{clip, clipTime, fromClip, fromTime, blend, yaw}`:
+  - `yaw` eases toward the movement direction, reaching it in about 0.12 s, taking the short way round.
+  - `walk` advances by move progress (D5) times a cycle length per tile, so feet don't slide at any pace. `idle` advances by time.
+  - `attack` and `hit` start on the World's `Damaged` events and wind-up, then return to walk or idle.
+  - A clip change crossfades over 0.15 s. raylib 5.5 doesn't blend animations, so the two poses' bone transforms are lerped (slerp for rotation) before the mesh is skinned.
+  - Pose state is kept per creature in the window, keyed by monster identity, and never feeds back into the World.
+- **Loading:** models load at window startup. A missing file falls back to the battle sprite; a file that fails to load, or is missing a required clip, exits with code 2 naming it.
 - The terminal Overworld keeps its `@`.
 
 ### D9. Font
@@ -94,7 +100,9 @@ raylib's exit key is turned off (`SetExitKey(KEY_NULL)`), so Esc stays a game ke
 
 - **[Linux CI needs GL/X11 headers]** → The workflow installs `libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev` on Ubuntu. Window tests that need a display are labelled `window-display` and skipped in CI. Pure layer-builder tests run everywhere.
 - **[Frame time with dense grass at 1920×1080]** → Recorded in a benchmark task. If it goes over budget, grass blades per tile scale with zoom, and the static layers (ground, surfaces, houses) are cached into a render texture redrawn only when the camera crosses a tile.
-- **[Generated art quality]** → The approval gate in D8. The window falls back to the battle sprite if a world sprite set is missing, so a gap is never a crash; only malformed files fail startup.
+- **[Model look as glyphs]** → The approval gate in D8 uses the real glyph rendering, not plain renders. The window falls back to the battle sprite if a model is missing, so a gap is never a crash; only malformed files fail startup.
+- **[GPU readback per frame]** → One small readback for all creatures, about 48×64 px per creature. The benchmark is rerun after chunk 3; if it goes over budget, the pixels-to-glyphs step moves into a fragment shader.
+- **[CC0 packs don't match the hero designs]** → Model materials are recoloured to each path's palette at load time. If the user still rejects the look, the fallback is hand-made models, done as a separate change.
 - **[Two front ends drift]** → Both share `loadStartup`, the screens and the `World`. The only front-end-specific code is drawing and input.
 
 ## Migration Plan

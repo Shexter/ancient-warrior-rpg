@@ -25,9 +25,11 @@
 
 ## 3. Smooth movement and world-scale characters
 
-- [ ] 3.1 Expose move progress from `World` (D5): the hero's and each monster's `from`, `to` and `progress`, and bolts' progress. The window interpolates by those plus the stepper's `alpha`, and the camera follows the drawn position. Verify with World tests for the Halfway through a step scenario (hero and a monster), with the existing World replay tests unchanged, and with a scene test that the hero is drawn halfway.
-- [ ] 3.2 Generate the world-scale hero sprites (3 paths × 4 facings × 3 frames) and monster sprites (4 tiers) with Draw Things, bake them, record prompts and seeds in `assets/sprites/world/PROMPTS.md`, and show the user a contact sheet. Commit only once the user has approved it (D8). Verify that the approval is recorded in `notes.md`.
-- [ ] 3.3 Load and validate world sprites at startup (a missing set falls back to the battle sprite; a malformed file exits with code 2). Select frames by facing and walk phase. Verify with tests for the Facing follows movement scenario and a malformed-sprite startup failure.
-- [ ] 3.4 Playtest manually in the window (walk, every landmark, a field fight, a mission and back, close with unsaved changes), and record the findings in `notes.md`. Verify that the notes are written.
-- [ ] 3.5 Update SimpleDocs `window.md` and `sprites.md`. Verify that they match the code.
-- [ ] 3.6 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [ ] 3.1 Expose move progress from `World` (D5): the hero's and each monster's `from`, `to` and `progress`, and bolts' progress, plus a spawn serial `id` per monster. The window interpolates by those plus the stepper's `alpha`, and the camera follows the drawn position. Verify with World tests for the Halfway through a step scenario (hero and a monster), with the existing World replay tests unchanged, and with a scene test that the hero is drawn halfway.
+- [ ] 3.2 Source the CC0 models for the three hero paths and the Fox, Horse and Bull tiers, recolour them to the path palettes, record the sources and licences in `assets/models/LICENSES.md`, and show the user a turntable contact sheet rendered as glyphs. Commit only once the user has approved it (D8). Verify that the approval is recorded in `notes.md`.
+- [ ] 3.3 Load and validate the models at window startup (a missing model falls back to the battle sprite; a malformed model or a missing clip exits with code 2), render them into the shared texture, and add `glyphsFromPixels`. Verify with a test of `glyphsFromPixels` on a fixed pixel grid (ramp, colour, feet anchor), a CLI test for the Malformed model scenario, and a `window-display` snapshot of the hero.
+- [ ] 3.4 Add `poseOf`: yaw easing, walk pace by move progress, attack and hit on events, and the 0.15 s crossfade (D8). Verify with tests for the Facing follows movement and Walk pace follows the move scenarios, a crossfade weight test, and Drawing leaves the game untouched rerun with models.
+- [ ] 3.5 Rerun the frame-time benchmark with models at 1280×720 and 1920×1080 and record it in `docs/benchmarks.md`. Verify that it meets the Frame budget scenario.
+- [ ] 3.6 Playtest manually in the window (walk, every landmark, a field fight, a mission and back, close with unsaved changes), and record the findings in `notes.md`. Verify that the notes are written.
+- [ ] 3.7 Update SimpleDocs `window.md` and `sprites.md`. Verify that they match the code.
+- [ ] 3.8 Complete chunk quality check against `docs/engineering/code-correctness.md`.

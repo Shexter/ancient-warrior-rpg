@@ -25,10 +25,9 @@ The user also said the prototype "exposes our bad character design, other parts 
   - vignette.
 - **Smooth movement.** The world stays tile-based and deterministic. The window interpolates creatures between tiles over each move, and bolts in flight too.
 - **Native key events.** The window reports key press, repeat and release, so held keys work without the terminal fallback. Clicks map to world tiles.
-- **World-scale character art**:
-  - new top-down hero sprites for each path, with 4 facings and 2 walk frames each;
-  - monster sprites for the field;
-  - all generated with the Draw Things CLI and baked with `sprite_bake`, for the user to approve before they're committed.
+- **Characters as animated 3D models drawn in glyphs.** The user wants the characters to look "almost 3d" and move "so fluidly like elden ring"; hand-drawn frames per facing can't do that.
+  - Each hero path and field monster is a rigged glTF model with idle, walk, attack and hit clips, from CC0 packs (KayKit Adventurers, Quaternius animals), approved by the user before they're committed.
+  - Each frame the window renders the models off screen and turns their pixels into coloured glyphs, so they face any direction, turn smoothly and blend between animations.
 - **A bundled open-licence monospace font** in `assets/fonts/`, so the build doesn't depend on a system font.
 
 ## Capabilities
@@ -51,7 +50,7 @@ The user also said the prototype "exposes our bad character design, other parts 
 - **Small changes to existing code:**
   - `World` exposes each creature's move progress, so the window can interpolate.
   - `OverworldScreen` can draw its HUD alone, with the map cells marked transparent, for the window to put over the scene.
-- **Assets:** new world-scale sprites under `assets/sprites/world/`, and a font with its licence under `assets/fonts/`.
+- **Assets:** new CC0 character models with their licences under `assets/models/`, and a font with its licence under `assets/fonts/`.
 - **Not affected:** game rules, the save format, data files, balance, the battle goldens, or the terminal binary's behaviour and dependencies.
 - **Depends on:** `add-free-roam-overworld` through chunk 6 (its chunk 6 GCC check still has to pass first). Its chunk 7, the full map, can land before or after this change.
 - **Non-goals:**

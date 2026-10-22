@@ -7,7 +7,7 @@ A graphical window front end for the game, drawing glyphs freely, layered and li
 ## ADDED Requirements
 
 ### Requirement: Window executable
-The project SHALL build a `heroes-window` executable when the `HEROES_BUILD_WINDOW` option is on (the default). It SHALL take the same command-line options as `heroes`, except `--layout`, which it SHALL reject like any unknown option. It SHALL use the same data directory, mods, saves and save location as `heroes`, so a game saved in one continues in the other. Startup errors (bad content, a bad world, bad sprites, a missing font) SHALL be printed and SHALL exit with code 2 before a window opens. With the option off, the project SHALL build and test without fetching or linking raylib. The `heroes` executable SHALL never link raylib.
+The project SHALL build a `heroes-window` executable when the `HEROES_BUILD_WINDOW` option is on (the default). It SHALL take the same command-line options as `heroes`, except `--layout`, which it SHALL reject like any unknown option. It SHALL use the same data directory, mods, saves and save location as `heroes`, so a game saved in one continues in the other. Startup errors (bad content, a bad world, bad sprites, a malformed model, a missing font) SHALL be printed and SHALL exit with code 2 before a window opens. With the option off, the project SHALL build and test without fetching or linking raylib. The `heroes` executable SHALL never link raylib.
 
 #### Scenario: Shared save
 - **WHEN** a game is saved in `heroes-window` and `heroes` is started afterwards
@@ -78,11 +78,19 @@ The window SHALL produce the same key events as the terminal: arrows, W/A/S/D, E
 - **THEN** "Quit without saving?" is asked, and the window stays open on No
 
 ### Requirement: World-scale character art
-Each hero path SHALL have world-scale sprites for the Overworld, separate from its battle art: 4 facings (down, up, left, right), each with a standing frame and 2 walk frames. Each training-monster tier SHALL have one world sprite. While walking, the hero SHALL alternate walk frames in step with its moves, and SHALL show the standing frame of its facing when stopped. A missing or malformed world sprite SHALL be reported at startup naming the file, and SHALL exit with code 2.
+In the Overworld, each hero path and each training-monster tier that has a model SHALL be drawn from an animated 3D model, separate from its battle art, rendered as coloured glyphs on the creature's silhouette. A creature SHALL turn smoothly toward its movement direction rather than snapping, and may face any direction. It SHALL play a walk animation whose pace follows its move progress while moving, an idle animation when stopped, and attack and hit animations when it attacks or is hit, with each change of animation blended rather than cut. A creature without a model SHALL be drawn with its battle sprite. A malformed model SHALL be reported at startup naming the file, and SHALL exit with code 2.
 
 #### Scenario: Facing follows movement
-- **WHEN** the hero walks left and then stops
-- **THEN** the left-facing walk frames alternate during the walk, and the left-facing standing frame shows after it
+- **WHEN** the hero, facing down, walks left and then stops
+- **THEN** the hero turns through the angles between down and left over several frames, plays its walk animation during the walk, and blends into its idle animation after it
+
+#### Scenario: Walk pace follows the move
+- **WHEN** the hero walks one tile at the field pace and then one at half that pace
+- **THEN** the walk animation advances the same amount per tile in both
+
+#### Scenario: Malformed model
+- **WHEN** `heroes-window` starts with a hero model file that isn't valid glTF
+- **THEN** it prints an error naming the file and exits with code 2 without opening a window
 
 ### Requirement: Renderer independence and performance
 Drawing SHALL never use or change the game's random stream or state; every look varies only by position hash and time. The Overworld scene SHALL render at 60 frames per second in a 1280×720 window on the reference machine (Apple M4 Pro, release build), measured and recorded.
