@@ -2,12 +2,12 @@
 #include "game/battle.hpp"
 #include "game/dungeon/dungeon_def.hpp"
 #include "game/dungeon/floor.hpp"
+#include "platform/env.hpp"
 #include "shipped_content.hpp"
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -180,7 +180,7 @@ TEST(FloorGen, MatchesTheCheckedInFloors) {
     for (const int index : {1, 5}) {
         const auto file = kSource / "tests" / "fixtures" / "dungeon" / std::format("seed1234_f{}.txt", index);
         const std::string drawn = renderAscii(generateFloor(shippedDungeon(), 1234, index));
-        if (std::getenv("HEROES_WRITE_FIXTURES"))
+        if (heroes::platform::getEnv("HEROES_WRITE_FIXTURES"))
             std::ofstream(file, std::ios::binary) << drawn;
         EXPECT_EQ(drawn, readFile(file)) << file;
     }

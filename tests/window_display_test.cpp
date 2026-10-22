@@ -3,6 +3,7 @@
 #include "app/screens/title.hpp"
 #include "app/screens/overworld.hpp"
 #include "screen_harness.hpp"
+#include "platform/env.hpp"
 #include "window/grid.hpp"
 #include "window/models.hpp"
 #include "window/scene.hpp"
@@ -38,8 +39,8 @@ TEST(WindowDisplay, TheTitleScreenDrawsItsCells) {
     EndTextureMode();
     Image image = LoadImageFromTexture(target.texture);
     ImageFlipVertical(&image);
-    if (const char* dir = std::getenv("HEROES_SNAPSHOT_DIR")) // for looking at it by eye
-        ExportImage(image, (fs::path(dir) / "window_title.png").string().c_str());
+    if (const auto dir = heroes::platform::getEnv("HEROES_SNAPSHOT_DIR")) // for looking at it by eye
+        ExportImage(image, (fs::path(*dir) / "window_title.png").string().c_str());
 
     // Every cell's background lands where the layout says (sampled at each cell's corner pixel),
     // and some cell with a visible glyph has a pixel in its foreground colour.
@@ -127,8 +128,8 @@ TEST(WindowDisplay, TheOverworldSceneDrawsUnderTheHud) {
     const auto& screen = dynamic_cast<const OverworldScreen&>(*h.app->top());
     Image image{};
     renderOverworld(screen, font, 1280, 720, 1, &image);
-    if (const char* dir = std::getenv("HEROES_SNAPSHOT_DIR"))
-        ExportImage(image, (fs::path(dir) / "window_overworld.png").string().c_str());
+    if (const auto dir = heroes::platform::getEnv("HEROES_SNAPSHOT_DIR"))
+        ExportImage(image, (fs::path(*dir) / "window_overworld.png").string().c_str());
     // The HUD's status row is drawn over the scene in the panel colour (top-left cell).
     const auto layout = heroes::window::layoutFor(engine::kCompactCanvas, 1280, 720);
     const Color panel = GetImageColor(image, layout.originX + 1, layout.originY + 1);
@@ -138,7 +139,7 @@ TEST(WindowDisplay, TheOverworldSceneDrawsUnderTheHud) {
     EXPECT_NE((engine::Rgb{middle.r, middle.g, middle.b}), palette::kPanel);
     UnloadImage(image);
 
-    if (std::getenv("HEROES_BENCH"))
+    if (heroes::platform::getEnv("HEROES_BENCH"))
         for (const auto& [w, h2] : {std::pair{1280, 720}, std::pair{1920, 1080}})
             std::printf("overworld %dx%d: %.2f ms/frame over 600 frames\n", w, h2,
                         renderOverworld(screen, font, w, h2, 600, nullptr));
@@ -178,10 +179,10 @@ TEST(WindowDisplay, TheHeroIsDrawnFromItsModel) {
         const auto& screen = dynamic_cast<const OverworldScreen&>(*h.app->top());
         Image image{};
         renderOverworld(screen, font, 1280, 720, 1, &image, &painter);
-        if (const char* dir = std::getenv("HEROES_SNAPSHOT_DIR"))
-            ExportImage(image, (fs::path(dir) / "window_hero.png").string().c_str());
+        if (const auto dir = heroes::platform::getEnv("HEROES_SNAPSHOT_DIR"))
+            ExportImage(image, (fs::path(*dir) / "window_hero.png").string().c_str());
         UnloadImage(image);
-        if (std::getenv("HEROES_BENCH"))
+        if (heroes::platform::getEnv("HEROES_BENCH"))
             for (const auto& [w, h2] : {std::pair{1280, 720}, std::pair{1920, 1080}})
                 std::printf("overworld with the hero model %dx%d: %.2f ms/frame over 600 frames\n", w, h2,
                             renderOverworld(screen, font, w, h2, 600, nullptr, &painter));

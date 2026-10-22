@@ -127,7 +127,7 @@ if(HEROES_BUILD_WINDOW)
     gtest_discover_tests(heroes_window_tests)
 
     add_executable(heroes_window_display_tests tests/window_display_test.cpp)
-    target_link_libraries(heroes_window_display_tests PRIVATE heroes_window_lib heroes_warnings
+    target_link_libraries(heroes_window_display_tests PRIVATE heroes_window_lib heroes_platform heroes_warnings
         GTest::gtest_main)
     target_compile_definitions(heroes_window_display_tests PRIVATE
         HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

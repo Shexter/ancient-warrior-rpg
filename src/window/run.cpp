@@ -103,7 +103,7 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
                 const game::world::Tile at = sceneTileAt(scene, GetMouseX(), GetMouseY(), GetScreenHeight());
                 const game::world::Tile camera = overworld->sceneView().camera;
                 pending.push_back({engine::Key::Click, 0, at.x - camera.x, at.y - camera.y});
-            } else if (const auto cell = cellAt(layout, GetMouseX(), GetMouseY()))
+            } else if (const auto cell = cellAt(layout, static_cast<float>(GetMouseX()), static_cast<float>(GetMouseY())))
                 pending.push_back({engine::Key::Click, 0, cell->first, cell->second});
         }
         if (WindowShouldClose()) {
