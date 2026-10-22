@@ -1,3 +1,5 @@
+#include "game/content_loader.hpp"
+#include "game/dungeon/floor.hpp"
 #include "sim/sim.hpp"
 
 #include <algorithm>
@@ -19,6 +21,26 @@ int main(int argc, char** argv) {
     if (!options) {
         std::cerr << "heroes-sim: error: " << options.error() << '\n';
         return 2;
+    }
+
+    if (const int floors = options->benchDungeon; floors > 0) {
+        namespace dungeon = heroes::game::dungeon;
+        const auto content = heroes::game::loadContent(options->config.dataDir);
+        const auto def = content ? dungeon::loadDungeon(options->config.dataDir, *content)
+                                 : std::unexpected(content.error());
+        if (!def) {
+            std::cerr << "heroes-sim: error: " << def.error().front().file << ": "
+                      << def.error().front().message << '\n';
+            return 2;
+        }
+        std::size_t tiles = 0; // read after timing, so the work can't be skipped
+        const auto begin = std::chrono::steady_clock::now();
+        for (int i = 0; i < floors; ++i)
+            tiles += dungeon::generateFloor(*def, static_cast<std::uint64_t>(i), 1 + i % def->floors).tiles.size();
+        const std::chrono::duration<double, std::micro> took = std::chrono::steady_clock::now() - begin;
+        std::cout << std::format("dungeon: {} floors, {:.1f} us per floor ({} tiles)\n", floors,
+                                 took.count() / floors, tiles);
+        return 0;
     }
 
     const auto start = std::chrono::steady_clock::now();

@@ -4,18 +4,18 @@ The reference is `reference/dungeon-interfaces.md` (abbreviated "ref" below). Th
 
 ## 1. Data and Floor Generation
 
-- [ ] 1.1 Add `data/dungeon.json` (ref §2), the 5 enemies plus the `basic` behavior value in `data/enemies.json` (ref §3), and their validation; verify `tests/content_validation_test.cpp` gains failing fixtures for an unknown pool enemy, an uncovered floor, and min > max, each named in the error
-- [ ] 1.2 Add `EnemyBehavior::Basic` to `Battle` (ref §3); verify a battle test that a Basic enemy attacks every turn, makes no RNG draw (the Rng state is unchanged after its turns), and that core golden scenarios A–D still pass
-- [ ] 1.3 Implement `src/game/dungeon/floor` steps 1–4 (BSP, rooms, corridors, entry and stairs) and `bfsDistances` and `renderAscii`; verify tests for the invariants in ref §4 across 10,000 seeds (connectivity, stairs present, border walls) and that two generations with the same seed are identical
-- [ ] 1.4 Implement steps 5–6 (elite, enemies, chests) and floor scaling; verify tests for no shared tiles, the safe radius, the elite only on floor 5, and that the average scaled enemy HP on floor 5 is greater than on floor 1 over 1,000 seeds
-- [ ] 1.5 Generate `renderAscii(generateFloor(seed 1234, floor 1))` and `(seed 1234, floor 5)`, commit them as `tests/fixtures/dungeon/seed1234_f1.txt` and `_f5.txt`, and add a test comparing against them; verify the test passes on all three CI platforms (cross-platform determinism)
-- [ ] 1.6 Add `--bench-dungeon N` to `heroes-sim` (generates N floors, prints mean µs per floor); verify the release build mean is under 5 ms and record it in `docs/benchmarks.md`
-- [ ] 1.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.1 Add `data/dungeon.json` (ref §2), the 5 enemies plus the `basic` behavior value in `data/enemies.json` (ref §3), and their validation; verify `tests/content_validation_test.cpp` gains failing fixtures for an unknown pool enemy, an uncovered floor, and min > max, each named in the error
+- [x] 1.2 Add `EnemyBehavior::Basic` to `Battle` (ref §3); verify a battle test that a Basic enemy attacks every turn, makes no RNG draw (the Rng state is unchanged after its turns), and that core golden scenarios A–D still pass
+- [x] 1.3 Implement `src/game/dungeon/floor` steps 1–4 (BSP, rooms, corridors, entry and stairs) and `bfsDistances` and `renderAscii`; verify tests for the invariants in ref §4 across 10,000 seeds (connectivity, stairs present, border walls) and that two generations with the same seed are identical
+- [x] 1.4 Implement steps 5–6 (elite, enemies, chests) and floor scaling; verify tests for no shared tiles, the safe radius, the elite only on floor 5, and that the average scaled enemy HP on floor 5 is greater than on floor 1 over 1,000 seeds
+- [x] 1.5 Generate `renderAscii(generateFloor(seed 1234, floor 1))` and `(seed 1234, floor 5)`, commit them as `tests/fixtures/dungeon/seed1234_f1.txt` and `_f5.txt`, and add a test comparing against them; verify the test passes on all three CI platforms (cross-platform determinism)
+- [x] 1.6 Add `--bench-dungeon N` to `heroes-sim` (generates N floors, prints mean µs per floor); verify the release build mean is under 5 ms and record it in `docs/benchmarks.md`
+- [x] 1.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. Field of View
 
-- [ ] 2.1 Implement `src/game/dungeon/fov` per ref §5 with integer fractions and a `floorDiv` helper; verify `tests/fov_test.cpp`: the origin is always visible; open-room radius-8 visibility equals the set with `dx² + dy² ≤ 64`; the hand-made `fov_pillar.txt` fixture matches; and the symmetry property holds on 200 random floors × 50 random pairs
-- [ ] 2.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Implement `src/game/dungeon/fov` per ref §5 with integer fractions and a `floorDiv` helper; verify `tests/fov_test.cpp`: the origin is always visible; open-room radius-8 visibility equals the set with `dx² + dy² ≤ 64`; the hand-made `fov_pillar.txt` fixture matches; and the symmetry property holds on 200 random floors × 50 random pairs
+- [x] 2.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. Expedition Movement and Pursuit
 

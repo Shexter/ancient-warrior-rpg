@@ -182,3 +182,12 @@ overworld with the hero model 1920x1080: 4.48 ms/frame over 600 frames
 ```
 
 The model costs about 0.3–0.7 ms a frame, well inside the 16.6 ms budget. The scene itself got faster since task 2.6 (6.9 ms): the run-to-run spread on this machine is large, so treat these as a few ms rather than exact. One readback per model per frame is cheap at one model; the shared multi-slot texture in D8 only matters once monsters get models.
+
+## Dungeon floor generation (add-procedural-dungeons task 1.6, 2026-10-22)
+
+```
+heroes-sim --bench-dungeon 10000
+dungeon: 10000 floors, 15.8 us per floor (32000000 tiles)
+```
+
+Release build (`ci` preset), Apple M4 Pro, 80×40 floors cycling through all five. Far under the 5 ms target.

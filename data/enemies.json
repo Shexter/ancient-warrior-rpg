@@ -62,6 +62,66 @@
       "rewardItems": [
         "ember_of_wrath"
       ]
+    },
+    {
+      "id": "rat",
+      "name": "Giant Rat",
+      "sprite": "monster.sprite",
+      "maxHp": 200,
+      "atk": 60,
+      "def": 5,
+      "life": 0,
+      "behavior": "basic",
+      "rewardExp": 150,
+      "rewardGold": 100
+    },
+    {
+      "id": "bat_swarm",
+      "name": "Bat Swarm",
+      "sprite": "monster.sprite",
+      "maxHp": 300,
+      "atk": 90,
+      "def": 10,
+      "life": 0,
+      "behavior": "basic",
+      "rewardExp": 250,
+      "rewardGold": 150
+    },
+    {
+      "id": "skeleton",
+      "name": "Skeleton",
+      "sprite": "monster.sprite",
+      "maxHp": 600,
+      "atk": 150,
+      "def": 40,
+      "life": 0,
+      "behavior": "basic",
+      "rewardExp": 500,
+      "rewardGold": 300
+    },
+    {
+      "id": "cultist",
+      "name": "Cultist",
+      "sprite": "monster.sprite",
+      "maxHp": 800,
+      "atk": 220,
+      "def": 60,
+      "life": 0,
+      "behavior": "basic",
+      "rewardExp": 800,
+      "rewardGold": 500
+    },
+    {
+      "id": "gorgon_spawn",
+      "name": "Gorgon Spawn",
+      "sprite": "medusa.sprite",
+      "maxHp": 1500,
+      "atk": 280,
+      "def": 80,
+      "life": 20,
+      "script": "scripts/medusa.lua",
+      "rewardExp": 2000,
+      "rewardGold": 1500
     }
   ]
 }

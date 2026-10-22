@@ -341,11 +341,15 @@ std::expected<CliOptions, std::string> parseArgs(std::span<const std::string_vie
             result = number(c.blessings);
         else if (flag == "--data-dir")
             c.dataDir = value;
+        else if (flag == "--bench-dungeon")
+            result = number(options.benchDungeon);
         else
             return std::unexpected(std::format("unknown option '{}'", flag));
         if (!result)
             return std::unexpected(result.error());
     }
+    if (options.benchDungeon > 0)
+        return options; // needs nothing else
     if (c.pathId.empty())
         return std::unexpected("--path is required");
     if (c.enemyId.empty())

@@ -57,6 +57,7 @@ std::string formatReport(const SimConfig& config, const Report& report);
 struct CliOptions {
     SimConfig config;
     bool bench = false;
+    int benchDungeon = 0; // --bench-dungeon N: time N floor generations instead of battles
 };
 
 // Parses the heroes-sim command line (without argv[0]).

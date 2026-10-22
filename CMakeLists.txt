@@ -13,7 +13,8 @@ enable_testing()
 add_library(heroes_game STATIC src/game/rng.cpp src/game/content_loader.cpp
     src/game/inventory.cpp src/game/hero.cpp src/game/battle.cpp src/game/training.cpp src/game/estimate.cpp src/game/town.cpp
     src/game/save.cpp src/game/autoplay.cpp src/game/script/script_host.cpp
-    src/game/script/battle_api.cpp src/game/world/world_loader.cpp src/game/world/world.cpp)
+    src/game/script/battle_api.cpp src/game/world/world_loader.cpp src/game/world/world.cpp
+    src/game/dungeon/dungeon_def.cpp src/game/dungeon/floor.cpp src/game/dungeon/fov.cpp)
 target_include_directories(heroes_game PUBLIC src)
 target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json
     PRIVATE heroes_warnings lua_static sol2::sol2)
@@ -77,7 +78,8 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
-    tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp)
+    tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp
+    tests/dungeon_gen_test.cpp tests/fov_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.

@@ -1,0 +1,194 @@
+{
+  "dungeon": {
+    "name": "The Catacombs",
+    "width": 80,
+    "height": 40,
+    "floors": 5,
+    "fovRadius": 8,
+    "bsp": {
+      "minLeafWidth": 12,
+      "minLeafHeight": 8,
+      "maxDepth": 4,
+      "minRoomWidth": 4,
+      "minRoomHeight": 3
+    },
+    "scalingPercentPerFloor": 25,
+    "enemyCount": {
+      "base": 3,
+      "perFloor": 1,
+      "random": 3
+    },
+    "chestCount": {
+      "base": 1,
+      "random": 2,
+      "lastFloorBonus": 1
+    },
+    "safeRadius": 3,
+    "pools": [
+      {
+        "floors": [
+          1,
+          2
+        ],
+        "enemies": [
+          {
+            "id": "rat",
+            "weight": 60
+          },
+          {
+            "id": "bat_swarm",
+            "weight": 40
+          }
+        ]
+      },
+      {
+        "floors": [
+          3
+        ],
+        "enemies": [
+          {
+            "id": "bat_swarm",
+            "weight": 40
+          },
+          {
+            "id": "skeleton",
+            "weight": 60
+          }
+        ]
+      },
+      {
+        "floors": [
+          4
+        ],
+        "enemies": [
+          {
+            "id": "skeleton",
+            "weight": 50
+          },
+          {
+            "id": "cultist",
+            "weight": 50
+          }
+        ]
+      },
+      {
+        "floors": [
+          5
+        ],
+        "enemies": [
+          {
+            "id": "cultist",
+            "weight": 100
+          }
+        ]
+      }
+    ],
+    "elite": {
+      "floor": 5,
+      "enemy": "gorgon_spawn"
+    },
+    "chestTables": [
+      {
+        "floors": [
+          1,
+          2
+        ],
+        "entries": [
+          {
+            "item": "health_potion",
+            "weight": 40,
+            "min": 1,
+            "max": 2
+          },
+          {
+            "item": "topaz",
+            "weight": 25,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "fire_dust",
+            "weight": 20,
+            "min": 1,
+            "max": 2
+          },
+          {
+            "item": "gold_leaf",
+            "weight": 15,
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "floors": [
+          3,
+          4
+        ],
+        "entries": [
+          {
+            "item": "mana_potion",
+            "weight": 25,
+            "min": 1,
+            "max": 2
+          },
+          {
+            "item": "turtle_shell",
+            "weight": 25,
+            "min": 1,
+            "max": 2
+          },
+          {
+            "item": "frozen_tears",
+            "weight": 20,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "black_pearl",
+            "weight": 15,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "broken_staff",
+            "weight": 15,
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "floors": [
+          5
+        ],
+        "entries": [
+          {
+            "item": "phoenix_feather",
+            "weight": 30,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "pure_ice",
+            "weight": 30,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "broken_compass",
+            "weight": 20,
+            "min": 1,
+            "max": 1
+          },
+          {
+            "item": "eternal_youth",
+            "weight": 20,
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    ]
+  }
+}
