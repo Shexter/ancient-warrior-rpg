@@ -17,7 +17,7 @@
 - `heroes-window [--seed N] [--data-dir PATH] [--art glyph|blocks]` goes through `app::loadStartup` (see `app.md`) exactly as `heroes` does.
 - `--layout` is rejected as an unknown option, with exit code 2.
 - After that it checks for the font at `<data-dir>/../assets/fonts/JetBrainsMono-Regular.ttf`. A missing font prints `heroes-window: error: font not found: …` and exits with code 2.
-- Then `loadModelFiles` reads the animations of `<data-dir>/../assets/models/hero_<pathId>.glb` for each path. A missing file is skipped (that hero keeps its battle sprite). A file that doesn't load prints `heroes-window: error: <file>: not a loadable animated model`, and one without one of the clips `Idle`, `Walking_A`, `1H_Melee_Attack_Chop` and `Hit_A` prints `<file>: missing clip '<name>'`. Both exit with code 2.
+- Then `loadModelFiles` reads the animations of `<data-dir>/../assets/models/hero_<pathId>.glb` for each path. A missing file is skipped (that hero keeps its battle sprite). A file that doesn't start with the binary glTF magic `glTF` is refused before raylib sees it (raylib leaks a file it can't parse). A file that doesn't load prints `heroes-window: error: <file>: not a loadable animated model`, and one without one of the clips `Idle`, `Walking_A`, `1H_Melee_Attack_Chop` and `Hit_A` prints `<file>: missing clip '<name>'`. Both exit with code 2.
 - Every one of these errors happens before a window opens.
 
 ## Loop (`window::run`)

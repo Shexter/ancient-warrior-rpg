@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <numbers>
 #include <stdexcept>
 #include <string_view>
@@ -55,9 +56,14 @@ loadModelFiles(const std::filesystem::path& dir, std::span<const std::string> pa
         ModelFile f{dir / ("hero_" + id + ".glb")};
         if (std::error_code ec; !std::filesystem::is_regular_file(f.file, ec))
             continue;
-        f.anims = LoadModelAnimations(f.file.string().c_str(), &f.count);
-        files.emplace(id, f); // so `fail` unloads it too
         const std::string name = f.file.string();
+        // Only a binary glTF goes to raylib: it leaks the file's bytes when it can't parse them.
+        char magic[4] = {};
+        std::ifstream(f.file, std::ios::binary).read(magic, 4);
+        if (std::string_view(magic, 4) != "glTF")
+            return fail(name + ": not a loadable animated model");
+        f.anims = LoadModelAnimations(name.c_str(), &f.count);
+        files.emplace(id, f); // so `fail` unloads it too
         if (!f.anims || f.count == 0)
             return fail(name + ": not a loadable animated model");
         for (std::size_t c = 0; c < kClipNames.size(); ++c) {

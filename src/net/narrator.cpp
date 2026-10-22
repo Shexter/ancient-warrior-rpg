@@ -47,11 +47,15 @@ std::optional<std::string> sanitize(std::string_view reply, int limit) {
 
 Narrator::Narrator(std::unique_ptr<Provider> provider, Transport transport, Options options)
     : options_(options), transport_(std::move(transport)), provider_(std::move(provider)),
-      worker_([this](std::stop_token stop) { work(stop); }) {}
+      worker_([this] { work(); }) {}
 
 Narrator::~Narrator() {
-    worker_.request_stop();
+    {
+        std::lock_guard lock(mutex_);
+        stopping_ = true;
+    }
     wake_.notify_all();
+    worker_.join();
 }
 
 std::uint64_t Narrator::request(game::narration::NarrationRequest request) {
@@ -115,14 +119,15 @@ void Narrator::noteError(const ProviderError& error) {
     }
 }
 
-void Narrator::work(std::stop_token stop) {
+void Narrator::work() {
     for (;;) {
         game::narration::NarrationRequest next;
         std::shared_ptr<const Provider> provider;
         {
             std::unique_lock lock(mutex_);
-            if (!wake_.wait(lock, stop, [&] { return pending_.has_value(); }))
-                return; // asked to stop
+            wake_.wait(lock, [&] { return stopping_ || pending_.has_value(); });
+            if (stopping_)
+                return;
             next = std::move(*pending_);
             pending_.reset();
             provider = provider_;

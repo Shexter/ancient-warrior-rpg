@@ -54,13 +54,14 @@ class Narrator {
     void setProvider(std::unique_ptr<Provider> provider);
 
   private:
-    void work(std::stop_token stop);
+    void work();
     void noteError(const ProviderError& error); // under mutex_
 
     Options options_;
     Transport transport_;
     std::mutex mutex_;
-    std::condition_variable_any wake_;
+    std::condition_variable wake_;
+    bool stopping_ = false;
     std::shared_ptr<const Provider> provider_;
     std::optional<game::narration::NarrationRequest> pending_;
     std::deque<NarrationReply> replies_;
@@ -68,7 +69,7 @@ class Narrator {
     std::chrono::steady_clock::time_point backoffUntil_{};
     std::set<ProviderError::Kind> seen_;
     std::optional<std::string> notice_;
-    std::jthread worker_; // last: it starts after everything it uses
+    std::thread worker_; // last: it starts after everything it uses (std::jthread isn't in Xcode 16's libc++)
 };
 
 } // namespace heroes::net

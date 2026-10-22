@@ -21,7 +21,7 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 ## Narrator pipeline (`src/net/`, library `heroes_net`)
 
 - `Provider` turns a request into an `HttpRequest` and a response back into text; both are pure. `statusError` maps a status the same way for every provider: 401/403 Auth, 404 UnknownModel, 429 RateLimited (its retry-after, default 60 s), 5xx Server, other 4xx BadResponse. `complete` builds, sends through the `Transport` and parses. A transport that gets no response returns Timeout or Unreachable itself.
-- `Narrator` runs one worker thread. One request is in flight and one waits; a newer `request()` replaces the waiting one, which never starts. Each request gets a ticket (1, 2, …). `poll()` never blocks and returns replies in order.
+- `Narrator` runs one worker thread (a plain `std::thread` with a stop flag; Xcode 16's libc++ has no `std::jthread`). One request is in flight and one waits; a newer `request()` replaces the waiting one, which never starts. Each request gets a ticket (1, 2, …). `poll()` never blocks and returns replies in order.
 - **Backoff:** after a rate limit, requests until its retry-after are dropped at once, each with a RateLimited reply, and nothing is sent.
 - **Notices:** `takeNotice()` gives one message the first time each of Auth, Unreachable (naming Ollama when the narrator is `local`) and UnknownModel is seen; refusals and other errors fall back to the template silently.
 - **Sanitizing** (in `poll`): control bytes and escape sequences go, newlines and tabs become spaces, runs of spaces collapse, and a reply over the limit (400 characters) is cut at the last space with `…`. A reply with nothing printable left becomes BadResponse.
