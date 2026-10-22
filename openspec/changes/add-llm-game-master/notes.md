@@ -40,4 +40,5 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 ## Task 1.3, battle part
 
 - The battle screen narrates with built-in lines (boss intro, moments, the ending) in the log box's top two rows, as the task describes. The ending line holds the screen for a second after it has typed out, otherwise the result screen replaced it in the same frame.
-- **Not done:** the NPC screens' greeting rows (20–21), and the task's "verify by playing", so 1.3 stays unticked.
+- The NPC screens greet on rows 20–21 above the hint (not on the phone layout).
+- **Still to do:** the task's "verify by playing", so 1.3 stays unticked until someone plays a battle and the town with the narrator Off.

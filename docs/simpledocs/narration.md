@@ -55,3 +55,7 @@ With a narrator on the Session (the real game always has one), the battle screen
 - After each action, `summarizeBattleChunk` gives at most one request. Its line waits until the events before it have played, then types itself out in the accent colour on the log box's top two rows (the log keeps the rest). A new line replaces the old.
 - At the end, the screen stays until the ending line has typed out and a further second has passed, then moves on as before.
 - Without a narrator (most screen tests) nothing changes. `BattleScreen.WithTheNarratorOffBuiltInLinesNarrateTheFight` checks the intro and an ending line in a Medusa fight.
+
+## NPC greetings (narrator Off)
+
+With a narrator on the Session, the Almonry (merchant), the Forge (blacksmith), the Prior (guildmaster) and the Thesaurus (bank) each greet the hero on entry with one of their built-in lines, typed out in the accent colour on rows 20–21, above the hint. The line is picked from `Rng::stream(seed ^ gold, 0xA11CE)`, so visits vary without touching the game's RNG. The phone layout shows no greeting. `Town.EachNpcGreetsTheHeroWithItsOwnLine` checks three of them, and that nothing shows without a narrator.

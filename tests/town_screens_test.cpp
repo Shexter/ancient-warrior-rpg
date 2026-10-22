@@ -345,3 +345,24 @@ TEST(Guildmaster, BlessingsAreDisabledWithoutPoints) {
     ASSERT_TRUE(h.press({ch('2')}));
     EXPECT_FALSE(frameContains(h.frame(), "Spend a blessing"));
 }
+
+TEST(Town, EachNpcGreetsTheHeroWithItsOwnLine) {
+    static const auto narrator = game::narration::loadNarrator(fs::path(HEROES_SOURCE_DIR) / "data").value();
+    const std::pair<char, std::string> npcs[] = {{'1', "merchant"}, {'2', "blacksmith"}, {'3', "guildmaster"}};
+    for (const auto& [key, npc] : npcs) {
+        Harness h("town_greeting_" + npc);
+        h.session.narrator = &narrator;
+        enterNpc(h, freshGame(), key);
+        ASSERT_TRUE(h.wait(3)); // typed out
+        const Framebuffer frame = h.frame();
+        const std::string rows = rowText(frame, 20) + " " + rowText(frame, 21);
+        bool own = false;
+        for (const std::string& line : narrator.templates.at("NpcGreeting." + npc))
+            own = own || rows.find(line.substr(0, 20)) != std::string::npos;
+        EXPECT_TRUE(own) << npc << ": " << rows;
+    }
+    Harness quiet("town_greeting_none"); // no narrator: the rows stay empty
+    enterNpc(quiet, freshGame(), '1');
+    ASSERT_TRUE(quiet.wait(3));
+    EXPECT_EQ(rowText(quiet.frame(), 20).find_first_not_of(' '), std::string::npos);
+}

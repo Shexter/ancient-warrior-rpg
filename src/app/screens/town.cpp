@@ -1,4 +1,5 @@
 #include "app/screens/town.hpp"
+#include "game/narration/summary.hpp"
 #include "app/art.hpp"
 
 #include <algorithm>
@@ -178,6 +179,7 @@ TownScreen::TownScreen(Session& session, std::string title)
 Transition TownScreen::update(std::span<const KeyEvent> keys, double dtSeconds) {
     refresh();
     modal_.tick(dtSeconds);
+    greeting_.tick(dtSeconds);
     onTick(dtSeconds);
     for (const KeyEvent& key : keys) {
         if (leave_)
@@ -208,9 +210,23 @@ void TownScreen::draw(Framebuffer& frame) const {
         drawStatusPanel(frame, hero(), content());
         drawText(frame, 2, 5, title_, palette::kAccent);
         drawCentered(frame, 22, hint(), palette::kDim);
+        greeting_.draw(frame, 2, 20);
     }
     drawBody(frame);
     modal_.draw(frame);
+}
+
+void TownScreen::greet(std::string_view npc) {
+    if (!session_.narrator)
+        return;
+    const game::Hero& h = hero();
+    const game::narration::NarrationRequest request{
+        game::narration::NarrationKind::NpcGreeting,
+        {{"hero", h.name}, {"level", h.level}, {"heroHpPct", h.maxHp > 0 ? h.hp * 100 / h.maxHp : 0}, {"npc", npc}},
+        std::string(npc), {}, {}};
+    // Its own stream, varied by the hero's gold so visits differ; never the game's RNG.
+    game::Rng rng = game::Rng::stream(state().seed ^ static_cast<std::uint64_t>(h.gold), 0xA11CE);
+    greeting_.show(game::narration::narrateOffline(*session_.narrator, request, rng));
 }
 
 std::vector<Menu::Item> slotItems(const game::Inventory& inventory, const game::Content& content) {
@@ -273,6 +289,7 @@ void TownMenuScreen::drawBody(Framebuffer& frame) const {
 // ---- Bank --------------------------------------------------------------------------------
 
 BankScreen::BankScreen(Session& session) : TownScreen(session, "THESAURUS"), bank_({}), bag_({}) {
+    greet("bank");
     if (hero().bank)
         return;
     modal_.confirm(

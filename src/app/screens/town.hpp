@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/narration_panel.hpp"
 #include "app/screen.hpp"
 #include "app/widgets.hpp"
 #include "game/errors.hpp"
@@ -86,6 +87,9 @@ class TownScreen : public Screen {
     virtual void refresh() {}
     virtual void drawBody(engine::Framebuffer& frame) const = 0;
     virtual std::string_view hint() const { return "Enter choose · Esc back"; }
+    // The NPC `npc` ("merchant", ...) greets the hero on rows 20-21 with a built-in line; nothing
+    // without a narrator or on the phone.
+    void greet(std::string_view npc);
 
     // A town action's result: success marks the game unsaved; failure shows why.
     template <class T>
@@ -108,6 +112,7 @@ class TownScreen : public Screen {
 
   private:
     std::string title_;
+    NarrationPanel greeting_{76};
 };
 
 // The 10 slots of a bag or bank as menu rows: "Topaz x3", or "(empty)" disabled.

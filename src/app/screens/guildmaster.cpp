@@ -38,6 +38,7 @@ engine::Rgb metColor(bool met) { return met ? palette::kHeal : palette::kDmg; }
 
 GuildmasterScreen::GuildmasterScreen(Session& session)
     : TownScreen(session, "THE PRIOR"), menu_({}), skills_({}) {
+    greet("guildmaster");
     std::vector<Menu::Item> rows;
     for (const game::SkillDef& skill : content().skills())
         rows.emplace_back(skill.name);

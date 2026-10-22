@@ -16,6 +16,7 @@ constexpr double kBidSeconds = 0.6; // one auction bid per 600 ms (ui.md)
 
 MerchantScreen::MerchantScreen(Session& session)
     : TownScreen(session, "ALMONRY"), shop_({}), bag_({}) {
+    greet("merchant");
     std::vector<Menu::Item> rows;
     for (const game::ItemDef& item : content().items())
         if (item.price > 0) {

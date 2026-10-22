@@ -30,6 +30,7 @@ engine::Rgb affordColor(bool enough) { return enough ? palette::kHeal : palette:
 BlacksmithScreen::BlacksmithScreen(Session& session)
     : TownScreen(session, "FORGE OF THE ORDER"),
       menu_({{"Change Equipment"}, {"Upgrade"}, {"Forge"}, {"Back"}}), recipes_({}) {
+    greet("blacksmith");
     std::vector<Menu::Item> rows;
     for (const game::RecipeDef& recipe : content().recipes())
         rows.emplace_back(content().item(recipe.result).name);
