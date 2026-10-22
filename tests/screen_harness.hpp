@@ -51,6 +51,16 @@ inline const game::world::WorldDef& shippedWorld() {
     return world;
 }
 
+// The 72x30 starter town (the shipped map before the full world was authored), for screen tests
+// that look at fixed places on a small map. Shipped content, so its lair opens a real mission.
+inline const game::world::WorldDef& starterWorld() {
+    static const game::world::WorldDef world =
+        game::world::loadWorld(fs::path(HEROES_SOURCE_DIR) / "tests" / "fixtures" / "starter_world",
+                               game::shippedContent())
+            .value();
+    return world;
+}
+
 class NullIo : public engine::LoopIo {
   public:
     std::pair<int, int> size() const override { return {80, 24}; }
@@ -72,7 +82,7 @@ struct Harness {
         session.saveFile = dir / "save.json";
         session.scripts = &game::shippedScripts();
         session.seed = 7;
-        session.world = &shippedWorld();
+        session.world = &starterWorld();
     }
 
     void startAtTitle() { app.emplace(io, renderer, std::make_unique<TitleScreen>(session)); }

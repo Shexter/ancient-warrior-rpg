@@ -24,7 +24,7 @@ constexpr float T = kTilePx;
 
 // The shipped map with no monsters, the hero starting on `spawn`.
 game::world::WorldDef quietWorldAt(Tile spawn) {
-    game::world::WorldDef w = shippedWorld();
+    game::world::WorldDef w = starterWorld();
     w.zones.clear();
     w.spawn = spawn;
     return w;
@@ -87,7 +87,7 @@ game::world::Terrain terrainUnder(const game::world::WorldDef& map, float x, flo
 } // namespace
 
 TEST(WindowScene, BuildingAgainReusesTheBuffers) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_reuse", world);
     Scene scene;
     buildScene(scene, w.view(), 1.0f, wholeMap(world));
@@ -102,7 +102,7 @@ TEST(WindowScene, BuildingAgainReusesTheBuffers) {
 }
 
 TEST(WindowScene, LayersAreSubmittedBottomToTopWithTheirItemsInOrder) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_submit", world);
     Scene scene;
     buildScene(scene, w.view(), 1.0f, wholeMap(world));
@@ -130,7 +130,7 @@ TEST(WindowScene, LayersAreSubmittedBottomToTopWithTheirItemsInOrder) {
 }
 
 TEST(WindowScene, StableLook) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_stable", world);
     const View here{20 * T, 5 * T, 30 * T, 16 * T}, away{40 * T, 12 * T, 30 * T, 16 * T};
     Scene scene;
@@ -143,7 +143,7 @@ TEST(WindowScene, StableLook) {
 }
 
 TEST(WindowScene, EveryTreeInViewHasAShadowAndADome) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_trees", world);
     const View view{2 * T, 2 * T, 40 * T, 24 * T};
     Scene scene;
@@ -167,7 +167,7 @@ TEST(WindowScene, EveryTreeInViewHasAShadowAndADome) {
 }
 
 TEST(WindowScene, TheStarterMapHasFourLitHouses) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_houses", world);
     Scene scene;
     buildScene(scene, w.view(), 0.0f, wholeMap(world));
@@ -186,7 +186,7 @@ TEST(WindowScene, TheStarterMapHasFourLitHouses) {
 }
 
 TEST(WindowScene, NothingIsDrawnFarOutsideTheView) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_cull", world);
     const View view{20 * T, 8 * T, 20 * T, 10 * T};
     Scene scene;
@@ -228,7 +228,7 @@ TEST(WindowScene, GrassBendsAwayFromACreatureCloseBy) {
 }
 
 TEST(WindowScene, BladeCountsFollowTheGrass) {
-    const auto world = quietWorldAt(shippedWorld().spawn);
+    const auto world = quietWorldAt(starterWorld().spawn);
     InWorld w("scene_blades", world);
     Scene scene;
     buildScene(scene, w.view(), 0.0f, wholeMap(world));
@@ -312,7 +312,7 @@ TEST(WindowScene, DrawingLeavesTheGameUntouched) {
 }
 
 TEST(WindowScene, TheHeroIsDrawnPartWayThroughAStep) {
-    const Tile spawn = shippedWorld().spawn;
+    const Tile spawn = starterWorld().spawn;
     const auto world = quietWorldAt(spawn);
     InWorld w("scene_halfway", world);
     ASSERT_TRUE(w.h.press({ch('d'), {Key::Char, 'd', 0, 0, engine::KeyAction::Release}})); // one 8-tick move right, started at once

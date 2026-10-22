@@ -50,6 +50,6 @@
 
 ## 7. The full world
 
-- [ ] 7.1 Author the full map: the plaza with all four services, a training cave, zones banded from level 1 near town to 30 at the edges, and the four lairs (Avaritia, Gula, Ira, Medusa) placed by mission level. Verify that the loader accepts it, and add a test that every lair is reachable and every zone level from 1 to 30 is covered.
+- [x] 7.1 Author the full map: the plaza with all four services, a training cave, zones banded from level 1 near town to 30 at the edges, and the four lairs (Avaritia, Gula, Ira, Medusa) placed by mission level. Verify that the loader accepts it, and add a test that every lair is reachable and every zone level from 1 to 30 is covered.
 - [ ] 7.2 Playtest manually in a kitty-protocol terminal, in macOS Terminal (fallback) and on Windows Terminal: walking, dodging, every landmark, and a lost fight. Record the findings in `notes.md` and fix what blocks play. Verify that the notes are written.
-- [ ] 7.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 7.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.

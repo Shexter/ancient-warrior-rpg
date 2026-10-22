@@ -32,7 +32,7 @@ std::pair<int, int> heroAt(const Framebuffer& frame) {
 // The shipped world without its monster zones, for tests about walking and landmarks.
 const game::world::WorldDef& quietWorld() {
     static const game::world::WorldDef world = [] {
-        game::world::WorldDef w = shippedWorld();
+        game::world::WorldDef w = starterWorld();
         w.zones.clear();
         return w;
     }();

@@ -120,6 +120,42 @@ TEST(WorldLoader, ShippedWorldLoads) {
     EXPECT_FALSE(world->landmarks.empty());
 }
 
+// The full map: every mission has a lair reachable on foot from spawn, standing in a zone of the
+// mission's level, and zones cover every level from 1 to 30.
+TEST(WorldLoader, TheShippedMapReachesEveryLairAndEveryLevel) {
+    auto world = loadWorld(std::filesystem::path(HEROES_SOURCE_DIR) / "data", shippedContent());
+    ASSERT_TRUE(world.has_value()) << allErrors(world.error());
+    const WorldDef& w = *world;
+    std::vector<bool> reached(static_cast<std::size_t>(w.width * w.height));
+    std::vector<Tile> queue{w.spawn};
+    reached[static_cast<std::size_t>(w.spawn.y * w.width + w.spawn.x)] = true;
+    for (std::size_t head = 0; head < queue.size(); ++head)
+        for (const Dir d : {Dir::Up, Dir::Down, Dir::Left, Dir::Right}) {
+            const Tile n = neighbor(queue[head], d);
+            if (!w.walkable(n) || reached[static_cast<std::size_t>(n.y * w.width + n.x)])
+                continue;
+            reached[static_cast<std::size_t>(n.y * w.width + n.x)] = true;
+            queue.push_back(n);
+        }
+    for (const MissionDef& mission : shippedContent().missions()) {
+        const auto lair = std::ranges::find_if(w.landmarks, [&](const Landmark& l) {
+            return l.opens == LandmarkTarget{OpensMission{mission.id}};
+        });
+        ASSERT_NE(lair, w.landmarks.end()) << mission.id;
+        EXPECT_TRUE(reached[static_cast<std::size_t>(lair->at.y * w.width + lair->at.x)]) << mission.id;
+        const auto zone = std::ranges::find_if(w.zones, [&](const Zone& z) {
+            return lair->at.x >= z.x && lair->at.x < z.x + z.w && lair->at.y >= z.y && lair->at.y < z.y + z.h;
+        });
+        ASSERT_NE(zone, w.zones.end()) << mission.id;
+        EXPECT_EQ(zone->level, mission.minLevel) << mission.id;
+    }
+    std::vector<bool> levels(31);
+    for (const Zone& z : w.zones)
+        levels[static_cast<std::size_t>(z.level)] = true;
+    for (int level = 1; level <= 30; ++level)
+        EXPECT_TRUE(levels[static_cast<std::size_t>(level)]) << level;
+}
+
 TEST(WorldLoader, MissingFilesAreNamed) {
     auto world = loadWorld(std::filesystem::path(HEROES_SOURCE_DIR) / "tests", shippedContent());
     ASSERT_FALSE(world.has_value());

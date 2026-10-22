@@ -29,7 +29,12 @@ The Overworld is loaded at startup, after content and before sprites, by `world:
   | `firebolt` | cost 15, 800 ms, 150%, reach 10 | plus `reach` (tiles of flight, 1–32) |
   | `nova` | cost 30, 4000 ms, 120%, reach 3 | `reach` is the radius |
 
-The shipped map is a 72×30 starter area. It has the town plaza at spawn (35, 14), the Almonry, Forge, Prior and Thesaurus at the four building doors, the Catacombs (training) at the cave mouth to the north, the level 1 Glyphwick Meadow zone to the east, and the Lair of Avaritia inside it.
+The shipped map is 198×156. The old 72×30 starter town sits in the middle, at (63, 63) to (134, 92), with its plaza at spawn (98, 77), the Almonry, Forge, Prior and Thesaurus at the four building doors, the Catacombs (training) at the cave mouth to the north, and the level 1 Glyphwick Meadow zone to the east.
+- **Zones** ring the town: every 2 tiles further out is one level more, from 1 beside the town to 30 at the map's edge. Each level's ring is four zones (North, South, West and East, named after their band: Meadow, Heath, Fen, Old Wood, Barrows, Ashen Scarp, Blight, World's Edge), with about one monster per 90 open tiles. That's 121 zones and 146 monsters.
+- **Lairs** stand where the zones' level equals their mission's: Avaritia (15) west, Gula (18) south, Medusa (the Gorgon, 20) east and Ira (22) north. A straight path runs to each from the plaza, ending in a small clearing.
+- **Made by** `tools/world/make_map.py` from the starter town (deterministic; rerun it rather than editing the output).
+- **Terrain** outside town is value noise: lakes with sandy shores, rock, woods and tall grass, denser further out. Walkable tiles that can't be reached from spawn were turned to trees, so no monster spawns out of reach.
+- Screen tests use the old starter town, kept as `tests/fixtures/starter_world/`. `WorldLoader.TheShippedMapReachesEveryLairAndEveryLevel` checks the shipped map: each mission's lair is reachable from spawn and stands in a zone of the mission's level, and zones cover every level from 1 to 30.
 
 `world::World(def, state, content)` is the simulation. It starts the hero on spawn facing down, forks `state.rng` once, and places each zone's monsters. `step(WorldInput)` advances one tick (and does nothing once the hero has fallen):
 - Once the current move has finished, a held or requested direction turns the hero that way.

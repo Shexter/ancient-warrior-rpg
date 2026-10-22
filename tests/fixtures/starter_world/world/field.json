@@ -1,0 +1,16 @@
+{
+  "heroStepMs": 125,
+  "monsterWanderMs": 700,
+  "monsterChaseMs": 250,
+  "noticeRadius": 6,
+  "windUpMs": 500,
+  "attackCooldownMs": 1200,
+  "lifeRegenMs": 2000,
+  "fervorRegenMs": 500,
+  "respawnMs": 30000,
+  "respawnDistance": 12,
+  "boltStepMs": 50,
+  "swing": { "cost": 0, "cooldownMs": 350, "powerPercent": 100 },
+  "firebolt": { "cost": 15, "cooldownMs": 800, "powerPercent": 150, "reach": 10 },
+  "nova": { "cost": 30, "cooldownMs": 4000, "powerPercent": 120, "reach": 3 }
+}
