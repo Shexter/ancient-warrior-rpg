@@ -81,10 +81,15 @@ std::optional<Expedition> fromSave(const ExpeditionSave& save, const DungeonDef&
 EnemyDef encounterEnemy(const Expedition& exp, const Content& content, const DungeonDef& def,
                         int enemyIndex);
 
+// A battle with that enemy: the hero (with gear), their skills and carried consumables, and a
+// fork of the expedition's RNG.
+Battle encounterBattle(Expedition& exp, const GameState& state, const Content& content,
+                       const DungeonDef& def, int enemyIndex, script::ScriptHost* scripts);
+
 // Applies a finished battle with that enemy. Victory removes it and grants its exp and gold;
 // defeat leaves the hero at 0 HP and takes the enemy's exp from the hero (gear is kept; the
 // caller ends the expedition); fleeing or a draw puts it to sleep for 3 turns. HP and MP always
-// come back from the battle. Precondition: battle.over().
+// come back from the battle, and the items used come out of the bag. Precondition: battle.over().
 void resolveEncounter(Expedition& exp, GameState& state, const Content& content,
                       const DungeonDef& def, int enemyIndex, const Battle& battle);
 

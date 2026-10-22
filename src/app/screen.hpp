@@ -5,6 +5,7 @@
 #include "engine/loop.hpp"
 #include "engine/sprite.hpp"
 #include "game/content.hpp"
+#include "game/dungeon/dungeon_def.hpp"
 #include "game/game_state.hpp"
 #include "game/script/script_host.hpp"
 #include "game/world/world_def.hpp"
@@ -50,6 +51,7 @@ struct Session {
     LargeSprites large{};
     game::script::ScriptHost* scripts = nullptr; // the game thread's script sandbox
     const game::world::WorldDef* world = nullptr; // the Overworld map, loaded at startup
+    const game::dungeon::DungeonDef* dungeon = nullptr; // the expedition's rules, loaded at startup
 };
 
 class Screen;

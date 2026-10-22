@@ -215,7 +215,7 @@ TEST(Taps, TappingAHubRowOpensIt) {
     Harness h("tap_hub");
     h.startAtHub(freshGame());
     (void)h.frame(); // the menu is tappable where it was drawn
-    ASSERT_TRUE(h.press({{Key::Click, 0, 40, 10}})); // the Town row
+    ASSERT_TRUE(h.press({{Key::Click, 0, 40, 11}})); // the Town row
     EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
 }
 
@@ -224,7 +224,7 @@ TEST(Taps, QuitIsConfirmedByTappingYes) {
     h.startAtHub(freshGame());
     h.session.dirty = true;
     (void)h.frame();
-    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 12}})); // Quit
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 13}})); // Quit
     const Framebuffer frame = h.frame();
     ASSERT_TRUE(frameContains(frame, "Quit without saving?"));
     int fx = -1, fy = -1;
@@ -238,7 +238,7 @@ TEST(Taps, QuitIsConfirmedByTappingYes) {
     ASSERT_GE(fx, 0);
     ASSERT_TRUE(h.press({{Key::Click, 0, fx + 1, fy}})); // [N]o keeps playing
     (void)h.frame();
-    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 12}}));
+    ASSERT_TRUE(h.press({{Key::Click, 0, 36, 13}}));
     (void)h.frame(); // the loop draws every frame; the harness draws on request
     EXPECT_FALSE(h.press({{Key::Click, 0, fx - 6, fy}})); // [Y]es quits
 }

@@ -6,6 +6,7 @@
 #include "game/battle.hpp"
 #include "game/town.hpp"
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,6 +57,11 @@ class MissionIntroScreen final : public Screen {
 class BattleScreen final : public Screen {
   public:
     BattleScreen(Session& session, std::string missionId, game::Battle battle);
+    // A battle outside a mission, titled `location`, the enemy drawn from `enemySprite`: `onOver`
+    // applies the outcome as soon as the battle ends, and the screen pops back once the last
+    // events have played.
+    BattleScreen(Session& session, game::Battle battle, std::string location, std::string enemySprite,
+                 std::function<void(const game::Battle&)> onOver);
     Transition update(std::span<const engine::KeyEvent> keys, double dtSeconds) override;
     void draw(engine::Framebuffer& frame) const override;
     // 120x40 when the terminal fits it and both fighters have large art.
@@ -78,6 +84,8 @@ class BattleScreen final : public Screen {
 
     Session& session_;
     std::string missionId_;
+    std::string location_, enemySprite_;
+    std::function<void(const game::Battle&)> onOver_; // set instead of a mission
     game::Battle battle_;
     BattleView view_;
     Menu actions_;

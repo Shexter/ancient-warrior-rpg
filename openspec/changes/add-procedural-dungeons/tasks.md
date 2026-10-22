@@ -34,7 +34,7 @@ The reference is `reference/dungeon-interfaces.md` (abbreviated "ref" below). Th
 
 - [ ] 5.1 Add "Expedition" to the Hub menu (after Mission, with the same disabled reasons as Training) and implement `expedition_screen` per ref §7 (viewport, glyphs, lit and remembered colors, status rows, keys, Esc menu); verify manually: walk floor 1, open a chest, descend to floor 2, save, quit, Continue resumes on floor 2, climb back is not possible, and the camera follows at the map edges
 - [ ] 5.2 Wire encounters to the Battle screen and back; verify manually that winning a fight returns to the same map position with the enemy gone, and that losing returns to the Hub with HP 0
-- [ ] 5.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 6. Final Verification
 

@@ -29,3 +29,14 @@ SPEC DRIFT:
 - Messages: "You found {qty} {item name}.", "Your bag is full: you leave {qty} {name} behind.", "You go down to floor {n}.", "There are no stairs here.", "You defeated the {name}."
 
 Verification: clang debug, asan (UBSan clean) and ci 628/628; window-off 593/593; GCC 14 Release `-Werror` 628/628; mingw syntax check clean.
+
+## Chunk 5: the Expedition screen
+
+- **5.1 and 5.2 are built but left unticked:** both say "verify manually", which needs a person at the terminal. Automated stand-ins pass (`tests/expedition_screen_test.cpp`): opening floor 1, save then Continue resuming the same map, a fight opening the Battle and fleeing back to the same spot, and falling back to the Hub. Still to try by hand: a chest, descending, the camera at the map edges, winning a fight, and that there's no way back up past floor 1's stairs.
+- SPEC DRIFT:
+  - The Hub gains Expedition as row 4, so Town, Save and Quit move to 5–7 (number keys and tap rows in the tests updated). Expedition says "In progress" when the game holds a run.
+  - `BattleScreen` gained a second constructor for battles outside missions: a title, the enemy's sprite, and a callback that applies the outcome when the battle ends. It pops back to the map afterwards.
+  - `resolveEncounter` also takes the consumables used in battle out of the bag (as `finishMission` does), and `encounterBattle` builds the battle with the hero's carried consumables.
+  - The screen's Save writes straight away when this session owns the save (or none exists), and otherwise says to save from the Hub, which asks before replacing.
+- **6.1 (CI green on all jobs) waits for a push**, which the user does per chunk.
+- Verification: clang debug, asan (UBSan clean) and ci 632/632; window-off 597/597; window display tests 3/3; GCC 14 Release `-Werror` 632/632; mingw syntax check clean.

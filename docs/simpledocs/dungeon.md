@@ -1,6 +1,6 @@
 # Dungeon (`src/game/dungeon/`)
 
-Expeditions are being built (OpenSpec `add-procedural-dungeons`). So far there's the data, floor generation, field of view, the expedition rules and its save; no screen uses them yet.
+Expeditions are being built (OpenSpec `add-procedural-dungeons`). The dungeon data, floor generation, field of view, the expedition rules, its save and the Expedition screen are built. Startup loads `dungeon.json` after the world (an error stops startup with exit 2) and puts it on the Session.
 
 ## Data (`data/dungeon.json`, `dungeon_def.*`)
 
@@ -41,6 +41,15 @@ Expeditions are being built (OpenSpec `add-procedural-dungeons`). So far there's
 - `toSave`/`fromSave` turn it into `GameState::expedition` and back (`save.md`). `fromSave` rebuilds the floor from (seed, floor), applies the saved enemies and opened chests, and recomputes sight. It gives nothing when the save doesn't fit the dungeon.
 
 `tests/expedition_test.cpp` covers each rule above on hand-built floors: a wall bump moving no one, explored only growing, a rat 5 steps round a corner reaching the hero after 4 waits and fighting on the 5th, no path, two rats in a corridor, chests and a full bag, both stairs, encounters both ways, each battle outcome, and a save round trip mid floor 2.
+
+## Screen (`src/app/screens/expedition.*`)
+
+- The Hub's Expedition opens `ExpeditionScreen`. It resumes the game's saved run when `fromSave` accepts it ("The saved expedition no longer fits the Catacombs; a new one begins." otherwise), else starts a new one. After every turn the run is copied into `GameState::expedition` and the game is marked unsaved, so the Hub's Save, the screen's own Save and Continue all resume it.
+- **Layout** (80×24): row 0 `THE CATACOMBS — Floor 2/5` in the accent colour. Rows 1–19 are an 80×19 window on the floor, its top-left `clamp(hero − (40, 9))` so it stops at the map edges. Row 20 is a `─` rule, row 21 the hero's name, HP and MP bars and gold, row 22 the last message, row 23 the keys in dim.
+- **Tiles** never seen stay blank. Seen ones are lit while in sight and dimmed from memory: walls `#` (150,140,120 / 70,65,60), floor `.` (100,100,115 / 45,45,55), stairs `>` `<` (accent / dim). Chests `$` (gold) and enemies show only while in sight: an enemy is its id's first letter in the damage colour (`r` rat, `b` bat swarm, `s` skeleton, `c` cultist), the elite `G` (255,80,80). The hero is `@`.
+- **Keys:** arrows or WASD move, Space waits, Enter takes the stairs, Esc opens Resume / Save / Inventory. Save asks nothing; if another save is there that this session didn't load or write, it says to save from the Hub instead. Inventory lists the bag.
+- **An encounter** opens the Battle screen (titled "The Catacombs · Floor N", the enemy's battle sprite), with the hero's skills and carried consumables (`encounterBattle`). When it ends, `resolveEncounter` applies it at once. The screen comes back to the map, or to the Hub when the hero fell ("You fell in the Catacombs. Visit the Prior to be revived."), with the run gone. The stairs up on floor 1 return to the Hub ("You climb out of the Catacombs.") with everything found kept.
+- `tests/expedition_screen_test.cpp`: the Hub opens floor 1 with the layout above; saving mid-run then Continue shows the same map; a fight opens the Battle and fleeing returns to the same spot with the rat asleep; falling returns to the Hub with no run left.
 
 ## Tests (`tests/dungeon_gen_test.cpp`)
 

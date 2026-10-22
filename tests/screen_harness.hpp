@@ -51,6 +51,12 @@ inline const game::world::WorldDef& shippedWorld() {
     return world;
 }
 
+inline const game::dungeon::DungeonDef& shippedDungeon() {
+    static const game::dungeon::DungeonDef def =
+        game::dungeon::loadDungeon(fs::path(HEROES_SOURCE_DIR) / "data", game::shippedContent()).value();
+    return def;
+}
+
 // The 72x30 starter town (the shipped map before the full world was authored), for screen tests
 // that look at fixed places on a small map. Shipped content, so its lair opens a real mission.
 inline const game::world::WorldDef& starterWorld() {
@@ -83,6 +89,7 @@ struct Harness {
         session.scripts = &game::shippedScripts();
         session.seed = 7;
         session.world = &starterWorld();
+        session.dungeon = &shippedDungeon();
     }
 
     void startAtTitle() { app.emplace(io, renderer, std::make_unique<TitleScreen>(session)); }
@@ -133,9 +140,10 @@ inline KeyEvent ch(char c) { return {Key::Char, c}; }
 const KeyEvent kHubExplore = ch('1');
 const KeyEvent kHubTraining = ch('2');
 const KeyEvent kHubMission = ch('3');
-const KeyEvent kHubTown = ch('4');
-const KeyEvent kHubSave = ch('5');
-const KeyEvent kHubQuit = ch('6');
+const KeyEvent kHubExpedition = ch('4');
+const KeyEvent kHubTown = ch('5');
+const KeyEvent kHubSave = ch('6');
+const KeyEvent kHubQuit = ch('7');
 
 inline game::GameState freshGame() {
     return game::newGame(game::shippedContent(), "Aria", "fighter", 7);

@@ -62,15 +62,16 @@ TEST(Portrait, HubHasAHeaderTheHeroBoxedRowsAndThePad) {
     EXPECT_NE(rowText(frame, 3).find("20000"), std::string::npos);
     EXPECT_NE(rowText(frame, 23).find("Explore"), std::string::npos);
     EXPECT_NE(rowText(frame, 24).find("Training"), std::string::npos);
-    EXPECT_NE(rowText(frame, 28).find("Quit"), std::string::npos);
+    EXPECT_NE(rowText(frame, 29).find("Quit"), std::string::npos);
     for (char32_t glyph : {U'▲', U'◀', U'●', U'▶', U'▼'})
         EXPECT_GE(find(frame, glyph).second, portrait::kPadTop) << static_cast<int>(glyph);
 }
 
 TEST(Portrait, ThePadMovesAndConfirms) {
     Harness h("portrait_pad");
-    h.startAtHub(freshGame()); // Explore is off on the phone, Mission locked at Lv 1: Training, Town
+    h.startAtHub(freshGame()); // Explore is off on the phone, Mission locked at Lv 1: Training, Expedition, Town
     const Framebuffer frame = h.frame(kPhone);
+    ASSERT_TRUE(h.press({tap(find(frame, U'▼'))}));
     ASSERT_TRUE(h.press({tap(find(frame, U'▼'))}));
     ASSERT_TRUE(h.press({tap(find(frame, U'●'))}));
     EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
@@ -88,6 +89,6 @@ TEST(Portrait, TappingARowOrTheCloseButton) {
         EXPECT_NE(asking.at(0, y).glyph, U'│');
     ASSERT_TRUE(h.press({{Key::Char, 'n'}}));
     (void)h.frame(kPhone);
-    ASSERT_TRUE(h.press({{Key::Click, 0, 10, portrait::kMenuTop + 4}})); // the Town row
+    ASSERT_TRUE(h.press({{Key::Click, 0, 10, portrait::kMenuTop + 5}})); // the Town row
     EXPECT_TRUE(frameContains(h.frame(), "CIVITAS LUCIS"));
 }

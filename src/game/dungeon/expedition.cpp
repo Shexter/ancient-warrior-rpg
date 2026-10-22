@@ -2,6 +2,7 @@
 
 #include "game/dungeon/fov.hpp"
 #include "game/hero.hpp"
+#include "game/town.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -187,11 +188,20 @@ EnemyDef encounterEnemy(const Expedition& exp, const Content& content, const Dun
     return scaledEnemy(content.enemy(e.enemyId), def, exp.floor.index);
 }
 
+Battle encounterBattle(Expedition& exp, const GameState& state, const Content& content,
+                       const DungeonDef& def, int enemyIndex, script::ScriptHost* scripts) {
+    const Hero& hero = state.hero;
+    return Battle(content, heroCombatant(hero, content), encounterEnemy(exp, content, def, enemyIndex),
+                  hero.learnedSkills, exp.rng.fork(), scripts, consumableStock(hero, content));
+}
+
 void resolveEncounter(Expedition& exp, GameState& state, const Content& content,
                       const DungeonDef& def, int enemyIndex, const Battle& battle) {
     Hero& hero = state.hero;
     hero.hp = battle.hero().hp;
     hero.mp = battle.hero().mp;
+    for (const auto& [itemId, used] : battle.itemsUsed())
+        (void)hero.bag.remove(itemId, used); // the battle only had what the bag held
     const EnemyDef enemy = encounterEnemy(exp, content, def, enemyIndex);
     auto& enemies = exp.floor.enemies;
     const auto at = enemies.begin() + enemyIndex;

@@ -16,5 +16,5 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [scripting.md](scripting.md) | Lua sandbox: ScriptHost, allowlist, budget, memory cap |
 | [mods.md](mods.md) | mods folder, manifests, merging, skipped mods, saves recording mods |
 | [overworld.md](overworld.md) | world data, the `World` simulation, field combat, the Overworld screen |
-| [dungeon.md](dungeon.md) | `dungeon.json`, floor generation (expeditions in progress) |
+| [dungeon.md](dungeon.md) | `dungeon.json`, floor generation, field of view, expeditions and their screen |
 | [window.md](window.md) | `heroes-window`: build option, startup, loop, input, grid drawing |

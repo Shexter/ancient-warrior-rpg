@@ -3,6 +3,7 @@
 #include "app/app.hpp"
 #include "app/screen.hpp"
 #include "game/content.hpp"
+#include "game/dungeon/dungeon_def.hpp"
 #include "game/world/world_def.hpp"
 
 #include <filesystem>
@@ -29,6 +30,7 @@ struct Startup {
     Options options;
     game::Content content;
     game::world::WorldDef world;
+    game::dungeon::DungeonDef dungeon;
     SpriteBank sprites;
     LargeSprites large;
     std::filesystem::path saveFile;

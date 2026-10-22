@@ -186,7 +186,18 @@ void MissionIntroScreen::draw(Framebuffer& frame) const {
 // ---- Battle ------------------------------------------------------------------------------
 
 BattleScreen::BattleScreen(Session& session, std::string missionId, game::Battle battle)
-    : session_(session), missionId_(std::move(missionId)), battle_(std::move(battle)),
+    : session_(session), missionId_(std::move(missionId)),
+      location_(session.content.mission(missionId_).location),
+      enemySprite_(session.content.enemy(session.content.mission(missionId_).enemy).sprite),
+      battle_(std::move(battle)), view_(session.content, battle_.hero(), battle_.enemy()),
+      actions_({{"Attack"}, {"Skill"}, {"Item"}, {"Defend"}, {"Flee"}}, Menu::Layout::Horizontal) {
+    view_.push(battle_.start(), battle_.hero(), battle_.enemy());
+}
+
+BattleScreen::BattleScreen(Session& session, game::Battle battle, std::string location,
+                           std::string enemySprite, std::function<void(const game::Battle&)> onOver)
+    : session_(session), location_(std::move(location)), enemySprite_(std::move(enemySprite)),
+      onOver_(std::move(onOver)), battle_(std::move(battle)),
       view_(session.content, battle_.hero(), battle_.enemy()),
       actions_({{"Attack"}, {"Skill"}, {"Item"}, {"Defend"}, {"Flee"}}, Menu::Layout::Horizontal) {
     view_.push(battle_.start(), battle_.hero(), battle_.enemy());
@@ -234,6 +245,11 @@ void BattleScreen::act(const game::PlayerAction& action) {
     if (!battle_.over())
         return;
     // Applied now, not after the animations, so the outcome can't be lost.
+    session_.dirty = true;
+    if (onOver_) {
+        onOver_(battle_);
+        return;
+    }
     auto result = game::finishMission(*session_.state, session_.content, missionId_, battle_);
     session_.dirty = true;
     if (result)
@@ -297,18 +313,15 @@ std::string BattleScreen::heroFile() const {
     return std::format("hero_{}.sprite", session_.state->hero.pathId);
 }
 
-std::string BattleScreen::enemyFile() const {
-    return session_.content.enemy(session_.content.mission(missionId_).enemy).sprite;
-}
+std::string BattleScreen::enemyFile() const { return enemySprite_; }
 
 engine::Size BattleScreen::canvasSize(engine::Size terminal) const {
     return portraitOr(session_, terminal, artCanvas(session_, terminal, {heroFile(), enemyFile()}));
 }
 
 void BattleScreen::drawPortrait(Framebuffer& frame) const {
-    const game::MissionDef& mission = session_.content.mission(missionId_);
     const int turnNumber = view_.busy() || battle_.over() ? view_.turn() : battle_.turn() + 1;
-    drawText(frame, 1, 0, std::format("{} · Turn {}", mission.location, turnNumber),
+    drawText(frame, 1, 0, std::format("{} · Turn {}", location_, turnNumber),
              palette::kAccent, 42);
     view_.draw(frame, {}, compactArt(session_, enemyFile()), kPortraitBattle);
     if (overlay_) {
@@ -334,8 +347,7 @@ void BattleScreen::draw(Framebuffer& frame) const {
         return;
     }
     const bool large = isLarge(frame);
-    const game::MissionDef& mission = session_.content.mission(missionId_);
-    drawText(frame, 1, 0, mission.location, palette::kAccent, 60);
+    drawText(frame, 1, 0, location_, palette::kAccent, 60);
     // While events play, the turn they belong to; while choosing, the turn about to start.
     const int turnNumber =
         view_.busy() || battle_.over() ? view_.turn() : battle_.turn() + 1;

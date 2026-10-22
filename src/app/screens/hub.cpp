@@ -2,6 +2,7 @@
 #include "app/art.hpp"
 
 #include "app/app.hpp"
+#include "app/screens/expedition.hpp"
 #include "app/screens/mission.hpp"
 #include "app/screens/overworld.hpp"
 #include "app/screens/town.hpp"
@@ -18,7 +19,7 @@ namespace heroes::app {
 
 namespace {
 
-enum Choice { kExplore, kTraining, kMission, kTown, kSave, kQuit };
+enum Choice { kExplore, kTraining, kMission, kExpedition, kTown, kSave, kQuit };
 
 } // namespace
 
@@ -49,9 +50,17 @@ std::vector<Menu::Item> HubScreen::menuItems() const {
     else if (exploreNote.empty() && !session_.world)
         exploreNote = "No world loaded";
 
+    std::string expeditionNote = adventureNote;
+    if (expeditionNote.empty() && !session_.dungeon)
+        expeditionNote = "No dungeon loaded";
+    const bool canExpedition = expeditionNote.empty();
+    if (canExpedition && session_.state->expedition)
+        expeditionNote = "In progress";
+
     return {{"Explore", exploreNote.empty(), exploreNote},
             {"Training", adventureNote.empty(), adventureNote},
             {"Mission", missionNote.empty(), missionNote},
+            {"Expedition", canExpedition, expeditionNote},
             {"Town"},
             {"Save"},
             {"Quit"}};
@@ -122,6 +131,8 @@ Transition HubScreen::update(std::span<const engine::KeyEvent> keys, double) {
             return Push{std::make_unique<TrainingSetupScreen>(session_)};
         case kMission:
             return Push{std::make_unique<MissionSelectScreen>(session_)};
+        case kExpedition:
+            return Push{std::make_unique<ExpeditionScreen>(session_)};
         case kTown:
             return Push{std::make_unique<TownMenuScreen>(session_)};
         default:

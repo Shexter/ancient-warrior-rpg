@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
         engine::Renderer renderer(platform::detectColorMode());
         app::Session session{s.content, s.sprites, s.saveFile, s.options.seed};
         session.world = &s.world;
+        session.dungeon = &s.dungeon;
         session.layout = s.options.layout;
         session.art = s.options.art;
         session.large = s.large;
