@@ -10,7 +10,7 @@
 - [x] 1.6 Add the window CLI: `heroes-window` rejects `--layout` and reports startup errors with exit code 2 before opening a window. Verify with CTest cases mirroring `heroes_reports_bad_world` and `heroes_rejects_bad_layout`.
 - [x] 1.7 Install the Linux GL/X11 packages in CI and skip `window-display` tests there. Verify all compilers locally (clang debug, asan and ci; GCC 14 in Docker with the packages; a mingw syntax check of the window sources).
 - [x] 1.8 Add SimpleDocs `window.md` (the executable, build option, loop, input, grid drawing) and update `app.md` for `loadStartup` and the quit prompt. Verify that they match the code.
-- [ ] 1.9 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 1.9 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 2. The Overworld scene
 
