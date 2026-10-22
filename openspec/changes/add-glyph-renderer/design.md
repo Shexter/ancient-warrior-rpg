@@ -83,7 +83,10 @@ Randomness is a position hash only (the prototype's `hash`/`rnd`/`noise`), never
 JetBrains Mono (SIL OFL 1.1) Regular in `assets/fonts/` with its licence, loaded at 64 px with bilinear filtering.
 
 ### D10. Window close
-raylib's `WindowShouldClose()` is turned off for Esc (`SetExitKey(0)`), so Esc stays a game key. The close button pushes `app::QuitPromptScreen(Session&)`, a tiny screen holding the Hub's existing `ConfirmBox`: Yes quits, No pops. With nothing unsaved it quits at once. The Hub's own Quit logic moves into a shared helper both use.
+raylib's exit key is turned off (`SetExitKey(KEY_NULL)`), so Esc stays a game key. raylib 5.5 raises `WindowShouldClose()` for one frame per close-button press and then clears it, so the window can decline.
+- With nothing unsaved (`session.dirty` false, the same test the Hub's Quit uses) the window closes at once.
+- Otherwise it pushes `app::QuitPromptScreen(behind)` (through the new `App::push`), a tiny screen showing a copy of the last frame with the existing `ConfirmBox`: Yes quits, No or Esc pops.
+- A shared helper turned out unnecessary: the only shared rule is that one `dirty` test.
 
 ## Risks / Trade-offs
 

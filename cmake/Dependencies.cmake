@@ -39,3 +39,17 @@ target_include_directories(lua_static SYSTEM PUBLIC ${lua_SOURCE_DIR}/src)
 if(UNIX)
     target_compile_definitions(lua_static PRIVATE LUA_USE_POSIX)
 endif()
+
+# raylib draws heroes-window. Fetched only when the window build is on, so the terminal build
+# never downloads or links it.
+option(HEROES_BUILD_WINDOW "Build the heroes-window graphical front end (fetches raylib)" ON)
+if(HEROES_BUILD_WINDOW)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(raylib
+        URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
+        URL_HASH SHA256=aea98ecf5bc5c5e0b789a76de0083a21a70457050ea4cc2aec7566935f5e258e
+        SYSTEM)
+    FetchContent_MakeAvailable(raylib)
+endif()

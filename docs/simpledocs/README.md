@@ -15,3 +15,5 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [app.md](app.md) | command line, screen stack, widgets, screens implemented so far |
 | [scripting.md](scripting.md) | Lua sandbox: ScriptHost, allowlist, budget, memory cap |
 | [mods.md](mods.md) | mods folder, manifests, merging, skipped mods, saves recording mods |
+| [overworld.md](overworld.md) | world data, the `World` simulation, field combat, the Overworld screen |
+| [window.md](window.md) | `heroes-window`: build option, startup, loop, input, grid drawing |

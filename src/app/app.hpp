@@ -58,6 +58,9 @@ class App {
     void draw(engine::Framebuffer& frame) const;
     engine::Size canvasSize(engine::Size terminal) const; // the top screen's choice
     std::size_t depth() const { return stack_.size(); }
+    // Puts a screen on top, as if the top screen had returned Push (the window's close button).
+    void push(std::unique_ptr<Screen> screen) { stack_.push_back(std::move(screen)); }
+    const Screen* top() const { return stack_.empty() ? nullptr : stack_.back().get(); }
 
   private:
     engine::LoopIo& io_;

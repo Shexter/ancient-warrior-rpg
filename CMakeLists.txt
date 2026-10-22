@@ -56,7 +56,8 @@ add_library(heroes_app STATIC src/app/app.cpp src/app/widgets.cpp src/app/screen
     src/app/screens/training.cpp src/app/screens/town.cpp src/app/screens/merchant.cpp
     src/app/screens/blacksmith.cpp src/app/screens/guildmaster.cpp
     src/app/screens/mission.cpp src/app/battle_view.cpp src/app/art.cpp
-    src/app/held_keys.cpp src/app/screens/overworld.cpp)
+    src/app/held_keys.cpp src/app/screens/overworld.cpp src/app/startup.cpp
+    src/app/screens/quit_prompt.cpp)
 target_include_directories(heroes_app PUBLIC src)
 target_link_libraries(heroes_app PUBLIC heroes_game heroes_engine PRIVATE heroes_warnings)
 
@@ -76,7 +77,7 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/sprite_bake_test.cpp tests/widgets_test.cpp tests/app_test.cpp tests/screens_test.cpp
     tests/training_screen_test.cpp tests/town_screens_test.cpp
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
-    tests/overworld_screen_test.cpp tests/field_balance_test.cpp)
+    tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp)
 target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.
@@ -97,3 +98,37 @@ add_test(NAME heroes_reports_bad_world
 add_test(NAME heroes_rejects_bad_layout COMMAND heroes --layout big)
 set_tests_properties(heroes_rejects_bad_layout PROPERTIES
     PASS_REGULAR_EXPRESSION "--layout expects auto, compact or portrait, got 'big'.*usage: heroes .*--layout auto\\|compact\\|portrait")
+
+# ---- heroes-window: the raylib front end (see openspec add-glyph-renderer) -------------------
+if(HEROES_BUILD_WINDOW)
+    add_library(heroes_window_lib STATIC src/window/input.cpp src/window/grid.cpp
+        src/window/run.cpp)
+    target_include_directories(heroes_window_lib PUBLIC src)
+    target_link_libraries(heroes_window_lib PUBLIC heroes_app raylib PRIVATE heroes_warnings)
+
+    add_executable(heroes-window src/window/main.cpp)
+    target_link_libraries(heroes-window PRIVATE heroes_window_lib heroes_platform heroes_warnings)
+    target_compile_definitions(heroes-window PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
+    add_executable(heroes_window_tests tests/window_input_test.cpp tests/window_grid_test.cpp)
+    target_link_libraries(heroes_window_tests PRIVATE heroes_window_lib heroes_warnings
+        GTest::gtest_main)
+    target_compile_definitions(heroes_window_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    gtest_discover_tests(heroes_window_tests)
+
+    add_executable(heroes_window_display_tests tests/window_display_test.cpp)
+    target_link_libraries(heroes_window_display_tests PRIVATE heroes_window_lib heroes_warnings
+        GTest::gtest_main)
+    target_compile_definitions(heroes_window_display_tests PRIVATE
+        HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    gtest_discover_tests(heroes_window_display_tests PROPERTIES LABELS window-display)
+
+    # Startup errors are reported before any window opens, as in the terminal build.
+    add_test(NAME heroes_window_reports_bad_world
+        COMMAND ${CMAKE_COMMAND} -DHEROES=$<TARGET_FILE:heroes-window>
+            -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/bad_world_window
+            -P ${PROJECT_SOURCE_DIR}/tests/bad_world_cli.cmake)
+    add_test(NAME heroes_window_rejects_layout COMMAND heroes-window --layout compact)
+    set_tests_properties(heroes_window_rejects_layout PROPERTIES
+        PASS_REGULAR_EXPRESSION "heroes-window: error: unknown option '--layout'.*usage: heroes-window ")
+endif()

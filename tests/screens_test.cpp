@@ -1,6 +1,7 @@
 #include "app/art.hpp"
 #include "app/app.hpp"
 #include "app/screens/hub.hpp"
+#include "app/screens/quit_prompt.hpp"
 #include "app/screens/title.hpp"
 #include "game/save.hpp"
 
@@ -240,4 +241,23 @@ TEST(Taps, QuitIsConfirmedByTappingYes) {
     ASSERT_TRUE(h.press({{Key::Click, 0, 36, 12}}));
     (void)h.frame(); // the loop draws every frame; the harness draws on request
     EXPECT_FALSE(h.press({{Key::Click, 0, fx - 6, fy}})); // [Y]es quits
+}
+
+TEST(QuitPrompt, YesQuitsAndNoReturnsToTheScreenBehind) {
+    Harness h("quit_prompt");
+    h.startAtHub(freshGame());
+    const Framebuffer hub = h.frame();
+    h.app->push(std::make_unique<QuitPromptScreen>(hub));
+    const Framebuffer asking = h.frame();
+    EXPECT_TRUE(frameContains(asking, "Quit without saving?"));
+    EXPECT_EQ(rowText(asking, 1), rowText(hub, 1)); // drawn over the Hub's picture
+    ASSERT_TRUE(h.press({ch('n')}));
+    EXPECT_EQ(h.app->depth(), 1u);
+    EXPECT_FALSE(frameContains(h.frame(), "Quit without saving?"));
+
+    h.app->push(std::make_unique<QuitPromptScreen>(hub));
+    ASSERT_TRUE(h.press({kEsc})); // Esc is No
+    EXPECT_EQ(h.app->depth(), 1u);
+    h.app->push(std::make_unique<QuitPromptScreen>(hub));
+    EXPECT_FALSE(h.press({ch('y')})); // the app ends
 }
