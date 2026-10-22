@@ -2,8 +2,8 @@
 
 ## 1. Template Narration (narrator Off works end to end)
 
-- [ ] 1.1 Add `data/narrator.json` exactly per `reference/llm-interfaces.md` §3 (plus 2 more template lines per key) and its validation in the content loader; verify tests that a missing template key and an unknown placeholder are both rejected with file and key named
-- [ ] 1.2 Implement `src/game/narration/summary` and `templates` per §2; verify `tests/narration_summary_test.cpp`: golden scenario B from the core change produces BattleMoment requests for FROZEN Throne and stun and a BattleEnd summary with `moments` in order and `result` victory; at most one moment per hero turn; the low_hp moment fires once per side; `GameState` (including rng) is unchanged after summarizing
+- [x] 1.1 Add `data/narrator.json` exactly per `reference/llm-interfaces.md` §3 (plus 2 more template lines per key) and its validation in the content loader; verify tests that a missing template key and an unknown placeholder are both rejected with file and key named
+- [x] 1.2 Implement `src/game/narration/summary` and `templates` per §2; verify `tests/narration_summary_test.cpp`: golden scenario B from the core change produces BattleMoment requests for FROZEN Throne and stun and a BattleEnd summary with `moments` in order and `result` victory; at most one moment per hero turn; the low_hp moment fires once per side; `GameState` (including rng) is unchanged after summarizing
 - [ ] 1.3 Add `src/app/narration_panel` (a 2-line Typewriter area) to the battle screen (inside the log box, rows 18–21: narration in accent color takes rows 18–19 and the newest 2 log lines take rows 20–21) and the NPC screens (rows 20–21, above the hint line); verify by playing a battle with narrator Off and seeing template lines at boss intro, the skill moment, and the battle end
 - [ ] 1.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 

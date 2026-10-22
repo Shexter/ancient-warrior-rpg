@@ -17,4 +17,5 @@ What the code **actually does** today. OpenSpec (`openspec/`) says what it shoul
 | [mods.md](mods.md) | mods folder, manifests, merging, skipped mods, saves recording mods |
 | [overworld.md](overworld.md) | world data, the `World` simulation, field combat, the Overworld screen |
 | [dungeon.md](dungeon.md) | `dungeon.json`, floor generation, field of view, expeditions and their screen |
+| [narration.md](narration.md) | `narrator.json`, offline templates, battle summaries for narration |
 | [window.md](window.md) | `heroes-window`: build option, startup, loop, input, grid drawing |
