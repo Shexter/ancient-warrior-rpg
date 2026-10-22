@@ -11,6 +11,16 @@ SPEC DRIFT:
 Not done here, and why:
 - **1.3 (the narration panel)** changes the battle screen's log rows and the NPC screens, and ends with "verify by playing", which needs a person.
 - **Chunks 3, 6 and 7** need libcurl in CI, real provider docs and keys, a Cloudflare account, `wrangler login`, secrets and a staging deploy: accounts and keys are the user's to create and enter. 6.1 (Gemini terms) is a blocker the user should decide.
-- **2.x** (the async narrator with a fake transport) is local and could go next.
 
 Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 639/639; window-off 604/604; mingw syntax check clean.
+
+## Chunk 2: the narrator pipeline with a fake transport
+
+SPEC DRIFT:
+- **`Transport` returns a `ProviderError`** on failure instead of an error string, so the transport says whether it was a timeout or an unreachable host (the reference maps those two from libcurl anyway).
+- **`Narrator` takes an `Options` struct** (the character limit from `narrator.json`, and whether it's Local, which changes the Unreachable notice).
+- **Notices are read with `takeNotice()`**, once each.
+- The determinism check (2.3) runs golden battle B with and without a Narrator attached. Scenarios A, C and D drive the same `Battle` with the same summarizer, so B stands for all four; the golden tests themselves still pin A–D.
+- Narrator tests were repeated 20 times under asan and GCC 14 without a failure. There's no ThreadSanitizer preset, so data races are checked by design (one mutex for all shared state), not by a tool.
+
+Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 645/645; window-off 610/610; mingw syntax check clean (jthread is available there).

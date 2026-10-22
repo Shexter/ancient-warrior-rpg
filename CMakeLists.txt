@@ -21,6 +21,11 @@ target_link_libraries(heroes_game PUBLIC nlohmann_json::nlohmann_json
     PRIVATE heroes_warnings lua_static sol2::sol2)
 target_compile_definitions(heroes_game PRIVATE SOL_ALL_SAFETIES_ON=1)
 
+# The narrator's network side (openspec add-llm-game-master); no HTTP library yet.
+add_library(heroes_net STATIC src/net/providers.cpp src/net/narrator.cpp)
+target_include_directories(heroes_net PUBLIC src)
+target_link_libraries(heroes_net PUBLIC heroes_game Threads::Threads PRIVATE heroes_warnings)
+
 add_library(heroes_engine STATIC src/engine/color.cpp src/engine/framebuffer.cpp
     src/engine/renderer.cpp src/engine/input.cpp src/engine/loop.cpp src/engine/sprite.cpp)
 target_include_directories(heroes_engine PUBLIC src)
@@ -81,8 +86,8 @@ add_executable(heroes_tests tests/smoke_test.cpp tests/rng_test.cpp tests/conten
     tests/battle_screen_test.cpp tests/large_layout_test.cpp tests/world_test.cpp tests/held_keys_test.cpp
     tests/overworld_screen_test.cpp tests/field_balance_test.cpp tests/startup_test.cpp
     tests/dungeon_gen_test.cpp tests/fov_test.cpp tests/expedition_test.cpp tests/expedition_screen_test.cpp
-    tests/narration_summary_test.cpp)
-target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app
+    tests/narration_summary_test.cpp tests/narrator_test.cpp)
+target_link_libraries(heroes_tests PRIVATE heroes_simlib heroes_platform heroes_bakelib heroes_app heroes_net
     heroes_warnings GTest::gtest_main sol2::sol2)
 # Lua's headers for the sandbox tests; the library itself comes through heroes_game.
 target_include_directories(heroes_tests SYSTEM PRIVATE ${lua_SOURCE_DIR}/src)

@@ -1,6 +1,6 @@
 # Narration (`src/game/narration/`)
 
-The LLM game master is being built (OpenSpec `add-llm-game-master`). So far there's the data and the deterministic, offline half; nothing on screen uses it yet, and nothing talks to a network.
+The LLM game master is being built (OpenSpec `add-llm-game-master`). So far there's the data, the deterministic offline half, and the narrator's request pipeline with an injected transport; nothing on screen uses it yet, and there's no HTTP library, so nothing talks to a network.
 
 ## Data (`data/narrator.json`, `templates.*`)
 
@@ -17,3 +17,12 @@ The LLM game master is being built (OpenSpec `add-llm-game-master`). So far ther
 `BattleContext` keeps the fighters' names, the HP seen so far, the low-HP flags and the moments. Summarizing reads events only and draws no random numbers.
 
 `tests/narration_summary_test.cpp` checks loading, both validation errors, template filling, golden battle B (Exorcism then Shield of Faith, ending in a victory whose moments start Exorcism, stun, Shield of Faith, reflect), low HP firing once per side, and the ending superseding a moment.
+
+## Narrator pipeline (`src/net/`, library `heroes_net`)
+
+- `Provider` turns a request into an `HttpRequest` and a response back into text; both are pure. `statusError` maps a status the same way for every provider: 401/403 Auth, 404 UnknownModel, 429 RateLimited (its retry-after, default 60 s), 5xx Server, other 4xx BadResponse. `complete` builds, sends through the `Transport` and parses. A transport that gets no response returns Timeout or Unreachable itself.
+- `Narrator` runs one worker thread. One request is in flight and one waits; a newer `request()` replaces the waiting one, which never starts. Each request gets a ticket (1, 2, …). `poll()` never blocks and returns replies in order.
+- **Backoff:** after a rate limit, requests until its retry-after are dropped at once, each with a RateLimited reply, and nothing is sent.
+- **Notices:** `takeNotice()` gives one message the first time each of Auth, Unreachable (naming Ollama when the narrator is `local`) and UnknownModel is seen; refusals and other errors fall back to the template silently.
+- **Sanitizing** (in `poll`): control bytes and escape sequences go, newlines and tabs become spaces, runs of spaces collapse, and a reply over the limit (400 characters) is cut at the last space with `…`. A reply with nothing printable left becomes BadResponse.
+- `tests/narrator_test.cpp` uses a fake transport the test can hold shut: one in flight with the waiting request replaced, replies in ticket order, backoff sending nothing, each notice once, both Unreachable notices, sanitizing, and golden battle B giving identical events with a Narrator attached.

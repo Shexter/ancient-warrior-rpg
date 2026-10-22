@@ -9,10 +9,10 @@
 
 ## 2. Async Pipeline with a Fake Provider
 
-- [ ] 2.1 Implement `src/net/narrator` per §6 with a `Transport` injected (no libcurl yet); verify `tests/narrator_test.cpp` with a fake Transport (scriptable delay and response): one in flight, a pending request replaced, a ticket returned in order, Retry-After backoff dropping requests, and a one-time notice per error kind
-- [ ] 2.2 Implement output sanitizing per §6; verify tests: `\x1b[2J` removed, newlines become spaces, a 450-char reply is cut at a word boundary with `…`, an all-control reply becomes BadResponse
-- [ ] 2.3 Verify the determinism test: golden scenarios A–D run with no narrator and with a Narrator plus fake Transport attached produce identical events and identical final `GameState`
-- [ ] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 2.1 Implement `src/net/narrator` per §6 with a `Transport` injected (no libcurl yet); verify `tests/narrator_test.cpp` with a fake Transport (scriptable delay and response): one in flight, a pending request replaced, a ticket returned in order, Retry-After backoff dropping requests, and a one-time notice per error kind
+- [x] 2.2 Implement output sanitizing per §6; verify tests: `\x1b[2J` removed, newlines become spaces, a 450-char reply is cut at a word boundary with `…`, an all-control reply becomes BadResponse
+- [x] 2.3 Verify the determinism test: golden scenarios A–D run with no narrator and with a Narrator plus fake Transport attached produce identical events and identical final `GameState`
+- [x] 2.4 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 3. HTTP and Direct Providers
 
