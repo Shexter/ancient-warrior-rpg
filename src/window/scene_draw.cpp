@@ -109,7 +109,8 @@ void drawScene(const Scene& scene, const Font& font, View view, float zoom) {
 }
 
 void drawOverworld(const app::OverworldScreen& screen, engine::Framebuffer& hud, Scene& scene,
-                   const Font& font, float time, float dt, float alpha, int w, int h) {
+                   const Font& font, float time, float dt, float alpha, int w, int h,
+                   const Pixels* hero) {
     const float zoom = sceneZoom(h);
     const float viewW = static_cast<float>(w) / zoom, viewH = static_cast<float>(h) / zoom;
     screen.drawHud(hud, {static_cast<int>(std::ceil(viewW / kTilePx)),
@@ -121,7 +122,7 @@ void drawOverworld(const app::OverworldScreen& screen, engine::Framebuffer& hud,
     const Scene::Point from = scene.camera.value_or(target);
     scene.camera = {from.x + (target.x - from.x) * ease, from.y + (target.y - from.y) * ease};
     const View view{scene.camera->x, scene.camera->y, viewW, viewH};
-    buildScene(scene, sv, time, view, alpha);
+    buildScene(scene, sv, time, view, alpha, hero);
     drawScene(scene, font, view, zoom);
     drawGrid(hud, layoutFor({hud.width(), hud.height()}, w, h), font, /*skipEmpty=*/true);
 }

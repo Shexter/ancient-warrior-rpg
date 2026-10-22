@@ -4,6 +4,7 @@
 #include "app/screens/overworld.hpp"
 #include "screen_harness.hpp"
 #include "window/grid.hpp"
+#include "window/models.hpp"
 #include "window/scene.hpp"
 
 #include "raylib.h"
@@ -77,17 +78,23 @@ Font loadFont() {
                       48, const_cast<int*>(codepoints.data()), static_cast<int>(codepoints.size()));
 }
 
-// Draws the Overworld `frames` times into a w x h target; the average milliseconds per frame.
+// Draws the Overworld `frames` times into a w x h target; the average milliseconds per frame. With
+// `painter`, the Fighter walks in its model, painted every frame.
 double renderOverworld(const OverworldScreen& screen, const Font& font, int w, int h, int frames,
-                       Image* last) {
+                       Image* last, heroes::window::ModelPainter* painter = nullptr) {
     RenderTexture2D target = LoadRenderTexture(w, h);
     heroes::window::Scene scene;
     Framebuffer hud(engine::kCanvasWidth, engine::kCanvasHeight);
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < frames; ++i) {
+        const float t = static_cast<float>(i) / 60;
+        const heroes::window::Pixels* hero =
+            painter ? painter->paint("fighter", {.clip = heroes::window::Clip::Walk, .time = t,
+                                                 .from = heroes::window::Clip::Idle, .blend = 0.5f, .yaw = t})
+                    : nullptr;
         BeginTextureMode(target);
         ClearBackground({4, 6, 9, 255});
-        heroes::window::drawOverworld(screen, hud, scene, font, static_cast<float>(i) / 60, 1.0f / 60, 0, w, h);
+        heroes::window::drawOverworld(screen, hud, scene, font, t, 1.0f / 60, 0, w, h, hero);
         EndTextureMode();
         BeginDrawing(); // a swap per frame, so the GPU keeps up with the timing
         EndDrawing();
@@ -135,6 +142,50 @@ TEST(WindowDisplay, TheOverworldSceneDrawsUnderTheHud) {
         for (const auto& [w, h2] : {std::pair{1280, 720}, std::pair{1920, 1080}})
             std::printf("overworld %dx%d: %.2f ms/frame over 600 frames\n", w, h2,
                         renderOverworld(screen, font, w, h2, 600, nullptr));
+    UnloadFont(font);
+    CloseWindow();
+}
+
+// The Fighter's model, painted and drawn in the starter area (saved as window_hero.png with
+// HEROES_SNAPSHOT_DIR set). With HEROES_BENCH set, 600 frames with the model are timed at
+// 1280x720 and 1920x1080 (docs/benchmarks.md).
+TEST(WindowDisplay, TheHeroIsDrawnFromItsModel) {
+    SetConfigFlags(FLAG_WINDOW_HIDDEN);
+    SetTraceLogLevel(LOG_WARNING);
+    InitWindow(1280, 720, "test");
+    ASSERT_TRUE(IsWindowReady());
+    Font font = loadFont();
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    const std::vector<std::string> ids{"fighter"};
+    auto files = heroes::window::loadModelFiles(fs::path(HEROES_SOURCE_DIR) / "assets/models", ids);
+    ASSERT_TRUE(files.has_value()) << files.error();
+    ASSERT_EQ(files->size(), 1u);
+    {
+        heroes::window::ModelPainter painter(std::move(*files));
+        EXPECT_EQ(painter.paint("hunter", {}), nullptr); // not loaded here
+        const heroes::window::Pixels* hero = painter.paint("fighter", {.clip = heroes::window::Clip::Walk, .time = 0.3f, .from = heroes::window::Clip::Walk, .fromTime = 0.3f, .yaw = 0.8f});
+        ASSERT_NE(hero, nullptr);
+        int solid = 0;
+        for (const heroes::window::Rgba& p : hero->px)
+            solid += p.a >= 40;
+        EXPECT_GT(solid, 300); // a figure, not an empty slot or a speck
+        EXPECT_LT(solid, hero->w * hero->h / 2); // and framed with room around it
+
+        Harness h("window_display_hero");
+        h.session.large = shippedLargeSprites();
+        h.startAtHub(freshGame());
+        ASSERT_TRUE(h.press({kHubExplore}));
+        const auto& screen = dynamic_cast<const OverworldScreen&>(*h.app->top());
+        Image image{};
+        renderOverworld(screen, font, 1280, 720, 1, &image, &painter);
+        if (const char* dir = std::getenv("HEROES_SNAPSHOT_DIR"))
+            ExportImage(image, (fs::path(dir) / "window_hero.png").string().c_str());
+        UnloadImage(image);
+        if (std::getenv("HEROES_BENCH"))
+            for (const auto& [w, h2] : {std::pair{1280, 720}, std::pair{1920, 1080}})
+                std::printf("overworld with the hero model %dx%d: %.2f ms/frame over 600 frames\n", w, h2,
+                            renderOverworld(screen, font, w, h2, 600, nullptr, &painter));
+    }
     UnloadFont(font);
     CloseWindow();
 }

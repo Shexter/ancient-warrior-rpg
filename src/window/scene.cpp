@@ -49,6 +49,8 @@ float noise(float x, float y) {
 }
 
 std::uint8_t channel(float v) { return static_cast<std::uint8_t>(std::clamp(v, 0.0f, 255.0f)); }
+// One channel of a colour lifted so its brightest channel `peak` reaches at least 150.
+std::uint8_t scale255(std::uint8_t v, float peak) { return channel(v * std::max(1.2f, 150 / peak)); }
 Rgba rgba(engine::Rgb c, std::uint8_t a = 255) { return {c.r, c.g, c.b, a}; }
 Rgba scale(Rgba c, float f) { return {channel(c.r * f), channel(c.g * f), channel(c.b * f), c.a}; }
 Rgba withAlpha(Rgba c, float a) { return {c.r, c.g, c.b, channel(a)}; }
@@ -64,6 +66,7 @@ struct Ctx {
     const SceneView& sv;
     float t;
     float alpha; // how far into its next step the game is
+    const Pixels* hero; // the hero's model this frame, or null for its battle art
     View v;
     int tx0, ty0, tx1, ty1; // the map tiles in view, plus a margin
 
@@ -388,9 +391,25 @@ void creatureLayer(const Ctx& c) {
     const Scene::Point feet = heroFeet(c.sv.world, c.alpha);
     const bool flip = c.sv.world.facing() == game::world::Dir::Left;
     c.ellipse(Layer::Creatures, feet.x, feet.y + 1, 19, 6, {0, 0, 0, 170});
-    drawCreature(c, c.sv.hero, feet, 3.4f, flip, std::nullopt, true);
-    drawCreature(c, c.sv.hero, feet, 3.4f, flip, std::nullopt, false);
-    const float height = c.sv.hero ? c.sv.hero->height * 3.4f / 2 : T;
+    float height = c.sv.hero ? c.sv.hero->height * 3.4f / 2 : T;
+    if (c.hero) {
+        std::vector<Item>& creatures = c.scene[Layer::Creatures];
+        const std::size_t first = creatures.size();
+        height = glyphsFromPixels(creatures, *c.hero, feet, kModelScale);
+        // Its reflection: the glyphs mirrored about the feet, where they fall on water.
+        for (std::size_t i = first; i < creatures.size(); ++i) {
+            const Item g = creatures[i];
+            const float y = 2 * feet.y - g.y + 2;
+            if (g.kind != Kind::Glyph || c.atPx(g.x, y) != Terrain::Water)
+                continue;
+            const float ripple = std::sin(y * 0.35f + c.t * 4) * 1.6f;
+            c.glyph(Layer::Under, g.x + ripple, y, g.w, 0, g.glyph,
+                    mix({60, 80, 120, 170}, withAlpha(scale(g.color, 0.5f), 170), 0.35f));
+        }
+    } else {
+        drawCreature(c, c.sv.hero, feet, 3.4f, flip, std::nullopt, true);
+        drawCreature(c, c.sv.hero, feet, 3.4f, flip, std::nullopt, false);
+    }
     c.label(Layer::Creatures, feet.x, feet.y - height - 12, c.sv.heroName, 14, {235, 235, 235, 235});
 }
 
@@ -432,7 +451,50 @@ void effectLayer(const Ctx& c) {
 
 } // namespace
 
-void buildScene(Scene& scene, const SceneView& sv, float time, View view, float alpha) {
+Scene::Point heroDrawnAt(const game::world::World& world, float alpha) {
+    return drawnAt(world.heroMotion(), alpha);
+}
+
+float glyphsFromPixels(std::vector<Item>& out, const Pixels& pixels, Scene::Point feet, float scale) {
+    constexpr std::uint8_t kEmpty = 40;
+    const auto at = [&](int x, int y) { return pixels.px[static_cast<std::size_t>(y * pixels.w + x)]; };
+    int top = pixels.h, bottom = -1;
+    for (int y = 0; y < pixels.h; ++y)
+        for (int x = 0; x < pixels.w; ++x)
+            if (at(x, y).a >= kEmpty) {
+                top = std::min(top, y);
+                bottom = y;
+            }
+    if (bottom < 0)
+        return 0;
+    const auto centre = [&](int x, int y) {
+        return Scene::Point{feet.x + (static_cast<float>(x) + 0.5f - static_cast<float>(pixels.w) / 2) * scale,
+                            feet.y + (static_cast<float>(y - bottom) - 0.5f) * scale};
+    };
+    for (int y = top; y <= bottom; ++y)
+        for (int x = 0; x < pixels.w; ++x)
+            if (at(x, y).a >= kEmpty) {
+                const Scene::Point p = centre(x, y);
+                out.push_back({Kind::Rect, U' ', p.x - scale / 2, p.y - scale / 2, scale, scale, {6, 6, 10, 235}});
+            }
+    for (int y = top; y <= bottom; ++y)
+        for (int x = 0; x < pixels.w; ++x) {
+            const Rgba px = at(x, y);
+            if (px.a < kEmpty)
+                continue;
+            const float lum = (0.3f * px.r + 0.59f * px.g + 0.11f * px.b) / 255.0f;
+            const char32_t ch = U" .:-=+*#%@"[std::min(9, 3 + static_cast<int>(lum * 6.99f))];
+            // The brightest channel reaches at least 150, so a dark cloak still reads.
+            const float peak = std::max({1.0f, static_cast<float>(px.r), static_cast<float>(px.g), static_cast<float>(px.b)});
+            const Rgba color = {scale255(px.r, peak), scale255(px.g, peak), scale255(px.b, peak), 255};
+            const Scene::Point p = centre(x, y);
+            out.push_back({Kind::Glyph, ch, p.x, p.y, scale * 1.6f, 0, color});
+        }
+    return static_cast<float>(bottom - top + 1) * scale;
+}
+
+void buildScene(Scene& scene, const SceneView& sv, float time, View view, float alpha,
+                const Pixels* hero) {
     for (std::vector<Item>& layer : scene.layers)
         layer.clear();
     if (scene.housesOf != &sv.map)
@@ -443,7 +505,7 @@ void buildScene(Scene& scene, const SceneView& sv, float time, View view, float 
         scene.feet.push_back(feetOf(m, alpha));
 
     const auto tile = [](float px) { return static_cast<int>(std::floor(px / T)); };
-    const Ctx c{scene, sv, time, alpha, view,
+    const Ctx c{scene, sv, time, alpha, hero, view,
                 std::max(0, tile(view.x) - 2), std::max(0, tile(view.y) - 2),
                 std::min(sv.map.width, tile(view.x + view.w) + 3),
                 std::min(sv.map.height, tile(view.y + view.h) + 3)};

@@ -1,10 +1,14 @@
+#include "window/models.hpp"
 #include "window/scene.hpp"
 
 #include "screen_harness.hpp"
 
+#include "raylib.h"
+
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -299,8 +303,9 @@ TEST(WindowScene, DrawingLeavesTheGameUntouched) {
     const auto monsters = w.screen().world().monsters();
     const Tile hero = w.screen().world().hero();
     Scene scene;
-    for (int i = 0; i < 100; ++i)
-        buildScene(scene, w.view(), static_cast<float>(i) / 10, wholeMap(world));
+    const Pixels model{2, 2, {{200, 40, 40, 255}, {200, 40, 40, 255}, {90, 90, 90, 255}, {90, 90, 90, 255}}};
+    for (int i = 0; i < 100; ++i) // with the battle art, then with a model
+        buildScene(scene, w.view(), static_cast<float>(i) / 10, wholeMap(world), 0, i % 2 ? &model : nullptr);
     EXPECT_EQ(*w.h.session.state, state); // its random stream included
     EXPECT_EQ(w.screen().world().monsters(), monsters);
     EXPECT_EQ(w.screen().world().hero(), hero);
@@ -326,4 +331,148 @@ TEST(WindowScene, AClickReadsTheTileUnderTheDrawnCamera) {
     const Tile t = sceneTileAt(scene, 0, 0, 720); // zoom 1
     EXPECT_EQ(t, (Tile{10, 4}));
     EXPECT_EQ(sceneTileAt(scene, 14, 0, 720), (Tile{11, 4}));
+}
+
+TEST(GlyphsFromPixels, PixelsBecomeRampGlyphsStandingOnTheFeet) {
+    // 3 x 3: an empty top row, a dark red and an empty pixel, then a white and a mid grey on the
+    // bottom row. The lowest drawn row stands on the feet.
+    const Rgba none{0, 0, 0, 0};
+    const Pixels pixels{3, 3, {none, none, none,
+                               {60, 0, 0, 255}, none, none,
+                               {255, 255, 255, 255}, {128, 128, 128, 255}, none}};
+    std::vector<Item> out;
+    const float height = glyphsFromPixels(out, pixels, {100, 200}, 2);
+    EXPECT_FLOAT_EQ(height, 4);
+    ASSERT_EQ(out.size(), 6u); // a silhouette cell, then a glyph, per drawn pixel
+    for (int i = 0; i < 3; ++i)
+        EXPECT_EQ(out[static_cast<std::size_t>(i)].kind, Item::Kind::Rect);
+    const Item& red = out[3];
+    const Item& white = out[4];
+    const Item& grey = out[5];
+    // Centred on x: pixel 0 of 3 is one pixel left of the middle; rows sit above the feet.
+    EXPECT_FLOAT_EQ(red.x, 98);
+    EXPECT_FLOAT_EQ(red.y, 197);
+    EXPECT_FLOAT_EQ(white.y, 199);
+    EXPECT_FLOAT_EQ(grey.x, 100);
+    EXPECT_EQ(white.glyph, U'@'); // brightest end of the ramp
+    EXPECT_EQ(grey.glyph, U'*');
+    EXPECT_EQ(red.glyph, U'-');
+    // A dark colour is lifted until its brightest channel reaches 150; a bright one by 1.2.
+    EXPECT_EQ(red.color, (Rgba{150, 0, 0, 255}));
+    EXPECT_EQ(white.color, (Rgba{255, 255, 255, 255}));
+    EXPECT_EQ(grey.color, (Rgba{153, 153, 153, 255}));
+}
+
+TEST(GlyphsFromPixels, NothingDrawnForClearPixels) {
+    const Pixels pixels{2, 1, {{9, 9, 9, 39}, {0, 0, 0, 0}}};
+    std::vector<Item> out;
+    EXPECT_EQ(glyphsFromPixels(out, pixels, {0, 0}, 2), 0);
+    EXPECT_TRUE(out.empty());
+}
+
+namespace {
+
+constexpr float kFrame = 1.0f / 60;
+constexpr float kPi = 3.14159265f;
+
+// The pose after `frames` frames moving `step` tiles a frame from `pose`.
+Pose walk(Pose pose, Scene::Point step, int frames) {
+    for (int i = 0; i < frames; ++i)
+        pose = poseOf(pose, {step}, kFrame);
+    return pose;
+}
+
+} // namespace
+
+TEST(Pose, FacingFollowsMovement) {
+    // Facing down, the hero walks left for a tile at the field pace (8 frames), then stops.
+    Pose pose = poseOf({}, {{-1.0f / 8, 0}}, kFrame);
+    EXPECT_EQ(pose.clip, Clip::Walk);
+    EXPECT_LT(pose.yaw, -0.1f); // turning toward left (-pi/2)...
+    EXPECT_GT(pose.yaw, -kPi / 4); // ...not snapped there
+    pose = walk(pose, {-1.0f / 8, 0}, 6); // 0.12 s in
+    EXPECT_NEAR(pose.yaw, -kPi / 2, 0.1f);
+    EXPECT_EQ(pose.clip, Clip::Walk);
+    const float facing = pose.yaw;
+    pose = poseOf(pose, {}, kFrame); // stops
+    EXPECT_EQ(pose.clip, Clip::Idle);
+    EXPECT_EQ(pose.from, Clip::Walk);
+    EXPECT_LT(pose.blend, 1); // blending into idle, not cut
+    EXPECT_FLOAT_EQ(pose.yaw, facing); // and keeps facing its way
+    pose = walk(pose, {}, 9);
+    EXPECT_FLOAT_EQ(pose.blend, 1);
+}
+
+TEST(Pose, TurnsTheShortWayRound) {
+    Pose pose;
+    pose.yaw = 3.0f; // just short of up, turning toward just past it (-3.0)
+    pose = poseOf(pose, {{std::sin(-3.0f), std::cos(-3.0f)}}, kFrame);
+    EXPECT_GT(std::abs(pose.yaw), 3.0f); // through up, not back through down
+}
+
+TEST(Pose, WalkPaceFollowsTheMove) {
+    Pose start;
+    start.clip = Clip::Walk;
+    const Pose fast = walk(start, {1.0f / 8, 0}, 8);   // a tile at the field pace
+    const Pose slow = walk(start, {1.0f / 16, 0}, 16); // a tile at half that pace
+    EXPECT_NEAR(fast.time, kWalkSecondsPerTile, 1e-4f);
+    EXPECT_NEAR(slow.time, kWalkSecondsPerTile, 1e-4f);
+}
+
+TEST(Pose, ClipsCrossfadeOverAFifteenthOfASecond) {
+    Pose pose;
+    pose.clip = Clip::Walk;
+    pose.time = 0.3f;
+    pose = poseOf(pose, {.attacked = true}, 0.075f);
+    EXPECT_EQ(pose.clip, Clip::Attack);
+    EXPECT_EQ(pose.from, Clip::Walk);
+    EXPECT_FLOAT_EQ(pose.fromTime, 0.3f);
+    EXPECT_FLOAT_EQ(pose.blend, 0.5f);
+    pose = poseOf(pose, {}, 0.075f);
+    EXPECT_FLOAT_EQ(pose.blend, 1);
+}
+
+TEST(Pose, AnAttackPlaysOnceThenTheHeroIdles) {
+    Pose pose = poseOf({}, {.attacked = true}, kFrame);
+    pose = walk(pose, {}, 60); // 1.0 s: still swinging
+    EXPECT_EQ(pose.clip, Clip::Attack);
+    pose = walk(pose, {}, 5);
+    EXPECT_EQ(pose.clip, Clip::Idle);
+    pose = poseOf(pose, {.hit = true}, kFrame); // a hit cuts in at once
+    EXPECT_EQ(pose.clip, Clip::Hit);
+}
+
+TEST(ModelFiles, AMissingFileLeavesThatHeroOnItsSprite) {
+    const fs::path dir = fs::temp_directory_path() / "heroes_no_models";
+    fs::create_directories(dir);
+    const std::vector<std::string> ids{"fighter"};
+    const auto files = loadModelFiles(dir, ids);
+    ASSERT_TRUE(files.has_value());
+    EXPECT_TRUE(files->empty());
+}
+
+TEST(ModelFiles, AModelWithoutAClipIsAnError) {
+    // The shipped Fighter with its hit clip renamed (same length, so the file stays valid).
+    std::string glb = readFile(fs::path(HEROES_SOURCE_DIR) / "assets/models/hero_fighter.glb");
+    const auto at = glb.find("\"name\":\"Hit_A\"");
+    ASSERT_NE(at, std::string::npos);
+    glb.replace(at, 14, "\"name\":\"Hit_Q\"");
+    const fs::path dir = fs::temp_directory_path() / "heroes_clipless_model";
+    fs::create_directories(dir);
+    std::ofstream(dir / "hero_fighter.glb", std::ios::binary) << glb;
+    const std::vector<std::string> ids{"fighter"};
+    const auto files = loadModelFiles(dir, ids);
+    ASSERT_FALSE(files.has_value());
+    EXPECT_NE(files.error().find("hero_fighter.glb: missing clip 'Hit_A'"), std::string::npos) << files.error();
+}
+
+TEST(ModelFiles, TheShippedHeroesHaveEveryClip) {
+    std::vector<std::string> ids;
+    for (const game::PathDef& path : game::shippedContent().paths())
+        ids.push_back(path.id);
+    auto files = loadModelFiles(fs::path(HEROES_SOURCE_DIR) / "assets/models", ids);
+    ASSERT_TRUE(files.has_value()) << files.error();
+    EXPECT_EQ(files->size(), 3u);
+    for (auto& [id, f] : *files)
+        UnloadModelAnimations(f.anims, f.count);
 }

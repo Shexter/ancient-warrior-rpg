@@ -102,7 +102,7 @@ set_tests_properties(heroes_rejects_bad_layout PROPERTIES
 # ---- heroes-window: the raylib front end (see openspec add-glyph-renderer) -------------------
 if(HEROES_BUILD_WINDOW)
     add_library(heroes_window_lib STATIC src/window/input.cpp src/window/grid.cpp
-        src/window/run.cpp src/window/scene.cpp src/window/scene_draw.cpp)
+        src/window/run.cpp src/window/scene.cpp src/window/scene_draw.cpp src/window/models.cpp)
     target_include_directories(heroes_window_lib PUBLIC src)
     target_link_libraries(heroes_window_lib PUBLIC heroes_app raylib PRIVATE heroes_warnings)
 
@@ -129,6 +129,10 @@ if(HEROES_BUILD_WINDOW)
         COMMAND ${CMAKE_COMMAND} -DHEROES=$<TARGET_FILE:heroes-window>
             -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/bad_world_window
             -P ${PROJECT_SOURCE_DIR}/tests/bad_world_cli.cmake)
+    add_test(NAME heroes_window_reports_bad_model
+        COMMAND ${CMAKE_COMMAND} -DHEROES=$<TARGET_FILE:heroes-window>
+            -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/bad_model_window
+            -P ${PROJECT_SOURCE_DIR}/tests/bad_model_cli.cmake)
     add_test(NAME heroes_window_rejects_layout COMMAND heroes-window --layout compact)
     set_tests_properties(heroes_window_rejects_layout PROPERTIES
         PASS_REGULAR_EXPRESSION "heroes-window: error: unknown option '--layout'.*usage: heroes-window ")

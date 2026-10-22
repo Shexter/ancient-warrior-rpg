@@ -84,7 +84,7 @@ Hand-drawn frames per facing snap between 4 directions and a few poses; the user
 - **Pose:** a pure function `poseOf(previous pose, creature state, dt)` gives `{clip, clipTime, fromClip, fromTime, blend, yaw}`:
   - `yaw` eases toward the movement direction, reaching it in about 0.12 s, taking the short way round.
   - `walk` advances by move progress (D5) times a cycle length per tile, so feet don't slide at any pace. `idle` advances by time.
-  - `attack` and `hit` start on the World's `Damaged` events and wind-up, then return to walk or idle.
+  - `attack` starts when the hero uses an ability (its cooldown rises) and `hit` when a damage number lands on the hero; each plays once, then it returns to walk or idle. The window reads both from the scene view, so the World needs no new events.
   - A clip change crossfades over 0.15 s. raylib 5.5 doesn't blend animations, so the two poses' bone transforms are lerped (slerp for rotation) before the mesh is skinned.
   - Pose state is kept per creature in the window, keyed by monster identity, and never feeds back into the World.
 - **Loading:** models load at window startup. A missing file falls back to the battle sprite; a file that fails to load, or is missing a required clip, exits with code 2 naming it.

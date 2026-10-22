@@ -27,6 +27,8 @@ class HubScreen final : public Screen {
     Transition quit();
 
     Session& session_;
+    // Before menu_: building the menu reads it. The last frame drawn was the phone layout.
+    mutable bool portrait_ = false;
     Menu menu_;
     std::optional<MessageBox> message_;
     std::optional<ConfirmBox> confirm_;
@@ -36,7 +38,6 @@ class HubScreen final : public Screen {
     void refreshGoal();
     std::optional<game::GameState> goalState_;
     std::string goal_;
-    mutable bool portrait_ = false; // the last frame drawn was the phone layout
 };
 
 } // namespace heroes::app

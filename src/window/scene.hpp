@@ -72,11 +72,30 @@ struct Scene {
     }
 };
 
+// A character model as rendered this frame (window/models.hpp), top row first.
+struct Pixels {
+    int w = 0, h = 0;
+    std::vector<Rgba> px;
+};
+
+// Where the hero is drawn `alpha` of a step on, in map tiles (fractional while it moves).
+Scene::Point heroDrawnAt(const game::world::World& world, float alpha);
+
+// Scene units per model pixel (D8).
+inline constexpr float kModelScale = 2.2f;
+
+// Appends `pixels` to `out` as glyphs on a dark silhouette, `scale` scene units per pixel, centred
+// on `feet` with the lowest drawn row standing on it: first a silhouette cell per pixel, then a
+// glyph from the brightness ramp in the pixel's colour, lifted so dark colours still read. Pixels
+// under alpha 40 are empty. Returns the drawn height in scene units (0 when nothing is drawn).
+float glyphsFromPixels(std::vector<Item>& out, const Pixels& pixels, Scene::Point feet, float scale);
+
 // Rebuilds `scene` for `view` at animation time `time` (seconds), reusing its buffers, with
 // creatures and bolts drawn `alpha` (0 to 1) of a step past the game's state. Reads the game;
-// never changes it. Every look varies only by map position and time.
+// never changes it. Every look varies only by map position and time. The hero is drawn from
+// `hero` when given, else from its battle art.
 void buildScene(Scene& scene, const app::OverworldScreen::SceneView& sv, float time, View view,
-                float alpha = 0);
+                float alpha = 0, const Pixels* hero = nullptr);
 
 // Hands every layer to `out` bottom to top: out.layer(Layer), then out.item(item) for each item.
 template <class Out> void submit(const Scene& scene, Out& out) {
@@ -96,9 +115,10 @@ inline float sceneZoom(int windowH) { return static_cast<float>(windowH) / 720.0
 
 // The Overworld in a w x h pixel window: its scene at animation time `time`, `alpha` of a step
 // on, then the screen's HUD drawn into `hud` and over the scene. Rebuilds `scene`, and eases its
-// camera over the `dt` seconds since the last frame.
+// camera over the `dt` seconds since the last frame. `hero` as for buildScene.
 void drawOverworld(const app::OverworldScreen& screen, engine::Framebuffer& hud, Scene& scene,
-                   const Font& font, float time, float dt, float alpha, int w, int h);
+                   const Font& font, float time, float dt, float alpha, int w, int h,
+                   const Pixels* hero = nullptr);
 
 // The map tile under window pixel (x, y), as last drawn.
 game::world::Tile sceneTileAt(const Scene& scene, int x, int y, int windowH);

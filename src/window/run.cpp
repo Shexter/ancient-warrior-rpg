@@ -10,6 +10,10 @@
 
 #include "raylib.h"
 
+#include <array>
+#include <iostream>
+#include <optional>
+#include <stdexcept>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -28,11 +32,37 @@ class WindowIo final : public engine::LoopIo {
 
 Color toColor(engine::Rgb c) { return {c.r, c.g, c.b, 255}; }
 
+// The hero's model pose, carried from frame to frame. Read from the game, never written back.
+struct HeroAnimation {
+    Pose pose;
+    std::optional<Scene::Point> at; // drawn last frame, in tiles; none on entering the Overworld
+    std::array<int, 3> cooldowns{}; // Swing, Firebolt, Nova, last frame
+
+    // Moves the pose on by `dt`, after `steps` game steps this frame.
+    void update(const app::OverworldScreen::SceneView& sv, float alpha, int steps, float dt) {
+        using game::world::Ability;
+        Doing doing;
+        const Scene::Point now = heroDrawnAt(sv.world, alpha);
+        if (at)
+            doing.moved = {now.x - at->x, now.y - at->y};
+        at = now;
+        const std::array<Ability, 3> abilities{Ability::Swing, Ability::Firebolt, Ability::Nova};
+        for (std::size_t i = 0; i < abilities.size(); ++i) {
+            const int left = sv.world.cooldownLeft(abilities[i]);
+            doing.attacked = doing.attacked || left > cooldowns[i]; // used since last frame
+            cooldowns[i] = left;
+        }
+        for (const app::OverworldScreen::FloatingNumber& n : sv.numbers) // shown since last frame
+            doing.hit = doing.hit || (n.onHero && n.age < steps);
+        pose = poseOf(pose, doing, dt);
+    }
+};
+
 
 } // namespace
 
 int run(app::Session& session, std::unique_ptr<app::Screen> first,
-        const std::filesystem::path& fontFile) {
+        const std::filesystem::path& fontFile, std::map<std::string, ModelFile> models) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     SetTraceLogLevel(LOG_ERROR); // box and block glyphs are drawn as shapes, so their atlas size warnings are noise
     InitWindow(1280, 720, "Heroes");
@@ -42,6 +72,15 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
     Font font = LoadFontEx(fontFile.string().c_str(), 48, const_cast<int*>(codepoints.data()),
                            static_cast<int>(codepoints.size()));
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    std::unique_ptr<ModelPainter> painter;
+    try {
+        painter = std::make_unique<ModelPainter>(std::move(models));
+    } catch (const std::runtime_error& e) {
+        std::cerr << "heroes-window: error: " << e.what() << '\n';
+        UnloadFont(font);
+        CloseWindow();
+        return 2;
+    }
 
     WindowIo io;
     engine::Renderer unused(engine::ColorMode::TrueColor); // App's terminal renderer, never used
@@ -51,6 +90,7 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
     engine::Framebuffer frame(engine::kCanvasWidth, engine::kCanvasHeight);
     CellLayout layout = layoutFor(engine::kCompactCanvas, GetScreenWidth(), GetScreenHeight());
     Scene scene;
+    HeroAnimation heroAnimation;
     float sceneTime = 0;     // animation clock: grass sway, ripples, fireflies
     bool sceneShown = false; // the last frame drew the Overworld scene
     bool running = true;
@@ -92,22 +132,31 @@ int run(app::Session& session, std::unique_ptr<app::Screen> first,
         sceneTime += GetFrameTime();
         const auto* overworld = dynamic_cast<const app::OverworldScreen*>(game.top());
         sceneShown = overworld != nullptr;
-        if (!sceneShown)
-            scene.camera.reset(); // back in the Overworld, the camera starts on the hero
+        if (!sceneShown) { // back in the Overworld, the camera starts on the hero and it stands
+            scene.camera.reset();
+            heroAnimation.at.reset();
+        }
         if (!overworld)
             game.draw(frame);
+        const Pixels* hero = nullptr; // painted before the frame starts: it uses its own target
+        if (overworld) {
+            heroAnimation.update(overworld->sceneView(), static_cast<float>(stepper.alpha()), steps,
+                                 GetFrameTime());
+            hero = painter->paint(session.state->hero.pathId, heroAnimation.pose);
+        }
 
         BeginDrawing();
         if (overworld) {
             ClearBackground({4, 6, 9, 255});
             drawOverworld(*overworld, frame, scene, font, sceneTime, GetFrameTime(),
-                          static_cast<float>(stepper.alpha()), GetScreenWidth(), GetScreenHeight());
+                          static_cast<float>(stepper.alpha()), GetScreenWidth(), GetScreenHeight(), hero);
         } else {
             ClearBackground(toColor(frame.at(0, 0).bg));
             drawGrid(frame, layout, font);
         }
         EndDrawing();
     }
+    painter.reset();
     UnloadFont(font);
     CloseWindow();
     return 0;

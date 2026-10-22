@@ -320,10 +320,11 @@ std::expected<CliOptions, std::string> parseArgs(std::span<const std::string_vie
             for (const std::string& entry : splitCommas(value)) {
                 const auto colon = entry.find(':');
                 int count = 0;
-                const auto [end, ec] = std::from_chars(
-                    entry.data() + colon + 1, entry.data() + entry.size(), count);
-                if (colon == std::string::npos || ec != std::errc{} ||
-                    end != entry.data() + entry.size())
+                const char* last = entry.data() + entry.size();
+                const auto [end, ec] = colon == std::string::npos
+                                           ? std::from_chars_result{entry.data(), std::errc::invalid_argument}
+                                           : std::from_chars(entry.data() + colon + 1, last, count);
+                if (ec != std::errc{} || end != last)
                     return std::unexpected(
                         std::format("--items expects id:count,... (got '{}')", entry));
                 c.items.emplace_back(entry.substr(0, colon), count);

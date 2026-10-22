@@ -168,3 +168,17 @@ overworld 1920x1080: 6.88 ms/frame over 600 frames
 ```
 
 Both are well inside the 16.6 ms frame budget, so the static-layer render-texture cache from the design's risks section isn't needed. The two sizes cost the same because the scene shows the same height of map at any size (zoom = height / 720) and the extra width is cheap. Glyphs and shapes share the font atlas texture (shapes use its white corner), so the whole scene batches into very few draw calls.
+
+## Overworld frame time with the hero model (add-glyph-renderer task 3.5, 2026-10-22)
+
+The same scene, now with smooth movement, and in the second pair the Fighter's model painted every frame: two clips mixed bone by bone, skinned on the CPU, drawn into the 48×64 slot, read back, and turned into glyphs. Release build (`ci` preset), Apple M4 Pro.
+
+```
+HEROES_BENCH=1 ./heroes_window_display_tests --gtest_filter='*Overworld*:*Hero*'
+overworld 1280x720: 4.21 ms/frame over 600 frames
+overworld 1920x1080: 4.18 ms/frame over 600 frames
+overworld with the hero model 1280x720: 4.89 ms/frame over 600 frames
+overworld with the hero model 1920x1080: 4.48 ms/frame over 600 frames
+```
+
+The model costs about 0.3–0.7 ms a frame, well inside the 16.6 ms budget. The scene itself got faster since task 2.6 (6.9 ms): the run-to-run spread on this machine is large, so treat these as a few ms rather than exact. One readback per model per frame is cheap at one model; the shared multi-slot texture in D8 only matters once monsters get models.
