@@ -1,0 +1,18 @@
+# Secrets (never here): wrangler secret put GEMINI_API_KEY, wrangler secret put IP_SALT
+name = "heroes-narration-relay"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+# Set below the key's quota once task 6.1 settles which key the relay uses.
+GLOBAL_DAILY_CAP = "1000"
+MAX_OUTPUT_TOKENS = "512"
+
+[[durable_objects.bindings]]
+name = "LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]

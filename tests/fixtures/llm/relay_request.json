@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "installId": "0123456789abcdef0123456789abcdef",
+  "kind": "BattleEnd",
+  "summary": {
+    "foe": "Medusa",
+    "hero": "Aria",
+    "heroHpPct": 12,
+    "moments": [
+      "Exorcism"
+    ],
+    "result": "victory",
+    "turns": 9
+  }
+}

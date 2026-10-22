@@ -1,0 +1,14 @@
+{
+  "name": "heroes-narration-relay",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker that holds the hosted Gemini key and narrates structured game events (openspec add-llm-game-master).",
+  "scripts": {
+    "sync": "node scripts/sync-prompts.mjs",
+    "pretest": "node scripts/sync-prompts.mjs",
+    "test": "node --test test/",
+    "predeploy": "node scripts/sync-prompts.mjs",
+    "deploy": "npx wrangler deploy"
+  },
+  "engines": { "node": ">=23.6" }
+}

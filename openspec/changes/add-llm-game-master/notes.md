@@ -55,3 +55,11 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 - Built per §7 on all four NPC screens. SPEC DRIFT: Talk is the **T** key (shown as "T talk") on the shared NPC frame rather than a row in each NPC's menu, because the merchant and bank screens are two lists with no menu to add it to. It's available whenever the game has narrator data; with the narrator Off the NPC answers with its built-in line, as §7 says.
 - Screens now poll the narrator once a step and hand each reply to whoever asked (greeting or Talk), so one can't swallow the other's reply.
 - Verification: clang debug, asan (UBSan clean; Talk and narrator tests repeated 5 times) and ci 671/671; window-off 636/636; mingw syntax check clean. Docker wasn't running, so Ubuntu GCC 13 is left to CI.
+
+## Relay code and Hosted mode (6.3, 6.4, 7.1)
+
+- **6.1 is researched but not decided:** findings and a recommendation (a paid key with a strict cap; settle the under-18 question first) are in `design.md` Open Questions. The consent text's Hosted line waits on that decision.
+- SPEC DRIFT: the relay uses no npm packages. It's tested with Node's built-in runner (type stripping, Node 23.6+) instead of vitest and `@cloudflare/vitest-pool-workers`, so there's no lockfile and nothing to install. Types aren't checked by `tsc` (Node only strips them). Wrangler is only needed to deploy.
+- The BossIntro summary now carries the hero's `path`, which the relay's schema requires.
+- Fixtures `tests/fixtures/llm/relay_request.json` and `relay_talk_request.json` are checked on both sides: the game builds exactly them, and the relay accepts them.
+- **Left for the user:** 6.1 (decision), 6.2 (Cloudflare account, `wrangler login`), 6.5 (secrets and a staging deploy), 6.6 (security review of a live staging log), 6.7, and 7.2 (a build pointed at staging).

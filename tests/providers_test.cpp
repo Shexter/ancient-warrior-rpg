@@ -125,3 +125,30 @@ TEST(Providers, StatusesMapTheSameForEveryProvider) {
     EXPECT_EQ(statusError({400, "", {}})->kind, Kind::BadResponse);
     EXPECT_FALSE(statusError({200, "", {}}));
 }
+
+TEST(Providers, TheRelayGetsOnlyTheStructuredEvent) {
+    const std::string install = "0123456789abcdef0123456789abcdef";
+    const auto p = relayProvider(narrator(), "https://relay.example/", install);
+    const HttpRequest r = p->build(battleEnd());
+    EXPECT_EQ(r.url, "https://relay.example/v1/narrate");
+    EXPECT_EQ(header(r, "x-api-key"), "(none)"); // no key ever leaves for the relay
+    EXPECT_EQ(Json::parse(r.body), fixture("relay_request.json"));
+
+    NarrationRequest talk{NarrationKind::NpcTalk, {{"hero", "Aria"}, {"level", 3}, {"heroHpPct", 100}, {"npc", "merchant"}},
+                          "merchant", {{"Hello", "Gold talks."}}, "Any discounts?"};
+    EXPECT_EQ(Json::parse(p->build(talk).body), fixture("relay_talk_request.json"));
+
+    EXPECT_EQ(*p->parse(ok({{"text", "Medusa falls."}})), "Medusa falls.");
+    EXPECT_EQ(p->parse(ok({{"error", "x"}})).error().kind, Kind::BadResponse);
+}
+
+TEST(Providers, TheRelaysLimitsBackOffAndItsFailuresFallBack) {
+    const auto p = relayProvider(narrator(), "https://relay.example", "0123456789abcdef0123456789abcdef");
+    const auto answer = [](HttpResponse response) {
+        return Transport([response](const HttpRequest&) -> std::expected<HttpResponse, ProviderError> { return response; });
+    };
+    EXPECT_EQ(complete(*p, answer({429, R"({"error":"rate_limited"})", 120}), battleEnd()).error(),
+              (ProviderError{Kind::RateLimited, 120}));
+    EXPECT_EQ(complete(*p, answer({502, R"({"error":"upstream"})", std::nullopt}), battleEnd()).error().kind, Kind::Server);
+    EXPECT_EQ(*complete(*p, answer({200, R"({"text":"Hi."})", std::nullopt}), battleEnd()), "Hi.");
+}

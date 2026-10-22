@@ -257,6 +257,37 @@ class OpenAi final : public JsonProvider {
     bool local_;
 };
 
+class Relay final : public JsonProvider {
+  public:
+    Relay(const NarratorDef& def, std::string url, std::string installId)
+        : def_(def), url_(std::move(url)), installId_(std::move(installId)) {}
+    HttpRequest build(const NarrationRequest& r) const override {
+        Json body{{"v", 1}, {"installId", installId_}, {"kind", kindName(r.kind)}, {"summary", r.summary}};
+        if (r.kind == NarrationKind::NpcGreeting || r.kind == NarrationKind::NpcTalk)
+            body["npc"] = r.npcId;
+        if (r.kind == NarrationKind::NpcTalk) {
+            Json history = Json::array();
+            for (const game::narration::TalkTurn& t : r.history)
+                history.push_back({{"player", t.player}, {"npc", t.npc}});
+            body["history"] = std::move(history);
+            body["input"] = r.playerInput;
+        }
+        std::string base = url_;
+        while (base.ends_with('/'))
+            base.pop_back();
+        return {base + "/v1/narrate", {{"content-type", "application/json"}}, body.dump(), def_.limits.timeoutMs};
+    }
+
+  private:
+    std::expected<std::string, ProviderError> read(const Json& j) const override {
+        const auto text = j.find("text");
+        return textOr(text != j.end() && text->is_string() ? text->get<std::string>() : "");
+    }
+
+    const NarratorDef& def_;
+    std::string url_, installId_;
+};
+
 } // namespace
 
 std::unique_ptr<Provider> anthropicProvider(const NarratorDef& def, ProviderConfig config) {
@@ -264,6 +295,9 @@ std::unique_ptr<Provider> anthropicProvider(const NarratorDef& def, ProviderConf
 }
 std::unique_ptr<Provider> geminiProvider(const NarratorDef& def, ProviderConfig config) {
     return std::make_unique<Gemini>(def, std::move(config));
+}
+std::unique_ptr<Provider> relayProvider(const NarratorDef& def, std::string relayUrl, std::string installId) {
+    return std::make_unique<Relay>(def, std::move(relayUrl), std::move(installId));
 }
 std::unique_ptr<Provider> openAiProvider(const NarratorDef& def, ProviderConfig config, bool local) {
     return std::make_unique<OpenAi>(def, std::move(config), local);

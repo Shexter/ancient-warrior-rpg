@@ -60,6 +60,11 @@ std::unique_ptr<Provider> geminiProvider(const game::narration::NarratorDef& def
 std::unique_ptr<Provider> openAiProvider(const game::narration::NarratorDef& def, ProviderConfig config,
                                          bool local);
 
+// The game's own relay (Hosted mode): POST <relayUrl>/v1/narrate with the structured event only
+// (reference §8), identified by the install id; the relay holds the model key.
+std::unique_ptr<Provider> relayProvider(const game::narration::NarratorDef& def, std::string relayUrl,
+                                        std::string installId);
+
 // Builds, sends and parses one request.
 std::expected<std::string, ProviderError> complete(const Provider& provider, const Transport& transport,
                                                    const game::narration::NarrationRequest& request);

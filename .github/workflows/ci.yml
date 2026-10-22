@@ -45,3 +45,14 @@ jobs:
       - run: cmake --preset asan
       - run: cmake --build --preset asan
       - run: ctest --preset asan -LE window-display
+
+  # The narration relay (Cloudflare Worker): plain Node test runner, no dependencies.
+  relay:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
+        working-directory: relay

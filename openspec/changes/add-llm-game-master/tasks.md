@@ -38,15 +38,15 @@ Why this exists: the game binary cannot keep a secret, since anyone can extract 
 
 - [ ] 6.1 BLOCKER, do first: check the current Gemini API terms for (a) whether one free-tier key may serve third-party players and (b) how Google uses free-tier request data. Record the answer and source links in `design.md` Open Questions. If serving is not allowed, choose the relay provider (for example, a paid key with a strict global cap) before continuing. Only the relay changes; client tasks are unaffected.
 - [ ] 6.2 Set up Cloudflare: create the account and Worker project, run `wrangler login`, and add `relay/.dev.vars` to `.gitignore`; verify `wrangler whoami` works and `git status` shows no secret files
-- [ ] 6.3 Create `relay/` per `reference/llm-interfaces.md` §8 (TypeScript Worker, wrangler config, no secrets committed) with schema validation, the 4 KB limit, server-side prompts synced from `data/narrator.json`, an output cap, and a 7 s timeout; verify vitest tests for raw-prompt rejection, unknown kind, extra summary key, and oversize body
-- [ ] 6.4 Add per-install, per-hashed-IP, and global daily counters (Durable Object) with 48 h expiry and 429 + Retry-After, with the global cap set below the provider's free quota; verify tests for the per-install limit and the global cap that assert the provider is not called
+- [x] 6.3 Create `relay/` per `reference/llm-interfaces.md` §8 (TypeScript Worker, wrangler config, no secrets committed) with schema validation, the 4 KB limit, server-side prompts synced from `data/narrator.json`, an output cap, and a 7 s timeout; verify vitest tests for raw-prompt rejection, unknown kind, extra summary key, and oversize body
+- [x] 6.4 Add per-install, per-hashed-IP, and global daily counters (Durable Object) with 48 h expiry and 429 + Retry-After, with the global cap set below the provider's free quota; verify tests for the per-install limit and the global cap that assert the provider is not called
 - [ ] 6.5 Store the key only via `wrangler secret put GEMINI_API_KEY` and deploy to a staging Worker; verify a curl narration request succeeds, a raw prompt gets 400, and a repo-wide search (`git grep`) for the key prefix finds nothing
 - [ ] 6.6 Security check of the relay: confirm the key is never in responses or logs, no request content is stored, error responses leak no provider details, and the hashed-IP salt is a secret; verify by reviewing a staging log tail after test requests
 - [ ] 6.7 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 7. Hosted Mode in the Game
 
-- [ ] 7.1 Implement `RelayProvider` per §5 and §8 plus install ID generation per §4; verify `tests/providers_test.cpp` relay cases against fixtures: the request body matches the §8 schema exactly, 200 is parsed, 429 + Retry-After backs off, 502 falls back
+- [x] 7.1 Implement `RelayProvider` per §5 and §8 plus install ID generation per §4; verify `tests/providers_test.cpp` relay cases against fixtures: the request body matches the §8 schema exactly, 200 is parsed, 429 + Retry-After backs off, 502 falls back
 - [ ] 7.2 Add the key-leak check from §9 to CI, build with `-DHEROES_RELAY_URL=<staging URL>`, and verify hosted narration works end to end against staging and that an unset `HEROES_RELAY_URL` shows Hosted as unavailable
 - [ ] 7.3 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 

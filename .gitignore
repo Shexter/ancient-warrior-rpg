@@ -5,3 +5,4 @@ heroes RPG/*.mp3
 relay/.dev.vars
 relay/node_modules/
 __pycache__/
+relay/src/prompts.json

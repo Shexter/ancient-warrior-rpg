@@ -51,8 +51,8 @@ std::string settingsProblem(const Settings& settings,
                             const std::function<std::optional<std::string>(const char*)>& getEnv);
 
 // The narrator the settings ask for, sending through `transport`; none before consent, when Off,
-// when the mode lacks what it needs (settingsProblem), or for Hosted (no relay client yet). No
-// request can leave the game without one.
+// or when the mode lacks what it needs (settingsProblem; Hosted needs a relay URL in the build).
+// No request can leave the game without one.
 std::shared_ptr<net::Narrator> makeNarrator(const Settings& settings, const game::narration::NarratorDef& def,
                                             const std::function<std::optional<std::string>(const char*)>& getEnv,
                                             net::Transport transport);

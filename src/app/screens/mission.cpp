@@ -207,7 +207,11 @@ void BattleScreen::startNarration(bool bossIntro) {
         return;
     const game::narration::NarrationRequest intro{
         game::narration::NarrationKind::BossIntro,
-        {{"hero", hero.name}, {"foe", enemy.name}, {"location", location_}, {"level", session_.state->hero.level}},
+        {{"hero", hero.name},
+         {"path", session_.content.path(session_.state->hero.pathId).name},
+         {"level", session_.state->hero.level},
+         {"foe", enemy.name},
+         {"location", location_}},
         {}, {}, {}};
     narration_.ask(session_.liveNarrator, intro, game::narration::narrateOffline(*session_.narrator, intro, narrationRng_),
                    session_.narrator->limits.timeoutMs);

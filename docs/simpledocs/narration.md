@@ -1,6 +1,6 @@
 # Narration (`src/game/narration/`)
 
-The LLM game master is being built (OpenSpec `add-llm-game-master`). Built so far: the data, the offline lines in battles and town, the request pipeline, the direct providers over libcurl, the settings with their consent and Settings screens. Hosted mode (the relay) isn't built yet.
+The LLM game master is being built (OpenSpec `add-llm-game-master`). Built so far: the data, the offline lines in battles and town, the request pipeline, the direct providers over libcurl, the settings with their consent and Settings screens. Hosted mode works in builds configured with `-DHEROES_RELAY_URL=<url>`; the relay itself is written and tested but not deployed.
 
 ## Data (`data/narrator.json`, `templates.*`)
 
@@ -76,3 +76,10 @@ With a narrator on the Session, the Almonry (merchant), the Forge (blacksmith), 
 ## Talk (`TownScreen`)
 
 At the Almonry, the Forge, the Prior and the Thesaurus, **T** (shown as "T talk" on row 23) opens a dialogue box over rows 6–21. The hero types up to 200 printable characters and Enter sends them. With a live narrator the NPC answers in character (the request carries the NPC's persona, the last 6 exchanges and the new line in `<player>` tags), showing "…" while waiting; with none, or when the reply is late or an error, it answers with its built-in `NpcTalk` line. Replies are only words: nothing in the game changes. Esc closes the box, and leaving the NPC forgets the conversation. `tests/narrator_setup_test.cpp` checks that a reply promising a million gold leaves the game unchanged, the history limit and reset, the 200-character cap, and the built-in answer.
+
+## Hosted mode and the relay (`relay/`)
+
+- The game's `relayProvider` posts only the structured event to `<HEROES_RELAY_URL>/v1/narrate`: `v`, `installId`, `kind`, `summary`, and for NPCs `npc` (plus `history` and `input` for Talk). It sends no key. `200 {"text"}` is the reply, 429 with Retry-After backs off, and 502 falls back to the built-in line. Without a relay URL in the build, Hosted shows "Not available in this build".
+- `relay/` is a Cloudflare Worker in TypeScript with no npm dependencies, tested with Node's own test runner (`npm test` in `relay/`, also a CI job). Its prompts are copied from `data/narrator.json` before each test and deploy, so they can't drift from the game's.
+- It accepts only a request matching the schema exactly (unknown keys such as `prompt`, unknown kinds, extra summary keys, long strings, and bodies over 4 KB are 400) and builds the prompt itself. It rate-limits by day globally, per install (6 a minute, 200 a day) and per hashed IP (20 a minute, 600 a day), storing only counters that delete themselves after 48 hours. Gemini errors come back as `502 {"error":"upstream"}` with no detail, and it logs only kind, status and time.
+- Deploying needs a Cloudflare account, `wrangler secret put GEMINI_API_KEY` and `IP_SALT`, and the Gemini terms decision (see `openspec/changes/add-llm-game-master/design.md`, Open Questions).

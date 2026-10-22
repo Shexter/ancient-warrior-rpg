@@ -32,6 +32,8 @@ enum SettingsRow { kMode, kProvider, kModel, kBaseUrl, kApiKey, kBack };
 } // namespace
 
 bool applySettings(Session& session) {
+    if (session.settings.mode == Mode::Hosted && session.settings.installId.empty())
+        session.settings.installId = newInstallId(); // the first time Hosted is chosen
     const bool saved = session.settingsFile.empty() || saveSettings(session.settings, session.settingsFile);
     session.liveNarrator.reset();
     if (session.transport && session.narrator && session.env)
@@ -138,8 +140,6 @@ Transition SettingsScreen::update(std::span<const KeyEvent> keys, double dtSecon
                 i = (i + 1) % order.size();
             while (order[i] == Mode::Hosted && !hostedAvailable());
             s.mode = order[i];
-            if (s.mode == Mode::Hosted && s.installId.empty())
-                s.installId = newInstallId();
             note_ = applySettings(session_) ? "Saved." : "Couldn't save the settings.";
             break;
         }

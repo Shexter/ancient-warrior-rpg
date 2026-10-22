@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "installId": "0123456789abcdef0123456789abcdef",
+  "kind": "NpcTalk",
+  "npc": "merchant",
+  "summary": {
+    "hero": "Aria",
+    "heroHpPct": 100,
+    "level": 3,
+    "npc": "merchant"
+  },
+  "history": [
+    {
+      "npc": "Gold talks.",
+      "player": "Hello"
+    }
+  ],
+  "input": "Any discounts?"
+}

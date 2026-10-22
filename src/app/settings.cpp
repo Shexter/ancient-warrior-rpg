@@ -167,8 +167,7 @@ std::string settingsProblem(const Settings& s,
     case Settings::Mode::Off:
         return {};
     case Settings::Mode::Hosted:
-        return hostedAvailable() ? "Hosted narration isn't built into this version yet."
-                                 : "Not available in this build.";
+        return hostedAvailable() ? "" : "Not available in this build.";
     case Settings::Mode::Byok:
         return resolveKey(s, getEnv).empty() ? "Enter an API key (or set the provider's environment variable)." : "";
     case Settings::Mode::Local:
@@ -182,9 +181,11 @@ std::string settingsProblem(const Settings& s,
 std::shared_ptr<net::Narrator> makeNarrator(const Settings& s, const game::narration::NarratorDef& def,
                                             const std::function<std::optional<std::string>(const char*)>& getEnv,
                                             net::Transport transport) {
-    if (!s.consentShown || s.mode == Settings::Mode::Off || s.mode == Settings::Mode::Hosted ||
-        !settingsProblem(s, getEnv).empty())
+    if (!s.consentShown || s.mode == Settings::Mode::Off || !settingsProblem(s, getEnv).empty())
         return nullptr;
+    if (s.mode == Settings::Mode::Hosted) // only the event and the install id leave the game
+        return std::make_shared<net::Narrator>(net::relayProvider(def, HEROES_RELAY_URL, s.installId), std::move(transport),
+                                               net::Narrator::Options{def.limits.narrationChars, false});
     const net::ProviderConfig config{s.model, resolveKey(s, getEnv), s.baseUrl};
     std::unique_ptr<net::Provider> provider;
     if (s.mode == Settings::Mode::Local)
