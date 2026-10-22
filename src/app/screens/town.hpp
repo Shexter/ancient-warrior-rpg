@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -111,8 +112,28 @@ class TownScreen : public Screen {
     bool leave_ = false; // set by a modal callback to return to the parent screen
 
   private:
+    // Talk (T): a dialogue box over rows 6-21 with a 200-character line to say. The NPC answers in
+    // character through the narrator, or with its built-in line when there is none or it's late.
+    // The last 6 exchanges go with each line, and are forgotten when the player leaves.
+    struct Talk {
+        TextInput input{200};
+        std::vector<game::narration::TalkTurn> history;
+        std::vector<std::pair<bool, std::string>> lines; // (the hero said it, text), oldest first
+        std::uint64_t ticket = 0;                        // the reply awaited; 0 when none
+        std::string asked;                               // what the hero said, until the reply
+        double waited = 0;
+        bool open = false;
+    };
+    game::narration::NarrationRequest npcRequest(game::narration::NarrationKind kind) const;
+    void say(const std::string& text);
+    void answer(const std::string& reply);
+    void pollNarrator();
+    void drawTalk(engine::Framebuffer& frame) const;
+
     std::string title_;
+    std::string npc_; // set by greet()
     NarrationPanel greeting_{76};
+    Talk talk_;
 };
 
 // The 10 slots of a bag or bank as menu rows: "Topaz x3", or "(empty)" disabled.

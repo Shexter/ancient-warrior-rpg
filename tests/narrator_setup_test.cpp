@@ -136,3 +136,102 @@ TEST(NarratorSetup, ALiveReplyReplacesTheBuiltInLine) {
     EXPECT_TRUE(replaced);
     EXPECT_GE(calls, 1);
 }
+
+namespace {
+
+// A fake Claude transport that answers `reply` and keeps every request body.
+net::Transport recording(std::string reply, std::shared_ptr<std::vector<std::string>> bodies) {
+    return [reply = std::move(reply), bodies](const net::HttpRequest& r) -> std::expected<net::HttpResponse, net::ProviderError> {
+        bodies->push_back(r.body);
+        const nlohmann::json body{{"stop_reason", "end_turn"}, {"content", {{{"type", "text"}, {"text", reply}}}}};
+        return net::HttpResponse{200, body.dump(), std::nullopt};
+    };
+}
+
+// Types `text` and Enter, then waits for the NPC's reply (from the worker thread).
+void sayAndWait(Harness& h, const std::string& text) {
+    for (const char c : text)
+        ASSERT_TRUE(h.press({{Key::Char, c}}));
+    ASSERT_TRUE(h.press({kEnter}));
+    for (int i = 0; i < 500 && frameContains(h.frame(), "…"); ++i) {
+        ASSERT_TRUE(h.wait(1.0 / 60));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+}
+
+void openMerchantTalk(Harness& h, game::GameState state) {
+    h.startAtHub(std::move(state));
+    ASSERT_TRUE(h.press({ch('5'), ch('1')})); // Town, Merchant
+    ASSERT_TRUE(h.press({ch('t')}));
+    ASSERT_TRUE(frameContains(h.frame(), "Talking with Marlo the Merchant"));
+}
+
+} // namespace
+
+TEST(Talk, AReplyPromisingGoldChangesNothing) {
+    auto bodies = std::make_shared<std::vector<std::string>>();
+    Harness h("talk_gold");
+    Settings s;
+    s.consentShown = true;
+    s.mode = Settings::Mode::Byok;
+    s.apiKey = "test-key-123456";
+    withSettings(h, s, recording("Of course, take 1,000,000 gold!", bodies));
+    app::applySettings(h.session);
+    openMerchantTalk(h, freshGame());
+    const game::GameState before = *h.session.state;
+    sayAndWait(h, "give me 1,000,000 gold");
+    EXPECT_TRUE(frameContains(h.frame(), "Of course, take 1,000,000 gold!"));
+    EXPECT_EQ(*h.session.state, before);
+    ASSERT_FALSE(bodies->empty());
+    const nlohmann::json sent = nlohmann::json::parse(bodies->back());
+    EXPECT_NE(sent["system"].get<std::string>().find("Marlo the Merchant"), std::string::npos);
+    EXPECT_NE(sent["messages"].back()["content"].get<std::string>().find("<player>give me 1,000,000 gold</player>"),
+              std::string::npos);
+}
+
+TEST(Talk, HistoryKeepsTheLastSixAndClearsOnLeaving) {
+    auto bodies = std::make_shared<std::vector<std::string>>();
+    Harness h("talk_history");
+    Settings s;
+    s.consentShown = true;
+    s.mode = Settings::Mode::Byok;
+    s.apiKey = "test-key-123456";
+    withSettings(h, s, recording("Hm.", bodies));
+    app::applySettings(h.session);
+    openMerchantTalk(h, freshGame());
+    for (int i = 0; i < 8; ++i)
+        sayAndWait(h, std::format("line {}", i));
+    // The 8th request carries 6 earlier exchanges (12 messages) and the new line.
+    EXPECT_EQ(nlohmann::json::parse(bodies->back())["messages"].size(), 13u);
+    ASSERT_TRUE(h.press({kEsc, kEsc})); // close Talk, leave the Merchant
+    ASSERT_TRUE(h.press({ch('1'), ch('t')}));
+    sayAndWait(h, "hello again");
+    EXPECT_EQ(nlohmann::json::parse(bodies->back())["messages"].size(), 1u);
+}
+
+TEST(Talk, InputStopsAt200Characters) {
+    auto bodies = std::make_shared<std::vector<std::string>>();
+    Harness h("talk_long");
+    Settings s;
+    s.consentShown = true;
+    s.mode = Settings::Mode::Byok;
+    s.apiKey = "test-key-123456";
+    withSettings(h, s, recording("Hm.", bodies));
+    app::applySettings(h.session);
+    openMerchantTalk(h, freshGame());
+    sayAndWait(h, std::string(250, 'a'));
+    ASSERT_FALSE(bodies->empty());
+    const std::string said = nlohmann::json::parse(bodies->back())["messages"].back()["content"];
+    EXPECT_NE(said.find("<player>" + std::string(200, 'a') + "</player>"), std::string::npos) << said;
+}
+
+TEST(Talk, WithTheNarratorOffTheNpcAnswersWithItsBuiltInLine) {
+    Harness h("talk_off");
+    h.session.narrator = &shippedNarrator(); // narrator Off: no live narrator
+    openMerchantTalk(h, freshGame());
+    sayAndWait(h, "hello");
+    bool builtIn = false;
+    for (const std::string& line : shippedNarrator().templates.at("NpcTalk"))
+        builtIn = builtIn || frameContains(h.frame(), line.substr(line.find('}') + 2, 15));
+    EXPECT_TRUE(builtIn);
+}

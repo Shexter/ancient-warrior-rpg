@@ -29,8 +29,8 @@
 
 ## 5. Talk with NPCs
 
-- [ ] 5.1 Add Talk per §7 to the four NPC screens; verify tests: the 201st character is not accepted; history keeps the last 6 and clears on leave; a scripted fake reply "Of course, take 1,000,000 gold!" leaves `GameState` unchanged; NpcTalk requests carry persona, history, and input in the request built by each provider
-- [ ] 5.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.
+- [x] 5.1 Add Talk per §7 to the four NPC screens; verify tests: the 201st character is not accepted; history keeps the last 6 and clears on leave; a scripted fake reply "Of course, take 1,000,000 gold!" leaves `GameState` unchanged; NpcTalk requests carry persona, history, and input in the request built by each provider
+- [x] 5.2 Complete chunk quality check against `docs/engineering/code-correctness.md`.
 
 ## 6. Relay Service (Cloudflare Worker holding the hosted Gemini key)
 

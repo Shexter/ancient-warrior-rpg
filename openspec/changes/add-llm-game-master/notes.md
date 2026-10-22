@@ -49,3 +49,9 @@ Verification: clang debug, asan (UBSan clean), ci and GCC 14 Release `-Werror` 6
 - The manual network check was a throwaway program in the scratchpad, not a `--net-check` flag, so there was nothing to remove. It POSTed `{}` to https://example.com over TLS and got **405** (example.com refuses POSTs, so 200 isn't possible with a POST), proving the TLS path. A closed local port came back Unreachable.
 - **4.1/4.2:** consent screen, Settings screen and `makeNarrator`, as described in `docs/simpledocs/narration.md`. SPEC DRIFT: Settings appears only when the game has a settings file (the real game always does), so screen tests without one keep the old Hub rows. Hosted stays disabled ("Not available in this build") until the relay exists.
 - Live replies now replace built-in lines in battles and town (the §6 UI contract). Talk (5.1) is next.
+
+## Task 5.1: Talk
+
+- Built per §7 on all four NPC screens. SPEC DRIFT: Talk is the **T** key (shown as "T talk") on the shared NPC frame rather than a row in each NPC's menu, because the merchant and bank screens are two lists with no menu to add it to. It's available whenever the game has narrator data; with the narrator Off the NPC answers with its built-in line, as §7 says.
+- Screens now poll the narrator once a step and hand each reply to whoever asked (greeting or Talk), so one can't swallow the other's reply.
+- Verification: clang debug, asan (UBSan clean; Talk and narrator tests repeated 5 times) and ci 671/671; window-off 636/636; mingw syntax check clean. Docker wasn't running, so Ubuntu GCC 13 is left to CI.

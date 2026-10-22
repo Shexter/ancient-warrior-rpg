@@ -179,12 +179,35 @@ TownScreen::TownScreen(Session& session, std::string title)
 Transition TownScreen::update(std::span<const KeyEvent> keys, double dtSeconds) {
     refresh();
     modal_.tick(dtSeconds);
-    if (const auto notice = greeting_.tick(dtSeconds))
-        session_.lastMessage = *notice;
+    greeting_.tick(dtSeconds);
+    pollNarrator();
+    if (talk_.open) {
+        talk_.input.tick(dtSeconds);
+        talk_.waited += dtSeconds;
+        if (talk_.ticket && talk_.waited * 1000 > session_.narrator->limits.timeoutMs)
+            answer({}); // too late: the built-in line
+    }
     onTick(dtSeconds);
     for (const KeyEvent& key : keys) {
         if (leave_)
             break;
+        if (talk_.open) {
+            if (key.key == engine::Key::Escape) {
+                talk_.open = false;
+                continue;
+            }
+            if (talk_.ticket) // waiting on the reply
+                continue;
+            if (talk_.input.handle(key) == InputResult::Submitted && !talk_.input.value().empty()) {
+                say(talk_.input.value());
+                talk_.input = TextInput(200);
+            }
+            continue;
+        }
+        if (!modal_.open() && !npc_.empty() && key.key == engine::Key::Char && (key.ch == 't' || key.ch == 'T')) {
+            talk_.open = true;
+            continue;
+        }
         if (modal_.open()) {
             modal_.handle(key);
             continue;
@@ -214,17 +237,88 @@ void TownScreen::draw(Framebuffer& frame) const {
         greeting_.draw(frame, 2, 20);
     }
     drawBody(frame);
+    if (!npc_.empty() && !isPortrait(frame))
+        drawText(frame, frame.width() - 9, 23, "T talk", palette::kDim);
+    if (talk_.open)
+        drawTalk(frame);
     modal_.draw(frame);
+}
+
+game::narration::NarrationRequest TownScreen::npcRequest(game::narration::NarrationKind kind) const {
+    const game::Hero& h = hero();
+    return {kind,
+            {{"hero", h.name}, {"level", h.level}, {"heroHpPct", h.maxHp > 0 ? h.hp * 100 / h.maxHp : 0}, {"npc", npc_}},
+            npc_, {}, {}};
+}
+
+void TownScreen::say(const std::string& text) {
+    talk_.lines.push_back({true, text});
+    talk_.asked = text;
+    if (!session_.liveNarrator) {
+        answer({});
+        return;
+    }
+    game::narration::NarrationRequest request = npcRequest(game::narration::NarrationKind::NpcTalk);
+    request.history = talk_.history;
+    request.playerInput = text;
+    talk_.ticket = session_.liveNarrator->request(std::move(request));
+    talk_.waited = 0;
+}
+
+// The NPC's reply, or its built-in line when `reply` is empty. Only words: nothing in the game changes.
+void TownScreen::answer(const std::string& reply) {
+    std::string line = reply;
+    if (line.empty()) {
+        game::Rng rng = game::Rng::stream(state().seed ^ talk_.lines.size(), 0xA11CE);
+        line = game::narration::narrateOffline(*session_.narrator, npcRequest(game::narration::NarrationKind::NpcTalk), rng);
+    }
+    talk_.lines.push_back({false, line});
+    talk_.history.push_back({talk_.asked, line});
+    const auto keep = static_cast<std::size_t>(session_.narrator->limits.talkHistory);
+    if (talk_.history.size() > keep)
+        talk_.history.erase(talk_.history.begin(), talk_.history.end() - static_cast<std::ptrdiff_t>(keep));
+    talk_.ticket = 0;
+}
+
+void TownScreen::pollNarrator() {
+    if (!session_.liveNarrator)
+        return;
+    while (const auto reply = session_.liveNarrator->poll()) {
+        greeting_.take(*reply);
+        if (talk_.ticket && reply->ticket == talk_.ticket)
+            answer(reply->result ? *reply->result : std::string());
+    }
+    if (const auto notice = session_.liveNarrator->takeNotice())
+        session_.lastMessage = *notice;
+}
+
+void TownScreen::drawTalk(engine::Framebuffer& frame) const {
+    drawPanel(frame, 1, 6, frame.width() - 2, 16);
+    const std::string& name = session_.narrator->npcs.at(npc_).name;
+    drawText(frame, 3, 6, std::format(" Talking with {} ", name), palette::kAccent);
+    // The newest lines that fit, above the input row.
+    std::vector<std::pair<bool, std::string>> rows;
+    for (const auto& [hero, text] : talk_.lines)
+        for (const std::string& row : wordWrap((hero ? "You: " : "") + text, frame.width() - 6))
+            rows.push_back({hero, row});
+    const std::size_t fit = 12;
+    const std::size_t from = rows.size() > fit ? rows.size() - fit : 0;
+    for (std::size_t i = from; i < rows.size(); ++i)
+        drawText(frame, 3, 7 + static_cast<int>(i - from), rows[i].second, rows[i].first ? palette::kText : palette::kAccent);
+    if (talk_.ticket) {
+        drawText(frame, 3, 20, "…", palette::kDim);
+    } else {
+        const int x = 3 + drawText(frame, 3, 20, "> ", palette::kDim);
+        talk_.input.draw(frame, x, 20);
+    }
 }
 
 void TownScreen::greet(std::string_view npc) {
     if (!session_.narrator)
         return;
+    npc_ = npc;
     const game::Hero& h = hero();
-    const game::narration::NarrationRequest request{
-        game::narration::NarrationKind::NpcGreeting,
-        {{"hero", h.name}, {"level", h.level}, {"heroHpPct", h.maxHp > 0 ? h.hp * 100 / h.maxHp : 0}, {"npc", npc}},
-        std::string(npc), {}, {}};
+    const game::narration::NarrationRequest request = npcRequest(game::narration::NarrationKind::NpcGreeting);
     // Its own stream, varied by the hero's gold so visits differ; never the game's RNG.
     game::Rng rng = game::Rng::stream(state().seed ^ static_cast<std::uint64_t>(h.gold), 0xA11CE);
     greeting_.ask(session_.liveNarrator, request, game::narration::narrateOffline(*session_.narrator, request, rng),

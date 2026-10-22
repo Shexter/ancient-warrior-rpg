@@ -21,8 +21,10 @@ class NarrationPanel {
     // Shows `fallback`, and sends `request` when `narrator` is set.
     void ask(const std::shared_ptr<net::Narrator>& narrator, game::narration::NarrationRequest request,
              const std::string& fallback, int timeoutMs);
-    // Types on, and takes a reply (or a one-time notice, returned) from the narrator.
-    std::optional<std::string> tick(double dtSeconds);
+    void tick(double dtSeconds);
+    // A reply from the narrator (the screen polls it once for everything it asked): taken when it's
+    // the one this panel is waiting for and came in time.
+    void take(const net::NarrationReply& reply);
     bool empty() const { return !text_; }
     bool revealed() const { return !text_ || text_->revealed(); }
     void draw(engine::Framebuffer& frame, int x, int y) const;
@@ -30,7 +32,6 @@ class NarrationPanel {
   private:
     int width_;
     std::optional<Typewriter> text_;
-    std::shared_ptr<net::Narrator> narrator_;
     std::uint64_t ticket_ = 0; // the reply wanted; 0 for none
     double waited_ = 0, timeout_ = 0;
 };

@@ -328,8 +328,13 @@ Transition BattleScreen::update(std::span<const KeyEvent> keys, double dtSeconds
         auto [request, line] = std::move(*std::exchange(narrationNext_, std::nullopt));
         narration_.ask(session_.liveNarrator, std::move(request), line, session_.narrator->limits.timeoutMs);
     }
-    if (const auto notice = narration_.tick(dtSeconds))
-        view_.log(*notice);
+    narration_.tick(dtSeconds);
+    if (session_.liveNarrator) {
+        while (const auto reply = session_.liveNarrator->poll())
+            narration_.take(*reply);
+        if (const auto notice = session_.liveNarrator->takeNotice())
+            view_.log(*notice);
+    }
     if (view_.ended() && !view_.busy() && narration_.revealed()) // let the last line be read
         endHold_ += dtSeconds;
     if (view_.ended() && !view_.busy() && (narration_.empty() || endHold_ >= 1.0)) {

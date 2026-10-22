@@ -13,24 +13,23 @@ void NarrationPanel::ask(const std::shared_ptr<net::Narrator>& narrator, game::n
     show(fallback);
     if (!narrator)
         return;
-    narrator_ = narrator;
     ticket_ = narrator->request(std::move(request));
     waited_ = 0;
     timeout_ = timeoutMs / 1000.0;
 }
 
-std::optional<std::string> NarrationPanel::tick(double dtSeconds) {
+void NarrationPanel::tick(double dtSeconds) {
     if (text_)
         text_->tick(dtSeconds);
-    if (!narrator_)
-        return std::nullopt;
     waited_ += dtSeconds;
-    while (const auto reply = narrator_->poll())
-        if (reply->ticket == ticket_ && reply->result && waited_ <= timeout_) {
-            text_.emplace(std::vector<std::string>{*reply->result}, width_);
-            ticket_ = 0;
-        }
-    return narrator_->takeNotice();
+}
+
+void NarrationPanel::take(const net::NarrationReply& reply) {
+    if (ticket_ == 0 || reply.ticket != ticket_)
+        return;
+    if (reply.result && waited_ <= timeout_)
+        text_.emplace(std::vector<std::string>{*reply.result}, width_);
+    ticket_ = 0;
 }
 
 void NarrationPanel::draw(engine::Framebuffer& frame, int x, int y) const {
