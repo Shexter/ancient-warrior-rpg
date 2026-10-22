@@ -7,7 +7,9 @@
 #include <array>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace heroes::app {
@@ -28,6 +30,36 @@ class OverworldScreen final : public Screen {
 
     const game::world::World& world() const { return world_; }
 
+    struct FloatingNumber {            // a hit's damage, rising over where it landed
+        game::world::Tile at;
+        int amount;
+        bool onHero;
+        int age; // ticks shown so far
+    };
+    struct NovaRing {
+        game::world::Tile center;
+        int radius, age;
+    };
+    // What a front end needs to draw the map itself (the window's glyph scene). Plain data that
+    // refers into the screen, valid until its next update.
+    struct SceneView {
+        const game::world::WorldDef& map;
+        const game::world::World& world;
+        game::world::Tile camera;     // the map tile at the view's top-left
+        const engine::Sprite* hero;   // the hero's battle art (large when loaded), or null
+        const engine::Sprite* monster;
+        std::string_view heroName;
+        int ticks;                    // steps since the screen opened, for the wind-up flash
+        std::span<const FloatingNumber> numbers;
+        std::optional<NovaRing> nova;
+    };
+    // The HUD alone: panels, minimap and hotbar, with every other cell's glyph U'\0' (nothing
+    // here). The camera follows the hero over a view of `viewTiles` map tiles, and clicks are
+    // read against that view.
+    void drawHud(engine::Framebuffer& frame, engine::Size viewTiles) const;
+    // Precondition: drawn at least once (the camera is set by drawing).
+    SceneView sceneView() const;
+
   private:
     // This step's input from the keys, or nothing when Esc asks to leave.
     std::optional<game::world::WorldInput> readKeys(std::span<const engine::KeyEvent> keys);
@@ -41,8 +73,10 @@ class OverworldScreen final : public Screen {
     // "Forge — press E", "Lair of Avaritia — Requires Lv 15", or empty away from landmarks.
     std::string landmarkPrompt() const;
     bool minimapShown(int canvasWidth) const;
+    void follow(engine::Size view) const; // moves the camera to keep the hero in view
     void drawTerrain(engine::Framebuffer& frame) const;
-    void drawHud(engine::Framebuffer& frame) const;
+    void drawPanels(engine::Framebuffer& frame) const;
+    void drawOverlays(engine::Framebuffer& frame) const; // panels, minimap, hotbar
     void drawMinimap(engine::Framebuffer& frame) const;
     void drawCreatures(engine::Framebuffer& frame) const; // monsters, the hero, damage numbers
 
@@ -54,22 +88,14 @@ class OverworldScreen final : public Screen {
     std::string goal_;
     bool refreshGoal_ = false;
     std::optional<bool> minimap_;      // the player's M choice; unset follows the canvas width
-    struct FloatingNumber {            // a hit's damage, rising over where it landed
-        game::world::Tile at;
-        int amount;
-        bool onHero;
-        int age; // ticks shown so far
-    };
     std::vector<FloatingNumber> numbers_;
-    struct NovaRing {
-        game::world::Tile center;
-        int radius, age;
-    };
     std::optional<NovaRing> nova_;
     std::string notice_; // "No potions", a kill's rewards; shown over the goal line for a while
     int noticeAge_ = 0;
     std::array<int, game::world::kAbilityCount + 1> flashes_{}; // hotbar slot flash ticks left
     int ticks_ = 0; // steps since the screen opened, for the wind-up flash
+    const engine::Sprite* heroArt_ = nullptr;    // for sceneView(), looked up once
+    const engine::Sprite* monsterArt_ = nullptr;
     mutable int lastCanvasWidth_ = 80; // for M before a choice is made
     // The map tile drawn at the canvas's top-left. It follows the hero as frames are drawn, since
     // only drawing knows the canvas size; unset until the first frame centres it on the hero.

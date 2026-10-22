@@ -42,8 +42,8 @@ See proposal.md for why. What the window builds on:
 
 ### D4. The Overworld seam: HUD-only drawing and a scene view
 `OverworldScreen` gains two methods:
-- `drawHud(Framebuffer&, bool transparentMap)`: with `true`, the map cells keep glyph `U'\0'`, meaning "nothing here".
-- `sceneView() const`, which returns a `SceneView` struct (plain data): world def, `World` ref, camera in tiles, effects (numbers, Nova ring, notices are HUD-side), the hero's path id, and the tick counter.
+- `drawHud(Framebuffer&, Size viewTiles)`: draws the panels, minimap and hotbar, and leaves every other cell's glyph `U'\0'`, meaning "nothing here". The camera follows the hero over a view of `viewTiles` map tiles, so clicks (read against the camera) map to the scene's tiles.
+- `sceneView() const`, which returns a `SceneView` struct (plain data): world def, `World` ref, camera in tiles, the damage numbers and Nova ring (notices stay HUD-side), the hero's and monster's battle art, the hero's name, and the tick counter.
 
 The window checks whether the top screen is an `OverworldScreen` (one `dynamic_cast` in `window::Run`). If it is, it draws the scene from `sceneView()` and then the HUD grid, skipping `\0` cells. Otherwise it draws the grid.
 
@@ -62,7 +62,9 @@ This is read-only and doesn't change the simulation. The window also interpolate
 - **Shape instances** are `{rect or ellipse or radial gradient, rgba, blend}`.
 
 Each layer is one function, ported from prototype v2 and tidied:
-- `groundLayer`, `waterLayer` (with `reflections`), `surfaceLayer` (cobbles, path, rock), `grassLayer`, `treeLayer`, `houseLayer` (houses found from wall blocks once, cached per `WorldDef`), `creatureLayer`, `effectLayer`, `lightLayer`.
+- `groundLayer`, `waterLayer`, `surfaceLayer` (cobbles, path, rock, cave mouths), `lightLayer` (window pools, under the grass as in v2), `grassLayer`, `treeLayer`, `houseLayer` (houses found from wall blocks once, cached per `WorldDef`), `creatureLayer` (with reflections and wind-up tiles in an under-grass layer), `effectLayer`.
+- Items go into nine fixed layers (`Ground, Pools, Under, Grass, Trees, Houses, Creatures, Glow, Text`), each an ordered list, so shapes and glyphs interleave correctly within a layer. Moonlight is a colour shade on every item, not a layer. The vignette is drawn by the drawer in screen space.
+- Shapes are drawn with the font atlas's white corner, so the scene batches as one texture.
 
 Randomness is a position hash only (the prototype's `hash`/`rnd`/`noise`), never `Rng`. Buffers are reused between frames (`Scene::clear()` keeps capacity), so there's no per-frame allocation once warm. The drawer submits instances in layer order, switching blend modes per layer.
 

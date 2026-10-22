@@ -1,6 +1,9 @@
 #include "frame_text.hpp"
 #include "screen_harness.hpp"
 
+#include "app/art.hpp"
+#include "app/screens/overworld.hpp"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -607,4 +610,32 @@ TEST(Overworld, GoldenWindUpAndNovaFrames) {
         "                ",
     };
     EXPECT_EQ(novaRows, expectedNova); // the radius 3 ring, and Nova's damage over the Fox
+}
+
+TEST(Overworld, TheWindowHudLeavesEveryMapCellEmpty) {
+    for (const engine::Size canvas : {engine::kCompactCanvas, kLargeCanvas}) {
+        Harness h("world_hud_only");
+        enterWorld(h);
+        const Framebuffer terminal = h.frame(canvas);
+        const auto& screen = dynamic_cast<const OverworldScreen&>(*h.app->top());
+        Framebuffer hud(canvas.width, canvas.height);
+        screen.drawHud(hud, {50, 28});
+        int empty = 0;
+        for (int y = 0; y < canvas.height; ++y)
+            for (int x = 0; x < canvas.width; ++x) {
+                const engine::Cell& cell = hud.at(x, y);
+                if (cell.glyph == U'\0')
+                    ++empty;
+                else
+                    EXPECT_EQ(cell, terminal.at(x, y)) << x << "," << y; // the HUD, as the terminal draws it
+            }
+        if (canvas == engine::kCompactCanvas) // all but the status, goal and hotbar rows
+            EXPECT_EQ(empty, canvas.width * (canvas.height - kHudRows - 1));
+        else
+            EXPECT_GT(empty, canvas.width * canvas.height / 2);
+        // The camera now covers 50x28 tiles around the hero.
+        const game::world::Tile camera = screen.sceneView().camera, hero = screen.world().hero();
+        EXPECT_TRUE(hero.x >= camera.x && hero.x < camera.x + 50 && hero.y >= camera.y &&
+                    hero.y < camera.y + 28);
+    }
 }

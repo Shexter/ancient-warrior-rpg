@@ -135,6 +135,14 @@ OverworldScreen::OverworldScreen(Session& session)
     : session_(session), world_(*session.world, *session.state, session.content),
       goal_(game::nextGoal(*session.state, session.content, session.scripts)) {
     session_.dirty = true; // the world forked the game's random stream, and the field changes HP
+    const auto art = [&](const std::string& file) -> const engine::Sprite* {
+        if (const auto it = session_.large.blocks.find(file); it != session_.large.blocks.end())
+            return &it->second;
+        const auto it = session_.sprites.find(file);
+        return it == session_.sprites.end() ? nullptr : &it->second;
+    };
+    heroArt_ = art(std::format("hero_{}.sprite", session_.state->hero.pathId));
+    monsterArt_ = art("monster.sprite");
 }
 
 Transition OverworldScreen::update(std::span<const engine::KeyEvent> keys, double) {
@@ -304,12 +312,28 @@ engine::Size OverworldScreen::canvasSize(engine::Size terminal) const {
 }
 
 void OverworldScreen::draw(engine::Framebuffer& frame) const {
-    lastCanvasWidth_ = frame.width();
+    follow({frame.width(), frame.height()});
     drawTerrain(frame);
-    drawHud(frame);
+    drawOverlays(frame);
+}
+
+void OverworldScreen::drawHud(engine::Framebuffer& frame, engine::Size viewTiles) const {
+    follow(viewTiles);
+    frame.fillRect(0, 0, frame.width(), frame.height(), {U'\0', palette::kText, palette::kBg});
+    drawOverlays(frame);
+}
+
+void OverworldScreen::drawOverlays(engine::Framebuffer& frame) const {
+    lastCanvasWidth_ = frame.width();
+    drawPanels(frame);
     if (minimapShown(frame.width()))
         drawMinimap(frame);
     drawHotbar(frame);
+}
+
+OverworldScreen::SceneView OverworldScreen::sceneView() const {
+    return {*session_.world, world_, *camera_, heroArt_, monsterArt_, session_.state->hero.name,
+            ticks_, numbers_, nova_};
 }
 
 void OverworldScreen::drawHotbar(engine::Framebuffer& frame) const {
@@ -354,14 +378,16 @@ void OverworldScreen::drawHotbar(engine::Framebuffer& frame) const {
     }
 }
 
-void OverworldScreen::drawTerrain(engine::Framebuffer& frame) const {
+void OverworldScreen::follow(engine::Size view) const {
     const game::world::WorldDef& map = *session_.world;
     const Tile hero = world_.hero();
-    const Tile start = camera_.value_or(
-        Tile{hero.x - frame.width() / 2, hero.y - frame.height() / 2});
-    camera_ = Tile{followAxis(start.x, hero.x, frame.width(), map.width),
-                   followAxis(start.y, hero.y, frame.height(), map.height)};
+    const Tile start = camera_.value_or(Tile{hero.x - view.width / 2, hero.y - view.height / 2});
+    camera_ = Tile{followAxis(start.x, hero.x, view.width, map.width),
+                   followAxis(start.y, hero.y, view.height, map.height)};
+}
 
+void OverworldScreen::drawTerrain(engine::Framebuffer& frame) const {
+    const game::world::WorldDef& map = *session_.world;
     frame.clear(palette::kBg);
     for (int y = 0; y < frame.height(); ++y)
         for (int x = 0; x < frame.width(); ++x)
@@ -418,7 +444,7 @@ void OverworldScreen::drawCreatures(engine::Framebuffer& frame) const {
     }
 }
 
-void OverworldScreen::drawHud(engine::Framebuffer& frame) const {
+void OverworldScreen::drawPanels(engine::Framebuffer& frame) const {
     const game::Hero& hero = session_.state->hero;
     const game::Content& content = session_.content;
     const std::string weapon = hero.weapon ? content.item(hero.weapon->itemId).name : "—";

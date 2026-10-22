@@ -1,13 +1,17 @@
 // Needs a display (label window-display): opens a hidden window and draws a real screen.
 #include "app/app.hpp"
 #include "app/screens/title.hpp"
+#include "app/screens/overworld.hpp"
 #include "screen_harness.hpp"
 #include "window/grid.hpp"
+#include "window/scene.hpp"
 
 #include "raylib.h"
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <cstdio>
 #include <cstdlib>
 
 using namespace screen_test;
@@ -61,6 +65,76 @@ TEST(WindowDisplay, TheTitleScreenDrawsItsCells) {
     EXPECT_GE(foregroundHits, 50);
     UnloadImage(image);
     UnloadRenderTexture(target);
+    UnloadFont(font);
+    CloseWindow();
+}
+
+namespace {
+
+Font loadFont() {
+    const auto codepoints = heroes::window::atlasCodepoints();
+    return LoadFontEx((fs::path(HEROES_SOURCE_DIR) / "assets/fonts/JetBrainsMono-Regular.ttf").string().c_str(),
+                      48, const_cast<int*>(codepoints.data()), static_cast<int>(codepoints.size()));
+}
+
+// Draws the Overworld `frames` times into a w x h target; the average milliseconds per frame.
+double renderOverworld(const OverworldScreen& screen, const Font& font, int w, int h, int frames,
+                       Image* last) {
+    RenderTexture2D target = LoadRenderTexture(w, h);
+    heroes::window::Scene scene;
+    Framebuffer hud(engine::kCanvasWidth, engine::kCanvasHeight);
+    const auto start = std::chrono::steady_clock::now();
+    for (int i = 0; i < frames; ++i) {
+        BeginTextureMode(target);
+        ClearBackground({4, 6, 9, 255});
+        heroes::window::drawOverworld(screen, hud, scene, font, static_cast<float>(i) / 60, w, h);
+        EndTextureMode();
+        BeginDrawing(); // a swap per frame, so the GPU keeps up with the timing
+        EndDrawing();
+    }
+    const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    if (last) {
+        *last = LoadImageFromTexture(target.texture);
+        ImageFlipVertical(last);
+    }
+    UnloadRenderTexture(target);
+    return ms / frames;
+}
+
+} // namespace
+
+// Renders the starter area. With HEROES_SNAPSHOT_DIR set it is saved for looking at; with
+// HEROES_BENCH set, 600 frames are timed at 1280x720 and 1920x1080 (docs/benchmarks.md).
+TEST(WindowDisplay, TheOverworldSceneDrawsUnderTheHud) {
+    SetConfigFlags(FLAG_WINDOW_HIDDEN);
+    SetTraceLogLevel(LOG_WARNING);
+    InitWindow(1280, 720, "test");
+    ASSERT_TRUE(IsWindowReady());
+    Font font = loadFont();
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+
+    Harness h("window_display_world");
+    h.session.large = shippedLargeSprites();
+    h.startAtHub(freshGame());
+    ASSERT_TRUE(h.press({kHubExplore}));
+    const auto& screen = dynamic_cast<const OverworldScreen&>(*h.app->top());
+    Image image{};
+    renderOverworld(screen, font, 1280, 720, 1, &image);
+    if (const char* dir = std::getenv("HEROES_SNAPSHOT_DIR"))
+        ExportImage(image, (fs::path(dir) / "window_overworld.png").string().c_str());
+    // The HUD's status row is drawn over the scene in the panel colour (top-left cell).
+    const auto layout = heroes::window::layoutFor(engine::kCompactCanvas, 1280, 720);
+    const Color panel = GetImageColor(image, layout.originX + 1, layout.originY + 1);
+    EXPECT_EQ((engine::Rgb{panel.r, panel.g, panel.b}), palette::kPanel);
+    // The scene shows through below it: some pixel in the middle is lit and not the panel.
+    const Color middle = GetImageColor(image, 640, 400);
+    EXPECT_NE((engine::Rgb{middle.r, middle.g, middle.b}), palette::kPanel);
+    UnloadImage(image);
+
+    if (std::getenv("HEROES_BENCH"))
+        for (const auto& [w, h2] : {std::pair{1280, 720}, std::pair{1920, 1080}})
+            std::printf("overworld %dx%d: %.2f ms/frame over 600 frames\n", w, h2,
+                        renderOverworld(screen, font, w, h2, 600, nullptr));
     UnloadFont(font);
     CloseWindow();
 }

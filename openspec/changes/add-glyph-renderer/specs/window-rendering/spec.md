@@ -37,13 +37,17 @@ The window SHALL draw the Overworld as a layered scene of freely placed glyphs a
 - ground;
 - water, with drifting ripples and the reflections of creatures standing next to it;
 - cobbles, paths and rocks;
+- warm light pooling on the ground around windows;
+- the target tiles of monster wind-ups, and creature reflections;
 - grass blades, each anchored at its base with its own rotation, size and colour, swaying over time and bending away from creatures within a short radius;
 - trees, with shadows;
 - houses, drawn from the map's wall blocks, with roofs and lit windows;
 - creatures, each on a dark silhouette with a ground shadow, with the hero's name above it;
 - glows, for fireflies, Nova and bolts;
-- light: moonlit patches and warm pools around windows;
+- damage numbers;
 - a vignette.
+
+Every layer's colours SHALL be shaded by moonlit patches and warmed near windows.
 
 Everything an 80×24 Overworld shows SHALL still be visible: the landmark marks, monster wind-ups (the target tile highlighted and the monster flashing), damage numbers, bolts, the Nova ring, and the HUD panels, minimap and hotbar drawn over the scene. A tile's look SHALL depend only on its position and type, apart from animation over time.
 

@@ -156,3 +156,15 @@ field bot rogue     L1 10/10  L2 10/10  L3 10/10  L4 10/10  L5  4/10  L6  6/10
 ```
 
 `FieldBalance.EveryStarterPathClearsALevelOneZone` pins the task's bar (at least 8 of 10 at level 1 for every path), and the shipped tuning meets it unchanged. A level 1 zone is a walk-over: its monsters' ATK (30–38) doesn't get past a starting hero's armor, so they do 0 damage. Levels 2–3 are where field fights start to cost HP, and level 4 and up need gear or blessings. That is the curve chunk 7's zone bands are laid out on. The rogue's non-monotonic L5/L6 comes from its high base DEF meeting the rolled monster ATK spread.
+
+## Overworld scene frame time (add-glyph-renderer task 2.6, 2026-10-21)
+
+The window's Overworld at spawn on the starter map is drawn 600 times into a hidden window's render texture, with the HUD over it and a buffer swap per frame. The time covers building the scene, drawing it and drawing the HUD grid. It's a release build (`ci` preset) on an Apple M4 Pro.
+
+```
+HEROES_BENCH=1 ./heroes_window_display_tests --gtest_filter='*Overworld*'
+overworld 1280x720: 6.92 ms/frame over 600 frames
+overworld 1920x1080: 6.88 ms/frame over 600 frames
+```
+
+Both are well inside the 16.6 ms frame budget, so the static-layer render-texture cache from the design's risks section isn't needed. The two sizes cost the same because the scene shows the same height of map at any size (zoom = height / 720) and the extra width is cheap. Glyphs and shapes share the font atlas texture (shapes use its white corner), so the whole scene batches into very few draw calls.

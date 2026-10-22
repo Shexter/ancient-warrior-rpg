@@ -102,7 +102,7 @@ set_tests_properties(heroes_rejects_bad_layout PROPERTIES
 # ---- heroes-window: the raylib front end (see openspec add-glyph-renderer) -------------------
 if(HEROES_BUILD_WINDOW)
     add_library(heroes_window_lib STATIC src/window/input.cpp src/window/grid.cpp
-        src/window/run.cpp)
+        src/window/run.cpp src/window/scene.cpp src/window/scene_draw.cpp)
     target_include_directories(heroes_window_lib PUBLIC src)
     target_link_libraries(heroes_window_lib PUBLIC heroes_app raylib PRIVATE heroes_warnings)
 
@@ -110,7 +110,8 @@ if(HEROES_BUILD_WINDOW)
     target_link_libraries(heroes-window PRIVATE heroes_window_lib heroes_platform heroes_warnings)
     target_compile_definitions(heroes-window PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-    add_executable(heroes_window_tests tests/window_input_test.cpp tests/window_grid_test.cpp)
+    add_executable(heroes_window_tests tests/window_input_test.cpp tests/window_grid_test.cpp
+        tests/window_scene_test.cpp)
     target_link_libraries(heroes_window_tests PRIVATE heroes_window_lib heroes_warnings
         GTest::gtest_main)
     target_compile_definitions(heroes_window_tests PRIVATE HEROES_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
